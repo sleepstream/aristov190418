@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="qreader-2.1.2">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.android/build-cache/5968dd1a8e065484c723d798fe1425c9b97b0fde/output/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.android/build-cache/5968dd1a8e065484c723d798fe1425c9b97b0fde/output/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.nisrulz/qreader/2.1.2/80199ffc86f0a77ebe3deb464de1c68f6d0ba5c0/qreader-2.1.2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

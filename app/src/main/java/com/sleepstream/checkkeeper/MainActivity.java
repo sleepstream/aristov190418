@@ -1,0 +1,2139 @@
+package com.sleepstream.checkkeeper;
+
+
+import android.Manifest;
+import android.app.ActivityManager;
+import android.app.AlertDialog;
+import android.content.*;
+import android.content.res.Resources;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Typeface;
+import android.location.Address;
+import android.location.Geocoder;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
+import android.provider.Settings;
+import android.support.annotation.AnyRes;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
+import android.support.design.widget.TabLayout;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.menu.MenuBuilder;
+import android.support.v7.view.menu.MenuPopupHelper;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
+import android.text.InputType;
+import android.util.ArrayMap;
+import android.util.SparseArray;
+import android.view.*;
+import android.widget.*;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.barcode.Barcode;
+import com.google.android.gms.vision.barcode.BarcodeDetector;
+import com.sleepstream.checkkeeper.DB.DBHelper;
+import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
+import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
+import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
+import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
+import com.sleepstream.checkkeeper.linkedListObjects.LinkedListClass;
+import com.sleepstream.checkkeeper.modules.*;
+import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
+import com.sleepstream.checkkeeper.qrmanager.QRManager;
+import com.sleepstream.checkkeeper.smsListener.SmsListener;
+import com.sleepstream.checkkeeper.smsListener.SmsReceiver;
+import com.sleepstream.checkkeeper.userModule.UserDataActivity;
+import com.sleepstream.checkkeeper.userModule.personalData;
+import okhttp3.*;
+import org.ghost4j.document.PDFDocument;
+
+import java.io.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.logging.FileHandler;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static android.view.View.GONE;
+import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
+
+
+public class MainActivity extends AppCompatActivity implements  InvoiceListAdapter.OnStartDragListener, AccountingListAdapter.OnStartDragListener,GoogleApiClient.OnConnectionFailedListener, NavigationView.OnNavigationItemSelectedListener {
+
+    static final int PAGE_COUNT = 5;
+    private  static final int  PURCHASE_PAGE = 3;
+    public static Intent intentService;
+    public static CustomViewPager pager;
+    public static InvoiceData currentInvoice;
+    private InvoiceData finalInvoiceData;
+    //public static MyFragmentPagerAdapter pagerAdapter;
+    public static TabLayout tabLayout;
+
+    static final String LOG_TAG = "MainActivity";
+    static Context context;
+    // UI
+
+    private QRManager QRitem;
+    private GetFnsData getFnsData;
+    public String android_id;
+
+    public static GoogleApiClient mGoogleApiClient;
+    private static String  cacheDir;
+    public static String pageNow= "accountingLists";
+
+    public static DBHelper dbHelper;
+    private static final String cameraPerm = Manifest.permission.CAMERA;
+    private static final String smsPerm = Manifest.permission.RECEIVE_SMS;
+    private static final String sdPerm = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+    private static final String MapPerm = Manifest.permission.ACCESS_FINE_LOCATION;
+    String[] permisions = new String[]{smsPerm, cameraPerm, sdPerm, MapPerm};
+    private String resultQR;
+    public static personalData user;
+    private boolean permChecked= false;
+
+    private final int cameraRequest = 1000;
+    private final int personalDataShow = 2001;
+    private final int personalDataRequestFull = 2000;
+    private final int PLACE_PICKER_REQUEST = 3000;
+    public static final int CALENDAR_PICKER_REQUEST = 4000;
+    public static final int PICK_IMAGE_ID = 234;
+    public static final int SetImageFromGoogle_REQUEST=5000;
+    public static final int PICK_INVOICE_FROM_IMAGE = 6000;
+    public static final int CAPTURE_FROM_PDF_QR = 7000;
+
+    boolean hasCameraPermission = false;
+    boolean hasSmsPermission = false;
+    boolean hasSDPermission = false;
+
+    public static Invoice invoice;
+    public static AccountingList accountingList;
+    public static PurchasesList purchasesList;
+    public static LinkedListClass linkedListClass;
+    public AccountingListAdapter accountingListAdapter;
+
+    private ItemTouchHelper mItemTouchHelperInvList;
+    private ItemTouchHelper mItemTouchHelperAccList;
+    public static RecyclerView recyclerViewFotoList;
+    public static RelativeLayout blurPlotter;
+    public static RelativeLayout loadingPanel;
+    public static RelativeLayout addMyPhoto;
+    public static RelativeLayout addMyPhotoContainer;
+
+    public TextView toolbar_title;
+
+    protected static Logger log = Logger.getLogger(MainActivity.class.getName());
+
+    private int nu=0;
+
+    public static FloatingActionButton fab;
+
+    public static List<Integer> pageBack = new LinkedList<Integer>();
+    private boolean isActive = false;
+
+    private ImageView ivFilter;
+
+
+    private android.app.FragmentTransaction fTrans;
+    private Toolbar toolbar;
+    private NavigationView navigationView;
+    private boolean statusDateFilter;
+    public static ArrayList<? extends Date> filterDates;
+    public static Map<String, String[]> filterParam = new LinkedHashMap<>();
+    private Integer currentPageNumber =null;
+    public static TextView currentNumber;
+    public Navigation navigation;
+    public TextView invoiceCount;
+    public TextView accountingListCount;
+    public TextView linkedListCount;
+    public TextView invoicesLoadingPage;
+
+    public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
+
+
+    @Override
+    protected void onCreate(final Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        //status 0 - just loaded waiting for loading
+        //status 3 - loading in progress
+        //status -1 - error loading from FNS not exist
+        //status 1 - loaded from fns
+        //status 2 - confirmed by user
+        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1"});
+        statusInvoices.put("in_basket", new String[]{"1"});
+
+        setContentView(R.layout.activity_main);
+        context= this;
+        toolbar = findViewById(R.id.toolbar);
+        DrawerLayout drawer =  findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
+        {
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+                initializeCountDrawer();
+            }
+        };
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+
+        currentNumber= findViewById(R.id.currentNumber);
+        ivFilter = findViewById(R.id.ivFilter);
+        ivFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(!statusDateFilter) {
+                    Intent intent = new Intent(context, CalendarPickerActivity.class);
+                    statusDateFilter = true;
+                    startActivityForResult(intent, MainActivity.CALENDAR_PICKER_REQUEST);
+                    ivFilter.setImageResource(R.drawable.ic_filter_remove_white_24dp);
+                }
+                else
+                {
+                    statusDateFilter = false;
+                    navigation.clearFilter("date_day");
+                    navigation.openCurrentPage(new Page("", navigation.currentPageNumber));
+                    ivFilter.setImageResource(R.drawable.ic_filter_white_24dp);
+                }
+            }
+        });
+        toolbar_title = findViewById(R.id.action_bar_title);
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
+        invoiceCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesPage));
+        accountingListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.accountingListPAge));
+        linkedListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.linkedListPage));
+        invoicesLoadingPage = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesLoadingPage));
+
+        navigation = new Navigation(context, toolbar_title);
+
+        try {
+            FileInputStream fis =  new FileInputStream("resources.properties");
+            LogManager.getLogManager().readConfiguration(fis);
+        } catch (IOException e) {
+            System.err.println("Could not setup logger configuration: " + e.toString());
+        }
+        String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/log/";
+        File tmp = new File(filepath);
+        if(!tmp.exists())
+            tmp.mkdirs();
+        FileHandler fh = null;
+        try {
+            fh = new FileHandler(filepath+"application_log.txt");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if(fh != null)
+            log.addHandler(fh);
+        log.info("Hello!");
+
+
+        cacheDir = context.getCacheDir().getAbsolutePath()+"/";
+
+        recyclerViewFotoList =  findViewById(R.id.imagelist);
+        blurPlotter = findViewById(R.id.blurPlotter);
+        loadingPanel= findViewById(R.id.loadingPanel);
+        addMyPhoto = findViewById(R.id.addMyPhoto);
+        addMyPhotoContainer = findViewById(R.id.addMyPhotoContainer);
+
+        blurPlotter.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                blurPlotter.setVisibility(GONE);
+                addMyPhotoContainer.setVisibility(GONE);
+                if(googleFotoListAdapter!= null)
+                {
+                    googleFotoListAdapter.placePhotoMetadataList.clear();
+                }
+                return true;
+            }
+        });
+        addMyPhoto.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                Intent chooseImageIntent = ImagePicker.getPickImageIntent(context);
+                startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
+                return false;
+            }
+        });
+
+        mGoogleApiClient = new GoogleApiClient
+                .Builder(this)
+                .addApi(Places.GEO_DATA_API)
+                .addApi(Places.PLACE_DETECTION_API)
+                .enableAutoManage(this, this)
+                .build();
+
+        /*intentService = new Intent(context, LoadingFromFNS.class);
+        if(!isMyServiceRunning(LoadingFromFNS.class))
+        {
+            startService(intentService);
+        }*/
+
+/*
+        slidingUpPanelLayout = (SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
+        slidingUpPanelLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View view, float v) {
+
+            }
+
+            @Override
+            public void onPanelStateChanged(View view, SlidingUpPanelLayout.PanelState panelState, SlidingUpPanelLayout.PanelState panelState1) {
+                if(panelState == SlidingUpPanelLayout.PanelState.EXPANDED)
+                {
+                    currentName.setText(R.string.accountingListTitle);
+                    currentNumber.setText(accountingList.accountingListData.size()+"");
+                    pageNow = "accountingLists";
+                }
+                if(panelState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED) && currentName.getText().equals(context.getString(R.string.accountingListTitle)))
+                {
+
+                    if(!invoice.checkFilter()) {
+                        invoice.clearFilter();
+                        invoice.reLoadLinkedList();
+                    }
+                    pageNow = "invoicesLists";
+                    currentName.setText(R.string.invoicesListTitle);
+                    currentNumber.setText(invoice.invoices.size()+"");
+                }
+
+
+            }
+        });*/
+       //pager = findViewById(R.id.pager);
+       //pager.setPagingEnabled(false);
+       //pagerAdapter = new MyFragmentPagerAdapter(getSupportFragmentManager());
+        //pager.setAdapter(pagerAdapter);
+
+
+
+/*
+        pager.addOnPageChangeListener (new ViewPager.OnPageChangeListener() {
+
+            @Override
+            public void onPageSelected(int position) {
+
+                Fragment fragment = pagerAdapter.getFragment(position);
+                if (fragment != null) {
+                    fragment.onResume();
+                }
+                //(currentInvoice.store == null ? true : (currentInvoice.store.adress.length() > 1 ? false : true))
+                if(currentInvoice!= null && invoiceClickAble(currentInvoice.get_status())) {
+                    log.info(LOG_TAG+"\n"+ "onPageSelected, position = " + position);
+
+                    if (pageNow == "purchasesList" && showMap(currentInvoice)) {
+
+                        LayoutInflater inflater = getLayoutInflater();
+                        View dialoglayout = inflater.inflate(R.layout.butn_layout, null);
+                        TextView dialogHint = dialoglayout.findViewById(R.id.whatToDo);
+                        dialogHint.setHint(R.string.finde_store_on_map);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        builder.setView(dialoglayout);
+                        final AlertDialog dialog = builder.create();
+
+
+                        TextView btnOk =  dialoglayout.findViewById(R.id.btnOk);
+                        TextView btnCancel = dialoglayout.findViewById(R.id.btnCancel);
+                        btnCancel.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dialog.cancel();
+                                //do nothing
+                                return;
+                            }
+                        });
+                        btnOk.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dialog.cancel();
+
+                                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+                                if (currentInvoice.store != null) {
+                                    invoice.findBestLocationByDataFromFNS(currentInvoice.store);
+                                    if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
+                                        builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude,  currentInvoice.store.longitude),
+                                                new LatLng(currentInvoice.store.latitude, currentInvoice.store.longitude)));
+
+
+                                }
+
+                                //Context context = getApplicationContext();
+                                try {
+                                    startActivityForResult(builder.build(MainActivity.this), PLACE_PICKER_REQUEST);
+                                } catch (GooglePlayServicesRepairableException e) {
+                                    log.info(LOG_TAG+"\n"+ e.getMessage() + "Error");
+                                    e.printStackTrace();
+                                } catch (GooglePlayServicesNotAvailableException e) {
+                                    log.info(LOG_TAG+"\n"+ e.getMessage() + "Error");
+                                    e.printStackTrace();
+                                } catch (Exception e) {
+                                    log.info(LOG_TAG+"\n"+ e.getMessage() + "Error");
+                                    e.printStackTrace();
+                                }
+                                return;
+                            }
+                        });
+
+                        WindowManager.LayoutParams wmlp = dialog.getWindow().getAttributes();
+                        wmlp.gravity = Gravity.TOP | Gravity.CENTER;
+                        dialog.show();
+                        dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                            @Override
+                            public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent keyEvent) {
+                                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                                    dialogInterface.cancel();
+                                    return true;
+                                }
+                                return false;
+                            }
+                        });
+
+                        log.info(LOG_TAG+"\n"+ "last purchase position " + position);
+                    }
+                }
+                else
+                {}
+                //pagerAdapter.notifyDataSetChanged();
+
+
+
+            }
+
+            @Override
+            public void onPageScrolled(int position, float positionOffset,
+                                       int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+            }
+
+        });
+*/
+        //setTabs();
+
+
+
+        android_id = Settings.Secure.getString(this.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+
+
+        hasSmsPermission = RuntimePermissionUtil.checkPermissonGranted(this, smsPerm);
+        hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
+        hasSDPermission = RuntimePermissionUtil.checkPermissonGranted(this, sdPerm);
+        if(!hasSmsPermission || !hasCameraPermission || !hasSDPermission) {
+            RuntimePermissionUtil.requestPermission(MainActivity.this, permisions, 200);
+        }
+        else
+            permChecked = true;
+/*
+
+*/
+
+        SmsReceiver.bindListener(new SmsListener() {
+            @Override
+            public void messageReceived(String messageText) {
+                Pattern p = Pattern.compile("[0-9]{6,10}");
+                Matcher m = p.matcher(messageText);
+                if(m.matches())
+                {
+                    user._status = 1;
+                    user.generateAuth(messageText);
+                    Toast.makeText(context, user.password, Toast.LENGTH_LONG).show();
+
+                }
+            }
+        });
+
+        getFnsData = new GetFnsData(android_id);
+
+
+
+        //check and create DB if nessesary
+        dbHelper = new DBHelper(this);
+        try {
+            dbHelper.createDataBase();
+        } catch (IOException ioe) {
+            throw new Error("Unable to create database");
+        }
+        try {
+            dbHelper.openDataBase();
+        }catch(SQLException sqle){
+            log.info(LOG_TAG+"\n"+ "Error opening database, Exeption");
+            //throw sqle;
+        }
+
+        if(!permChecked) {
+            try {
+                permChecked = getIntent().getExtras().getBoolean("permChecked");
+            } catch (Exception ex) {
+                permChecked = false;
+            }
+        }
+        //initiolisation userData
+        user = new personalData(context);
+        //if new user
+        if((user.id == null && permChecked) || user._status == -1)
+        {
+            LayoutInflater inflater = (LayoutInflater)context.getSystemService (Context.LAYOUT_INFLATER_SERVICE);
+            View v = inflater.inflate(R.layout.greetings, null);
+            AlertDialog.Builder adb = new AlertDialog.Builder(this);
+            adb.setView(v);
+            //adb.setTitle(getString(R.string.titleGreetingMessage));
+            adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    //send to registration page
+                    Intent intent = new Intent(MainActivity.this, UserDataActivity.class);
+                    intent.putExtra("requestCode", personalDataRequestFull);
+                    startActivityForResult(intent, personalDataRequestFull);
+                }
+            });
+            adb.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    finish();
+                }
+            });
+            adb.show();
+
+        }
+        //если пользователь не новый, но нужна повторная авторизация
+        else if(user._status == 0)
+        {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setMessage(getString(R.string.getNewPswFNS))
+                    .setCancelable(false)
+                    .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+
+                        }
+                    })
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            getFnsData.resetPussword(new Callback() {
+                                @Override
+                                public void onFailure(Call call, final IOException e) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            log.info(LOG_TAG+"\n"+ e.getMessage() + "error" + getFnsData.requestStr);
+                                            //FNS_Data.setText(e.getMessage() + "error" + getFnsData.requestStr);///приходит сюда. понять почему
+                                        }
+                                    });
+                                }
+                                @Override
+                                public void onResponse(Call call, Response response) throws IOException {
+                                    //do nothing
+                                }
+                            });
+                        }
+                    });
+            AlertDialog alert = builder.create();
+            alert.show();
+
+        }
+
+
+        invoice = new Invoice(navigation);
+        invoice.reLoadInvoice();
+        accountingList = new AccountingList();
+        purchasesList = new PurchasesList();
+        linkedListClass = new LinkedListClass();
+
+        initializeCountDrawer();
+
+
+        fab = findViewById(R.id.fab);
+        assert fab!=null;
+        fab.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                blurPlotter.setVisibility(View.VISIBLE);
+
+                View v=LayoutInflater.from(context).inflate(R.layout.add_invoicemanual_layout, null);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setView(v);
+                final EditText fP = v.findViewById(R.id.addFP);
+                final EditText fN = v.findViewById(R.id.addFN);
+                final EditText fD = v.findViewById(R.id.addFD);
+
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        blurPlotter.setVisibility(GONE);
+                        AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
+                        String qrResult = "t=T&s=&fn="+fN.getText().toString()+"&i="+fD.getText().toString()+"&fp="+fP.getText().toString()+"&n=1";
+                        asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, qrResult, invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        blurPlotter.setVisibility(GONE);
+                        dialog.cancel();
+                    }
+                });
+                builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialogInterface) {
+                        blurPlotter.setVisibility(GONE);
+                    }
+                });
+                builder.show();
+
+                return true;
+            }
+        });
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                log.info(LOG_TAG+"\n"+ "page Now +"+ pageNow);
+                Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+                startActivityForResult(intent, cameraRequest);
+
+/*                switch(pageNow)
+                {
+                    case "invoicesLists":
+                        Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+                        startActivityForResult(intent, cameraRequest);
+                        break;
+                    case "accountingLists":
+
+                        LayoutInflater inflater = getLayoutInflater();
+                        View dialoglayout = inflater.inflate(R.layout.add_accountinglist_layout, null);
+                        final EditText dialogHint = dialoglayout.findViewById(R.id.addList);
+                        dialogHint.setHint(R.string.title_addAccointingList);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+                        builder.setView(dialoglayout);
+                        final AlertDialog dialog = builder.create();
+
+                        TextView btnAdd = dialoglayout.findViewById(R.id.btnAdd1);
+                        btnAdd.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dialog.cancel();
+                                AccountingListData tmp = new AccountingListData();
+                                tmp.setName(dialogHint.getText().toString());
+                                String res = accountingList.addAccountingList(null, tmp);
+                                if(res.equals("exist"))
+                                {
+                                    Toast.makeText(context, "exist", Toast.LENGTH_LONG).show();
+                                }
+                                else if(res.equals(""))
+                                    AccountingListPageFragment.accountingListAdapter.notifyDataSetChanged();
+                                return;
+                            }
+                        });
+
+                        WindowManager.LayoutParams wmlp = dialog.getWindow().getAttributes();
+                        wmlp.gravity = Gravity.TOP|Gravity.CENTER;
+                        dialog.show();
+                        dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                            @Override
+                            public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent keyEvent) {
+                                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                                    dialogInterface.cancel();
+                                    return true;
+                                }
+                                return false;
+                            }
+                        });
+                        break;
+                }
+*/
+            }
+        });
+
+        navigation.openCurrentPage(new Page("", 0));
+    }
+
+    public  void initializeCountDrawer() {
+        Map<String, String[]>filter = new ArrayMap<>();
+        //все чеки
+        invoiceCount.setGravity(Gravity.CENTER_VERTICAL);
+        invoiceCount.setTypeface(null, Typeface.BOLD);
+        invoiceCount.setTextColor(ContextCompat.getColor(context, R.color.colorAccent));
+        filter.clear();
+        filter.put("in_basket", new String[]{"0"});
+        if(navigation.filterDates!= null && navigation.filterDates.size()>0) {
+            filter.put("date_day", dateFilterToString());
+        }
+        invoiceCount.setText(String.valueOf(invoice.getCount(filter)));
+
+        //список покупок
+        accountingListCount.setGravity(Gravity.CENTER_VERTICAL);
+        accountingListCount.setTypeface(null, Typeface.BOLD);
+        accountingListCount.setTextColor(ContextCompat.getColor(context, R.color.colorAccent));
+        accountingListCount.setText(String.valueOf(accountingList.getCount()));
+
+        //закрепленные
+        linkedListCount.setGravity(Gravity.CENTER_VERTICAL);
+        linkedListCount.setTypeface(null, Typeface.BOLD);
+        linkedListCount.setTextColor(ContextCompat.getColor(context, R.color.colorAccent));
+        linkedListCount.setText(String.valueOf(linkedListClass.getCount()));
+        //Загрузка
+        invoicesLoadingPage.setGravity(Gravity.CENTER_VERTICAL);
+        invoicesLoadingPage.setTypeface(null, Typeface.BOLD);
+        invoicesLoadingPage.setTextColor(ContextCompat.getColor(context, R.color.colorAccent));
+        filter.clear();
+        filter.put("_status", statusInvoices.get("loading"));
+        if(navigation.filterDates!= null && navigation.filterDates.size()>0) {
+            filter.put("date_day", dateFilterToString());
+        }
+        invoicesLoadingPage.setText(String.valueOf(invoice.getCount(filter)));
+    }
+
+
+
+    private String[] dateFilterToString()
+    {
+        if(navigation.filterDates!= null && navigation.filterDates.size()>0) {
+            List<String> selectionArgs = new ArrayList<>();
+            for (Date date : navigation.filterDates) {
+                selectionArgs.add(String.valueOf(date.getTime()));
+            }
+           return selectionArgs.toArray(new String[selectionArgs.size()]);
+        }
+        return null;
+    }
+
+    private void clearFilter(String date_day) {
+        if(filterDates != null) {
+            filterDates.clear();
+            filterParam.remove("date_day");
+        }
+    }
+    private void setFilter(String param, String value) {
+        if(!filterParam.containsKey(param)) {
+            filterParam.put(param, new String[]{value});
+        }
+
+    }
+
+
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
+
+
+        uncheckNavMenu();
+        switch(menuItem.getItemId())
+        {
+            case R.id.invoicesPage:
+                menuItem.setChecked(true);
+                closeDrawer();
+                navigation.clearFilter("");
+                navigation.openCurrentPage(new Page("", 0));
+                return true;
+            case R.id.accountingListPAge:
+                menuItem.setChecked(true);
+                closeDrawer();
+                navigation.clearFilter("");
+                navigation.openCurrentPage(new Page("", 2));
+                return true;
+            case R.id.linkedListPage:
+                menuItem.setChecked(true);
+                closeDrawer();
+                navigation.clearFilter("");
+                navigation.openCurrentPage(new Page("", 3));
+                return true;
+            case R.id.busketListPage:
+                menuItem.setChecked(true);
+                closeDrawer();
+                navigation.clearFilter("");
+                navigation.openCurrentPage(new Page("", 1));
+                return true;
+            case R.id.invoicesLoadingPage:
+                menuItem.setChecked(true);
+                closeDrawer();
+                navigation.clearFilter("");
+                navigation.setFilter("_status", statusInvoices.get("loading"));
+                navigation.openCurrentPage(new Page(context.getString(R.string.loadingInvoicesTitle), 5));
+                return true;
+        }
+
+        return false;
+    }
+
+    private void closeDrawer() {
+        DrawerLayout drawer =  findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+    }
+
+    private void uncheckNavMenu()
+    {
+        int size = navigationView.getMenu().size();
+        for (int i = 0; i < size; i++) {
+            navigationView.getMenu().getItem(i).setChecked(false);
+        }
+    }
+
+
+
+    public static class Page
+    {
+        public Page(String pageName, Integer position) {
+            this.pageName = pageName;
+            this.position = position;
+        }
+
+        public String pageName;
+        public Integer position;
+    }
+    private boolean showMap(InvoiceData currentInvoice) {
+        if(currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)
+            return true;
+        else if(currentInvoice.kktRegId == null && currentInvoice.store != null && currentInvoice.store._status == 0)
+            return true;
+        else if(currentInvoice.kktRegId == null && currentInvoice.store == null)
+            return true;
+        else
+            return false;
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+/*
+    public class MyFragmentPagerAdapter extends FragmentPagerAdapter {
+
+        private FragmentManager mFragmentManager;
+        //private Map<Integer, String> mFragmentTags;
+        private Map<Integer, String> mFragmentTags;
+
+
+        public MyFragmentPagerAdapter(FragmentManager fm) {
+            super(fm);
+            mFragmentManager = fm;
+            mFragmentTags = new HashMap<Integer, String>();
+
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+
+            Fragment fragment=null;
+
+            switch(position)
+            {
+                case 0:
+                    fragment= LinkedListPageFragment.newInstance(0);
+                    break;
+                case 1:
+                    fragment= AccountingListPageFragment.newInstance(0);
+                    break;
+                case 2:
+                    //fragment= InvoicesPageFragment.newInstance(0);
+                    break;
+                case PURCHASE_PAGE:
+                    fragment= PurchasesPageFragment.newInstance(0);
+                    break;
+                case 4:
+                    fragment= InvoicesBasketPageFragment.newInstance(0);
+                    break;
+                default:
+                    return null;
+            }
+
+
+            return  fragment;
+        }
+
+        @Override
+        public int getCount() {
+            return PAGE_COUNT;
+        }
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return "Page " + position;
+        }
+
+
+
+        @Override
+        public Fragment instantiateItem(ViewGroup container, int position) {
+            Fragment object = (Fragment)super.instantiateItem(container, position);
+            if (object instanceof Fragment) {
+                Fragment fragment = object;
+                String tag = fragment.getTag();
+                mFragmentTags.put(position, tag);
+            }
+            return object;
+        }
+
+        public Fragment getFragment(int position) {
+            Fragment fragment = null;
+            String tag = mFragmentTags.get(position);
+            if (tag != null) {
+
+                fragment = mFragmentManager.findFragmentByTag(tag);
+
+            }
+            return fragment;
+        }
+
+
+
+
+
+
+    }
+*/
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.mainmenu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.reset_fns_psw: {
+
+                Intent intent = new Intent(MainActivity.this, UserDataActivity.class);
+                intent.putExtra("requestCode", personalDataShow);
+                startActivityForResult(intent, personalDataShow);
+
+                return true;
+            }
+            case R.id.show_acc_list: {
+
+                return true;
+            }
+            case R.id.load_inv_from_img: {
+
+
+
+                Intent intent = new Intent();
+                intent.setType("*/*");
+                String[] mimetypes = {"image/*", "application/pdf"};
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
+
+                return true;
+            }
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is ExternalStorageProvider.
+     */
+    public static boolean isExternalStorageDocument(Uri uri) {
+        return "com.android.externalstorage.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is DownloadsProvider.
+     */
+    public static boolean isDownloadsDocument(Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is MediaProvider.
+     */
+    public static boolean isMediaDocument(Uri uri) {
+        return "com.android.providers.media.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * Get the value of the data column for this Uri. This is useful for
+     * MediaStore Uris, and other file-based ContentProviders.
+     *
+     * @param context The context.
+     * @param uri The Uri to query.
+     * @param selection (Optional) Filter used in the query.
+     * @param selectionArgs (Optional) Selection arguments used in the query.
+     * @return The value of the _data column, which is typically a file path.
+     */
+    public static String getDataColumn(Context context, Uri uri, String selection,
+                                       String[] selectionArgs) {
+
+        Cursor cursor = null;
+        final String column = "_data";
+        final String[] projection = {
+                column
+        };
+
+        try {
+            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
+                    null);
+            if (cursor != null && cursor.moveToFirst()) {
+                final int column_index = cursor.getColumnIndexOrThrow(column);
+                return cursor.getString(column_index);
+            }
+        } finally {
+            if (cursor != null)
+                cursor.close();
+        }
+        return null;
+    }
+
+    public static String getRealPathFromURI_API19(Context context, Uri uri) {
+        if (isExternalStorageDocument(uri)) {
+            final String docId = DocumentsContract.getDocumentId(uri);
+            final String[] split = docId.split(":");
+            final String type = split[0];
+
+            if ("primary".equalsIgnoreCase(type)) {
+                return Environment.getExternalStorageDirectory() + "/" + split[1];
+            }
+
+        }
+        // DownloadsProvider
+        else if (isDownloadsDocument(uri)) {
+
+            final String id = DocumentsContract.getDocumentId(uri);
+            final Uri contentUri = ContentUris.withAppendedId(
+                    Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+
+            return getDataColumn(context, contentUri, null, null);
+        }
+        // MediaProvider
+        else if (isMediaDocument(uri)) {
+            final String docId = DocumentsContract.getDocumentId(uri);
+            final String[] split = docId.split(":");
+            final String type = split[0];
+
+            Uri contentUri = null;
+            if ("image".equals(type)) {
+                contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+            } else if ("video".equals(type)) {
+                contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+            } else if ("audio".equals(type)) {
+                contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+            }
+
+            final String selection = "_id=?";
+            final String[] selectionArgs = new String[]{
+                    split[1]
+            };
+
+            return getDataColumn(context, contentUri, selection, selectionArgs);
+        }
+        return null;
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+
+        switch(requestCode) {
+            case CAPTURE_FROM_PDF_QR:
+            {
+                if (data == null) {return;}
+                if (resultCode == RESULT_OK) {
+                    AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
+                    asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, data.getStringExtra("qrCode"), invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
+                }
+            }
+                break;
+            case PICK_INVOICE_FROM_IMAGE:
+            {
+                if (data == null) {return;}
+                if (resultCode == RESULT_OK) {
+                    Bitmap myBitmap = null;
+                    ContentResolver cr = this.getContentResolver();
+                    String mime = cr.getType(data.getData());
+                    PDFDocument document = new PDFDocument();
+
+                    if(mime.equals("application/pdf")) {
+
+                        Intent intent = new Intent(MainActivity.this, PDFActivity.class);
+                        intent.putExtra("pdfUrl", getRealPathFromURI_API19(context, data.getData()));
+                        startActivityForResult(intent, CAPTURE_FROM_PDF_QR);
+                    }
+                    try {
+                        InputStream inputStream = context.getContentResolver().openInputStream(data.getData());
+                        myBitmap = BitmapFactory.decodeStream(inputStream);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+
+                    if(myBitmap != null) {
+                        BarcodeDetector detector =
+                                new BarcodeDetector.Builder(getApplicationContext())
+                                        .setBarcodeFormats(Barcode.DATA_MATRIX | Barcode.QR_CODE)
+                                        .build();
+                        if (!detector.isOperational()) {
+                            return;
+                        }
+
+                        Frame frame = new Frame.Builder().setBitmap(myBitmap).build();
+                        SparseArray<Barcode> barcodes = detector.detect(frame);
+                        if(barcodes.valueAt(0)!= null) {
+                            Barcode thisCode = barcodes.valueAt(0);
+                            AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
+                            asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, thisCode.rawValue, invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
+                        }
+                        else
+                        {
+                            Toast.makeText(this, R.string.invoice_load_from_image_error, Toast.LENGTH_LONG);
+                        }
+
+
+                    }
+                }
+            }
+            break;
+            case CALENDAR_PICKER_REQUEST:
+                if (data == null) {return;}
+                if(resultCode == RESULT_OK)
+                {
+                    invoice.filterDates = invoice.filterDates;
+                    navigation.filterParam.put("date_day", null);
+                    ArrayList<? extends Date> tmp = data.getParcelableArrayListExtra("dates");
+                    if(navigation.filterDates == null)
+                        navigation.filterDates = new ArrayList<>();
+                    navigation.filterDates.addAll(tmp);
+                    invoice.filterDates = invoice.filterDates;
+                    navigation.openCurrentPage(new Page("", navigation.currentPageNumber));
+                }
+                break;
+            case cameraRequest:
+            {
+                if (data == null) {return;}
+                if (resultCode == RESULT_OK) {
+                    //status 0 - just loaded waiting for loading
+                    //status 3 - loading in progress
+                    //status -1 - error loading from FNS not exist
+                    //status 1 - loaded from fns
+                    //status 2 - confirmed by user
+                    navigation.openCurrentPage(new Page("", 0));
+                    AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
+                    asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, data.getStringExtra("resultQR"), invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
+
+                } else {
+                    log.info(LOG_TAG+"\n"+ "CameraActivity canceled");
+                }
+                break;
+            }
+            case personalDataShow: {
+                if (data == null) {return;}
+                //user data is in object user!!!
+
+                //String greetings =  data.getStringExtra("phone");
+                //Toast.makeText(this.getApplicationContext(), "phone " + greetings, Toast.LENGTH_LONG).show();
+                //getFnsData.setPhoneNumber(greetings);
+                /*
+                getFnsData.resetPussword(new Callback(){
+                    @Override
+                    public void onFailure(Call call, final IOException e) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                FNS_Data = findViewById(R.id.FNS_Data);
+                                FNS_Data.setMovementMethod(new ScrollingMovementMethod());
+                                FNS_Data.setText(e.getMessage() + "error" + getFnsData.requestStr);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onResponse(Call call, final Response response) throws IOException {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                FNS_Data = findViewById(R.id.FNS_Data);
+                                FNS_Data.setMovementMethod(new ScrollingMovementMethod());
+                                try {
+                                    FNS_Data.setText(getFnsData.requestStr+getFnsData.bodyRec.toString()+response.body().string().toString()+"\n\n\n");
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
+                        });
+
+                    }
+                });
+                */
+                break;
+            }
+            case personalDataRequestFull: {
+                if (data == null) {return;}
+                String result = "";
+                try {
+                    result = data.getExtras().getString("error");
+                } catch (Exception ex) {
+                    result = "";
+                }
+                if (result == null)
+                    result = "";
+                log.info(LOG_TAG+"\n"+ "result from personalDataRequestFull\n" + result);
+                switch (result) {
+                    case "conflict": {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        builder.setMessage(getString(R.string.errorUserAlreadyRegistered))
+                                .setCancelable(false)
+                                .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+
+
+                                    }
+                                })
+                                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        getFnsData.resetPussword(new Callback() {
+                                            @Override
+                                            public void onFailure(Call call, IOException e) {
+                                                log.info(LOG_TAG+"\n"+ e.getMessage() + "\nerror\n" + getFnsData.requestStr);
+                                            }
+
+                                            @Override
+                                            public void onResponse(Call call, Response response) throws IOException {
+                                                log.info(LOG_TAG+"\n"+ response.message() + "\n" + getFnsData.requestStr);
+                                            }
+                                        });
+                                    }
+                                });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+                        break;
+                    }
+                    case "connection": {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        builder.setMessage(getString(R.string.connectionError))
+                                .setCancelable(false)
+                                .setNegativeButton(R.string.btnCancel, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                                    }
+                                })
+                                .setPositiveButton(R.string.btnOk, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        Intent intent = new Intent(MainActivity.this, UserDataActivity.class);
+                                        intent.putExtra("requestCode", personalDataRequestFull);
+                                        startActivityForResult(intent, personalDataRequestFull);
+                                    }
+                                });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+                        break;
+                    }
+                }
+
+
+                //data recived just make Toas
+                Toast.makeText(context, getString(R.string.UserDataEddedSuccesfuly) + " " + user.surname + " " + user.name, Toast.LENGTH_LONG).show();
+
+                break;
+            }
+            //confitm place on google map
+            case PLACE_PICKER_REQUEST: {
+                if (data == null) {return;}
+                Place place = PlacePicker.getPlace(this, data);
+                log.info(LOG_TAG+"\n"+ "you finde store " + place.getName() + " adress "+ place.getAddress());
+                InvoiceData invoiceData = currentInvoice;
+                if(invoiceData.store == null)
+                    invoiceData.store = new InvoiceData.Store();
+                //if(place.getName().toString().contains(place.getLatLng().))
+
+                if(!Pattern.matches(".*[-]?\\d{1,2}.\\d{1,2}.\\d{1,2}[.,]{1}\\d{1,2}.\\w.*", place.getName().toString()))
+                    invoiceData.store.name = place.getName().toString();
+                invoiceData.store.adress = place.getAddress().toString();
+                invoiceData.store.longitude = place.getLatLng().longitude;
+                invoiceData.store.latitude = place.getLatLng().latitude;
+                invoiceData.store.place_id = place.getId();
+                invoiceData.store._status = 1;
+                invoiceData.store.update = true;
+                invoiceData.store.store_type = place.getPlaceTypes().toString();
+                if(invoiceData.kktRegId != null)
+                    invoiceData.kktRegId._status=1;
+                invoice.updateInvoice(invoiceData);
+                invoice.reLoadInvoice();
+                InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                if(invoiceData.store.place_id != null)
+                {
+                    PhotoTask photoTask = new PhotoTask(500, 500);
+                    photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, invoiceData.store.place_id, invoiceData.store.latitude.toString(), invoiceData.store.longitude.toString());
+                }
+                break;
+            }
+            //set oun image
+            case PICK_IMAGE_ID: {
+                Bitmap bitmap = ImagePicker.getImageFromResult(this, resultCode, data);
+                saveImages(bitmap, null, null, currentInvoice.store.place_id);
+                break;
+            }
+            //set chosen image from google
+            case SetImageFromGoogle_REQUEST:
+            {
+                if(data != null) {
+                    String imgUrl = data.getExtras().getString("url");
+                    copyfile(imgUrl, Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/" + "IMG_" + currentInvoice.store.place_id + ".png");
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+
+    }
+
+
+
+    public static void copyfile(String srFile, String dtFile){
+        try{
+            File f1 = new File(srFile);
+            File f2 = new File(dtFile);
+            InputStream in = new FileInputStream(f1);
+
+            //For Append the file.
+            //OutputStream out = new FileOutputStream(f2,true);
+
+            //For Overwrite the file.
+            OutputStream out = new FileOutputStream(f2);
+
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = in.read(buf)) > 0){
+                out.write(buf, 0, len);
+            }
+            in.close();
+            out.close();
+            System.out.println("File copied.");
+        }
+        catch(FileNotFoundException ex){
+            System.out.println(ex.getMessage() + " in the specified directory.");
+            System.exit(0);
+        }
+        catch(IOException e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void fillData(Response response, InvoiceData finalInvoiceData) throws IOException {
+        getFnsData.body = response.body().string();
+        invoice.addJsonData(getFnsData.body, finalInvoiceData.getId());
+        getFnsData.bodyJsonParse();
+
+        //get GPS from adress and full adress
+
+
+        if(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress == null &&
+                (getFnsData.dataFromReceipt.document.receipt.user != null &&
+                        (getFnsData.dataFromReceipt.document.receipt.user.toLowerCase().contains("г.") ||
+                                getFnsData.dataFromReceipt.document.receipt.user.toLowerCase().contains("д.")))) {
+            getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress = getFnsData.dataFromReceipt.document.receipt.user;
+        }
+        if(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress != null)
+        {
+            Geocoder geocoder = new Geocoder(context);
+            List<Address> addresses = null;
+            try {
+                addresses = geocoder.getFromLocationName(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress, 1);
+                if(addresses.size() > 0) {
+                    finalInvoiceData.store = new InvoiceData.Store();
+                    finalInvoiceData.store.adress = addresses.get(0).getAddressLine(0);
+                    finalInvoiceData.store.latitude = addresses.get(0).getLatitude();
+                    finalInvoiceData.store.longitude = addresses.get(0).getLongitude();
+
+                    if(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress == getFnsData.dataFromReceipt.document.receipt.user)
+                        getFnsData.dataFromReceipt.document.receipt.user = null;
+
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        finalInvoiceData.set_status(2);
+        //invoice.updateInvoice(finalInvoiceData);
+        //check is adress in
+        final int count = invoice.fillReceiptData(getFnsData.dataFromReceipt.document.receipt, finalInvoiceData);
+
+        //run activity with map to confirm adress
+    }
+
+
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull final String[] permissions,
+                                           @NonNull final int[] grantResults) {
+
+        if(grantResults.length >0)
+        {
+            for(int i=0; i<permissions.length; i++)
+            {
+                if(!RuntimePermissionUtil.checkPermissonGranted(MainActivity.this, permissions[i]))
+                {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setMessage("Необходимо предоставить все разрешенния.")
+                            .setCancelable(false)
+                            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    finish();
+                                }
+                            });
+                    AlertDialog alert = builder.create();
+                    alert.show();
+                }
+            }
+            restartActivity();
+        }
+        else
+        {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("Необходимо предоставить все разрешенния.")
+                    .setCancelable(false)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            finish();
+                        }
+                    });
+            AlertDialog alert = builder.create();
+            alert.show();
+        }
+
+/*
+        if (requestCode == 100) {
+            RuntimePermissionUtil.onRequestPermissionsResult(grantResults, new RPResultListener() {
+                @Override
+                public void onPermissionGranted() {
+                    if ( RuntimePermissionUtil.checkPermissonGranted(MainActivity.this, cameraPerm)) {
+                        restartActivity();
+                    }
+                }
+
+                @Override
+                public void onPermissionDenied() {
+                }
+            });
+        }
+        if (requestCode == 200) {
+            RuntimePermissionUtil.onRequestPermissionsResult(grantResults, new RPResultListener() {
+                @Override
+                public void onPermissionGranted() {
+                    if ( RuntimePermissionUtil.checkPermissonGranted(MainActivity.this, smsPerm)) {
+                        restartActivity();
+
+                    }
+                }
+
+                @Override
+                public void onPermissionDenied() {
+                }
+            });
+        }*/
+
+    }
+
+    void restartActivity() {
+        Intent intent = new Intent(MainActivity.this, MainActivity.class);
+        intent.putExtra("permChecked", true);
+        isActive = true;
+        startActivity(intent);
+
+        finish();
+    }
+
+    public static void setPageBack(Integer back, Integer newPage)
+    {
+        if(newPage != back) {
+            if (back != null && back != PURCHASE_PAGE)
+            {
+                if(pageBack.size() > 0 && pageBack.get(pageBack.size() - 1) != newPage && pageBack.get(pageBack.size() - 1) != back) {
+                    pageBack.add(back);
+                }
+                else if (pageBack.size() == 0)
+                    pageBack.add(back);
+            }
+        }
+    }
+
+    @Override
+    public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
+        if(viewHolder.getClass().getName().contains("AccountingListAdapter"))
+            mItemTouchHelperAccList.startDrag(viewHolder);
+        if(viewHolder.getClass().getName().contains("InvoiceListAdapter"))
+            mItemTouchHelperInvList.startDrag(viewHolder);
+    }
+
+/*
+    private void setTabs() {
+
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout);
+        assert tabLayout !=null;
+        tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab1)));
+        tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab2)));
+        tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab3)));
+        tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab4)));
+
+        LinearLayout tabStrip = (LinearLayout) tabLayout.getChildAt(0);
+        for (int i = 0; i < tabStrip.getChildCount(); i++) {
+            final int finalI = i;
+            switch(i) {
+                case 0:
+                    tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            setPageBack(pager.getCurrentItem(), 0);
+                            //MainActivity.pageNow="linkedList";
+                            //fab.setVisibility(View.VISIBLE);
+                            pager.setCurrentItem(0, false);
+                        }
+                    });
+                    break;
+                case 1:
+                    tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            setPageBack(pager.getCurrentItem(), 1);
+                            //MainActivity.pageNow = "accountingList";
+                            //fab.setVisibility(View.VISIBLE);
+                            pager.setCurrentItem(1, false);
+                        }
+                    });
+                    break;
+                case 2:
+                    tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            setPageBack(pager.getCurrentItem(), 2);
+                            invoice.clearFilter("");
+                            invoice.reLoadInvoice();
+
+                            //fab.setVisibility(View.VISIBLE);
+                            if(InvoicesPageFragment.invoiceListAdapter != null)
+                                InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                            //MainActivity.pageNow = "invoicesLists";
+                            pager.setCurrentItem(2, false);
+                        }
+                    });
+                    break;
+                case 3:
+                    tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            setPageBack(pager.getCurrentItem(),4);
+                            invoice.clearFilter("");
+                            invoice.setfilter("in_basket", new String[]{"1"});
+                            //invoice.reLoadInvoice();
+
+                            //fab.setVisibility(View.GONE);
+                            if(invoiceBasketListAdapter != null) {
+                                invoiceBasketListAdapter.notifyDataSetChanged();
+                                selectedCount = 0;
+                                InvoicesBasketPageFragment.fabShowHide();
+                            }
+                            //MainActivity.pageNow = "invoicesLists";
+                            pager.setCurrentItem(4, false);
+                        }
+                    });
+                    break;
+            }
+        }
+
+        //TabLayout font & size
+        ViewGroup vg = (ViewGroup) tabLayout.getChildAt(0);
+
+        int tabsCount = vg.getChildCount();
+        for (int j = 0; j < tabsCount; j++) {
+            ViewGroup vgTab = (ViewGroup) vg.getChildAt(j);
+            int tabChildsCount = vgTab.getChildCount();
+            for (int i = 0; i < tabChildsCount; i++) {
+                View tabViewChild = vgTab.getChildAt(i);
+                if (tabViewChild instanceof TextView) {
+                    ((TextView) tabViewChild).setTypeface(Typefaces.getRobotoBlack(this));
+                    ((TextView) tabViewChild).setTextSize(3);
+                }
+            }
+        }
+    }
+*/
+    private void showPopupMenuAccountingList(View v) {
+        final PopupMenu popupMenu = new PopupMenu(context, v);
+        popupMenu.inflate(R.menu.popupmenu);
+
+        MenuPopupHelper menuHelper = new MenuPopupHelper(context,  (MenuBuilder) popupMenu.getMenu(),v);
+        menuHelper.setForceShowIcon(true);
+
+        //generate it from DB
+        for(int i=0; i<accountingList.accountingListData.size(); i++)
+        {
+            log.info(LOG_TAG+"\n"+ "Add popUpMenu id ="+accountingList.accountingListData.get(i).getId());
+            popupMenu.getMenu().add(R.id.menugroup1, accountingList.accountingListData.get(i).getId(), Menu.NONE, accountingList.accountingListData.get(i).getName());
+        }
+
+        // для версии Android 3.0 нужно использовать длинный вариант
+        // popupMenu.getMenuInflater().inflate(R.menu.popupmenu,
+        // popupMenu.getMenu());
+
+        popupMenu
+                .setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        if(item.getItemId() == R.id.addButton)
+                        {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                            builder.setTitle(R.string.title_addAccointingList);
+                            final EditText input = new EditText(context);
+                            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                            builder.setView(input);
+                            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    AccountingListData tmp = new AccountingListData();
+                                    tmp.setName(input.getText().toString());
+                                    accountingList.addAccountingList(null, tmp);
+
+                                }
+                            });
+                            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.cancel();
+                                }
+                            });
+
+                            builder.show();
+
+                        }
+                        else if(item.getItemId() == R.id.allLists)
+                        {
+                            invoice.setfilter("fk_invoice_accountinglist",new String[]{null});
+                            invoice.reLoadInvoice();
+                            Toast.makeText(getApplicationContext(),item.getItemId()+"",Toast.LENGTH_SHORT).show();
+                        }
+
+                        else
+                        {
+
+                            invoice.setfilter("fk_invoice_accountinglist",new String[]{item.getItemId()+""});
+                            invoice.reLoadInvoice();
+                            Toast.makeText(getApplicationContext(),item.getItemId()+"",Toast.LENGTH_SHORT).show();
+                        }
+                        return false;
+                        // Toast.makeText(PopupMenuDemoActivity.this,
+                        // item.toString(), Toast.LENGTH_LONG).show();
+                        // return true;
+                        /*switch (item.getItemId()) {
+
+                            case R.id.menu1:
+                                Toast.makeText(getApplicationContext(),
+                                        "Вы выбрали PopupMenu 1",
+                                        Toast.LENGTH_SHORT).show();
+                                return true;
+                            case R.id.menu2:
+                                Toast.makeText(getApplicationContext(),
+                                        "Вы выбрали PopupMenu 2",
+                                        Toast.LENGTH_SHORT).show();
+                                return true;
+                            case R.id.menu3:
+                                Toast.makeText(getApplicationContext(),
+                                        "Вы выбрали PopupMenu 3",
+                                        Toast.LENGTH_SHORT).show();
+                                return true;
+                            default:
+                                return false;
+                        }*/
+                    }
+                });
+        popupMenu.setOnDismissListener(new PopupMenu.OnDismissListener() {
+
+            @Override
+            public void onDismiss(PopupMenu menu) {
+                //Toast.makeText(getApplicationContext(), "onDismiss", Toast.LENGTH_SHORT).show();
+            }
+        });
+        menuHelper.show();
+    }
+    public static int dpToPx(int dp) {
+        return (int) (dp * Resources.getSystem().getDisplayMetrics().density);
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(!isActive)
+            dbHelper.close();
+
+        isActive = false;
+
+    }
+
+   /* @Override
+    public void onBackPressed() {
+        blurPlotter.setVisibility(GONE);
+        if(googleFotoListAdapter != null)
+            googleFotoListAdapter.placePhotoMetadataList.clear();
+        if(pageBack.size()>0)
+        {
+            int page = pageBack.get(pageBack.size()-1);
+            pageBack.remove(pageBack.size()-1);
+            switch (page)
+            {
+                case 0: {
+                    //MainActivity.pageNow = "linkedList";
+                    pager.setCurrentItem(page, false);
+                    //TabLayout.Tab tab = tabLayout.getTabAt(0);
+                    //tab.select();
+                    break;
+                }
+                case 1: {
+                    //MainActivity.pageNow = "accountingList";
+                    pager.setCurrentItem(page, false);
+                    //TabLayout.Tab tab = tabLayout.getTabAt(1);
+                    //tab.select();
+                    break;
+                }
+                case 2: {
+                    //MainActivity.pageNow = "invoicesLists";
+                    currentInvoice = null;
+                    invoice.clearFilter("");
+                    invoice.reLoadInvoice();
+
+                    //fab.setVisibility(View.VISIBLE);
+                    if(InvoicesPageFragment.invoiceListAdapter != null)
+                        InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                    pager.setCurrentItem(page, false);
+                    //TabLayout.Tab tab = tabLayout.getTabAt(2);
+                    //tab.select();
+                    break;
+                }
+                case PURCHASE_PAGE: {
+                    //currentInvoice = null;
+                    pager.setCurrentItem(page, false);
+                    //TabLayout.Tab tab = tabLayout.getTabAt(2);
+                    //tab.select();
+                    break;
+                }
+                case 4: {
+                    currentInvoice = null;
+                    //fab.setVisibility(View.GONE);//;hide();
+                    pager.setCurrentItem(page, false);
+
+                    //TabLayout.Tab tab = tabLayout.getTabAt(2);
+                    //tab.select();
+                    break;
+                }
+                default: {
+                    pager.setCurrentItem(page, false);
+                    //TabLayout.Tab tab = tabLayout.getTabAt(0);
+                    //tab.select();
+                    break;
+                }
+            }
+
+        }
+        else
+            super.onBackPressed();
+
+    }*/
+
+
+    class AsyncFirstAddInvoice extends AsyncTask<String, Void, InvoiceData> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected InvoiceData doInBackground(String... resultQR) {
+            InvoiceData currentInvoiceData =new InvoiceData();
+            try {
+                //resultQR = data.getStringExtra("resultQR");
+                //text.setText(resultQR);
+                QRitem = new QRManager(resultQR[0]);//место редактирования полученного кода. стоит сразу создать объект
+                //fillTextFields();
+
+                //save QR data to DB
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                SimpleDateFormat dateFormat_day = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+
+                Long invoiceDate = null;
+                Long invoiceDate_day = null;
+                try {
+                    if(QRitem.date.equals("") || QRitem.time.equals(""))
+                    {
+                        invoiceDate = new Date().getTime();
+                        invoiceDate_day = dateFormat_day.parse(dateFormat_day.format(new Date())).getTime();
+                    }
+                    else {
+                        invoiceDate = dateFormat.parse(QRitem.date + " " + QRitem.time).getTime();
+                        invoiceDate_day = dateFormat_day.parse(QRitem.date).getTime();
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                //Toast.makeText(context, QRitem.totalSum, Toast.LENGTH_LONG).show();
+                InvoiceData invoiceData = new InvoiceData();
+                invoiceData.setAll(QRitem.FP, QRitem.FD, QRitem.FN, invoiceDate, QRitem.totalSum, null, null, resultQR[1] == null? null: Integer.valueOf(resultQR[1]), null);
+                //just add data from QR - first time to save and check already exist
+                invoiceData.date_day = invoiceDate_day;
+                invoiceData.setDate_add(new Date().getTime());
+                String existInvoice = invoice.addInvoice(null, invoiceData);
+                currentInvoiceData = invoice.invoices.get(invoice.lastIDCollection);
+                if(existInvoice != "exist")
+                    invoice.reLoadInvoice();
+
+            } catch (Exception e) {
+                log.info(LOG_TAG+"\n"+ "ERROR\n");
+                log.info(LOG_TAG+"\n"+ e.getMessage());
+                e.printStackTrace();
+            }
+            return currentInvoiceData;
+        }
+
+        @Override
+        protected void onPostExecute(InvoiceData result) {
+
+
+            int position = -1;
+            if(result.getId()!= null) {
+                if (InvoicesPageFragment.invoiceListAdapter != null) {
+                    position = InvoicesPageFragment.invoiceListAdapter.findPosition(result);
+                    InvoicesPageFragment.invoiceListAdapter.row_index = position;
+                    InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                }
+                //switch to page with invoices
+                InvoicesPageFragment.llm.scrollToPositionWithOffset(position, 0);
+                //InvoicesPageFragment.recyclerViewInvList.scrollToPositionWithOffset(position);
+                log.info(LOG_TAG+"\n"+ "try to sart service ");
+                if(!isMyServiceRunning(LoadingFromFNS.class))
+                {
+                    startService(intentService);
+                }
+            }
+        }
+    }
+
+    public boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public class PhotoTask extends AsyncTask<String, String, Void> {
+
+        private int mHeight;
+        private int mWidth;
+        private String filepath;
+        private File file;
+        private InvoiceData invoiceData;
+
+        public PhotoTask(int width, int height) {
+            mHeight = height;
+            mWidth = width;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            loadingPanel.setVisibility(GONE);
+        }
+
+        @Override
+        protected void onPreExecute() {
+           super.onPreExecute();
+           filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+           file = new File(filepath, "IMG_"+currentInvoice.store.place_id + ".png");
+            try {
+                this.invoiceData = (InvoiceData) currentInvoice.clone();
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+            }
+           if(googleFotoListAdapter != null && !file.exists()) {
+               addMyPhotoContainer.setVisibility(View.VISIBLE);
+               blurPlotter.setVisibility(View.VISIBLE);
+               loadingPanel.setVisibility(View.VISIBLE);
+               //recyclerViewFotoList.bringToFront();
+           }
+           //googleFotoListAdapter.placePhotoMetadataList.add(getUrlToResource(context, R.drawable.loading_icon));
+           //googleFotoListAdapter.notifyDataSetChanged();
+        }
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            log.info(LOG_TAG+"\n"+ "post progress ");
+
+            if(googleFotoListAdapter != null) {
+                loadingPanel.setVisibility(GONE);
+                googleFotoListAdapter.placePhotoMetadataList.add(values[0]);
+                googleFotoListAdapter.notifyDataSetChanged();
+            }
+        }
+
+        /**
+         * Loads the first photo for a place id from the Geo Data API.
+         * The place id must be the first (and only) parameter.
+         */
+        @Override
+        protected Void doInBackground(String... params) {
+
+            log.info(LOG_TAG+"\n"+ "trying to get place_id image ");
+            if (params.length != 3) {
+                return null;
+            }
+            final String placeId = params[0];
+
+            String URL = "http://maps.google.com/maps/api/staticmap?center=" +params[1]+","+params[2] + "&zoom=17&size=500x500&markers="+params[1]+","+params[2] +"&key="+context.getString(R.string.google_maps_key);
+            Bitmap mapImage = null;
+            Bitmap iconImage = null;
+            mapImage = getBitmapFromUrl(URL);
+            GooglePlace googlePlace = new GooglePlace(placeId, getApplicationContext());
+            if(googlePlace.icon != null)
+            {
+                iconImage = getBitmapFromUrl(googlePlace.icon);
+                invoiceData.store.iconName = googlePlace.icon.substring(googlePlace.icon.lastIndexOf("/")+1);
+                invoiceData.store.update = true;
+                invoice.updateInvoice(invoiceData);
+                invoice.reLoadInvoice();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                    }
+                });
+
+            }
+            saveImages(null, mapImage, iconImage,  placeId);
+
+
+            if(!file.exists()) {
+                Bitmap image = null;
+                if (googlePlace.photos != null) {
+                    log.info(LOG_TAG+"\n"+ "getting image from google count: " + googlePlace.photos.size());
+                    for (int count = 0; count < googlePlace.photos.size(); count++) {
+                        GooglePlace.Photo photo = googlePlace.photos.get(count);
+                        log.info(LOG_TAG+"\n"+ "add image " + photo.photo_reference);
+                        File file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
+                        if (!file.exists()) {
+                            saveImages(googlePlace.loadImage(photo.photo_reference), placeId, count);
+                        }
+                        publishProgress(cacheDir + "IMG_" + placeId + "_" + count + ".png");
+                    }
+
+                }
+            }
+            return null;
+        }
+
+    }
+    private Bitmap getBitmapFromUrl(String url)
+    {
+        Bitmap image = null;
+        OkHttpClient httpclient = new OkHttpClient();
+        okhttp3.Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        Response in = null;
+        try {
+            in = httpclient.newCall(request).execute();
+            image = BitmapFactory.decodeStream(in.body().byteStream());
+            in.close();
+        } catch (Exception ex) {
+            log.info(LOG_TAG+"\n"+ "ERROR to save place_id MAP image folder \n"+ex.getMessage());
+            ex.printStackTrace();
+        }
+        return image;
+    }
+
+    private static void saveImages(Bitmap image, Bitmap mapImage, Bitmap iconImage, String placeId)
+    {
+        try {
+            String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+            log.info(LOG_TAG+"\n"+ "trying to save place_id image folder " + filepath);
+            File dir = new File(filepath);
+
+            if (!dir.exists()) dir.mkdirs();
+
+            if(image!= null) {
+                File file = new File(filepath, "IMG_"+placeId + ".png");
+                FileOutputStream fOut = new FileOutputStream(file);
+
+                image.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+                fOut.flush();
+                fOut.close();
+            }
+            if(mapImage != null)
+            {
+                File file = new File(filepath, "MAP_"+placeId + ".png");
+                FileOutputStream fOut = new FileOutputStream(file);
+
+                mapImage.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+                fOut.flush();
+                fOut.close();
+            }
+            if(iconImage != null && currentInvoice.store.iconName != "")
+            {
+                filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/icons/";
+                dir = new File(filepath);
+                if (!dir.exists()) dir.mkdirs();
+
+                File file = new File(filepath, currentInvoice.store.iconName);
+                FileOutputStream fOut = new FileOutputStream(file);
+
+                iconImage.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+                fOut.flush();
+                fOut.close();
+            }
+        }
+        catch (Exception ex)
+        {
+            log.info(LOG_TAG+"\n"+ "ERROR to save place_id image folder \n"+ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+    private void saveImages(Bitmap image, String place_id, int count)
+    {
+        FileOutputStream fOut= null;
+
+        try {
+            if(image!= null) {
+                log.info(LOG_TAG+"\n"+ "trying to save place_id image folder " + cacheDir +"IMG_"+place_id +"_"+count +".png");
+                File file = new File(cacheDir, "IMG_"+place_id + "_"+count +".png");
+                fOut = new FileOutputStream(file);
+                image.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.info(LOG_TAG+"\n"+ "ERROR to save place_id image folder \n"+ex.getMessage());
+            ex.printStackTrace();
+        }
+        finally
+        {
+            try {
+                if (fOut != null) {
+                    fOut.flush();
+                    fOut.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static final String getUrlToResource(@NonNull Context context,
+                                             @AnyRes int resId)
+            throws Resources.NotFoundException {
+        /** Return a Resources instance for your application's package. */
+        Resources res = context.getResources();
+        /**
+         * Creates a Uri which parses the given encoded URI string.
+         * @param uriString an RFC 2396-compliant, encoded URI
+         * @throws NullPointerException if uriString is null
+         * @return Uri for this given uri string
+         */
+        String resUrl = res.getResourcePackageName(resId)
+                + '/' + res.getResourceTypeName(resId)
+                + '/' + res.getResourceEntryName(resId);
+        /** return uri */
+        return resUrl;
+    }
+
+
+    public static String setInvoiceNameByStatus(Integer status)
+    {
+        if(status != null) {
+            switch (status) {
+                case -3:
+                    return context.getText(R.string.not_found_in_FNS).toString();
+                case -4:
+                    return context.getText(R.string.not_acceptable_in_FNS).toString();
+                case -2:
+                    return context.getText(R.string.acces_forbidden_to_FNS).toString();
+                case -1:
+                    return context.getText(R.string.errorGetFrom_FNS).toString();
+                case 0:
+                    return context.getText(R.string.waiting_for_loading_invoice_from_FNS).toString();
+                case 3:
+                    return context.getText(R.string.loading_invoice_from_FNS).toString();
+                default:
+                    return "";
+            }
+        }
+        else return "";
+    }
+
+
+    public static boolean invoiceClickAble(@Nullable Integer status)
+    {
+        if(status != null) {
+            switch (status) {
+                case 1:
+                    return true;
+                case -1:
+                    return true;
+                case -3://Not Found from FNS
+                    return true;
+                case -4://Not Acceptable from FNS
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        else return false;
+    }
+    public String stringSplitter(String string)
+    {
+        String[] chr = new String[]{};
+        return string;
+    }
+
+}

@@ -1,0 +1,83 @@
+<resources>
+    <string name="app_name">CheckKeeper</string>
+    <string name="intro_text">Point the camera view to a QR Code to read the information</string>
+    <string name="restart_activity">Restart Activity</string>
+    <string name="stop_start_qreader">Stop QREader</string>
+    <string name="Take_picture">Расположите QR код в зеленой рамке</string>
+    <string name="reset_fns_psw">Обновить пароль ФНС</string>
+    <string name="enter_phone">Введите номер телефона</string>
+    <string name="NameField">Имя</string>
+    <string name="SurnameField">Фамилия</string>
+    <string name="E_mailAdress">E-mail</string>
+    <string name="UserDataEddedSuccesfuly">Данные пользователя сохранены</string>
+    <string name="firstTimeEnter">Добро пожаловть!\nДля дальнейшей работы приложения необходимо пройти авторизацию на
+        сервере ФНС nalog.ru. \nНажмите ОК, чтобы авторизоваться.
+    </string>
+    <string name="titleGreetingMessage">Вимание!</string>
+    <string name="ButtonOK">OK</string>
+    <string name="getNewPswFNS">Необходимо повторно получить пароль от ФНС</string>
+    <string name="errorUserAlreadyRegistered">Возможно вы уже зарегистрированы, необходимо сбросить пароль</string>
+    <string name="showPersonalData">Учетные данные</string>
+
+
+    <string name="action_about">About</string>
+    <string name="item_deleted">Item deleted</string>
+    <string name="item_undo">Undo</string>
+    <string name="today">Today</string>
+    <string name="community">Our G+ community</string>
+    <string name="honey_neutrons">Honey neutrons</string>
+    <string name="choose_date">Выберите дату</string>
+    <string name="ready">Готово</string>
+    <string name="connectionError">Невозможно подключиться к серверу, проверьте Интернет соединение и повторите
+        попытку.
+    </string>
+    <string name="btnCancel">Отмена</string>
+    <string name="btnOk">OK</string>
+    <string name="title_addAccointingList">Добавить список</string>
+    <string name="title_allLists">Все списки</string>
+    <string name="rename_btn">Переименовать</string>
+    <string name="delete_btn">Удалить</string>
+    <string name="showAccountingLists">Списки покупок</string>
+    <string name="accountingListTitle">Списки затрат</string>
+    <string name="invoicesListTitle">Все чеки</string>
+    <string name="addBtn">Добавить</string>
+    <string name="purchasesListTitle">Покупки в чеке</string>
+    <string name="purchasListTitle">Покупка</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="finde_store_on_map">Укажите магазин на карте</string>
+    <string name="signCompos">\&#xD7;</string>
+    <string name="errorGetFrom_FNS">Ошибка загрузки</string>
+    <string name="loading_invoice_from_FNS">Идет загрузка...</string>
+    <string name="Single">За день</string>
+    <string name="Multi">Несколько дней</string>
+    <string name="Range">Период</string>
+    <string name="Done">Готово</string>
+    <string name="linkedListPageTitle">Закрепленные</string>
+    <string name="title_pinAccointingList">Закрепить</string>
+    <string name="title_UnPinAccointingList">Открепить</string>
+    <string name="waiting_for_loading_invoice_from_FNS">Ожидание загрузки</string>
+    <string name="invoicesBasketListTitle">Корзина</string>
+    <string name="empty">ничего нет</string>
+    <string name="pick_image_intent_text">Выбрать фотографию</string>
+    <string name="title_setPhoto">Загрузить фото</string>
+    <string name="title_addinvoicemanual">Добавить данные чека</string>
+    <string name="title_addinvoicemanualFP">Укажите ФП из чека</string>
+    <string name="title_addinvoicemanualFN">Укажите ФН из чека</string>
+    <string name="title_addinvoicemanualFD">Укажите ФД из чека</string>
+    <string name="acces_forbidden_to_FNS">Пароль устарел</string>
+    <string name="not_found_in_FNS">Не найден</string>
+    <string name="not_acceptable_in_FNS">Нет данных</string>
+    <string name="title_storeName">Название магазина</string>
+    <string name="title_storeAddress">Адрес магазина</string>
+    <string name="title_storeType">Тип магазина</string>
+    <string name="load_inv_from_img_menu">Загрузить чек</string>
+    <string name="invoice_load_from_image_error">Не удалось загрузить чек</string>
+    <string name="navigation_drawer_open">Open</string>
+    <string name="navigation_drawer_close">Close</string>
+    <string name="purchasesPageTitle">Покупки в чеке</string>
+    <string name="invoicesLoadingListTitle">Загрузка</string>
+    <string name="loadingInvoicesTitle">Загрузка</string>
+    <string name="sumOfInvoice">Сумма покупки</string>
+    <string name="dateOfInvoice">Дата покупки</string>
+
+</resources>

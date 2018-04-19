@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:theme="@style/AppTheme"
+                android:layout_margin="20dp"
+                android:elevation="5dp"
+                android:gravity="top|center">
+
+
+    <TextView
+            android:id="@+id/whatToDo"
+            android:background="@null"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="3dp"
+            android:paddingTop="3dp"
+            android:textStyle="normal"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif"
+            android:hint="@string/title_addAccointingList"/>
+    <View
+            android:layout_below="@+id/whatToDo"
+            android:id="@+id/line"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/dark_gray"/>
+    <TextView
+            android:layout_below="@+id/line"
+            android:id="@+id/btnCancel"
+            android:layout_margin="3dp"
+            android:fontFamily="sans-serif"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:textStyle="bold"
+            android:textColor="@color/colorAccent"
+            android:textSize="20sp"
+            android:text="@string/btnCancel"/>
+    <TextView
+            android:layout_below="@+id/line"
+            android:id="@+id/btnOk"
+            android:layout_margin="3dp"
+            android:fontFamily="sans-serif"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:textStyle="bold"
+            android:textColor="@color/colorAccent"
+            android:textSize="20sp"
+            android:text="@string/btnOk"/>
+
+</RelativeLayout>

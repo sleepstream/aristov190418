@@ -1,0 +1,72 @@
+apply plugin: 'com.android.application'
+android {
+    configurations.all {
+        resolutionStrategy.force 'com.google.code.findbugs:jsr305:1.3.9'
+    }
+    lintOptions {
+        disable "ResourceType"
+    }
+    compileSdkVersion 27
+    buildToolsVersion "27.0.3"
+    defaultConfig {
+        applicationId "com.sleepstream.checkkeeper"
+        minSdkVersion 19
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        multiDexEnabled true
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+
+        }
+
+
+
+    }
+    packagingOptions {
+        exclude 'META-INF/LICENSE'
+    }
+
+
+    repositories {
+        maven { url "https://maven.google.com" }
+    }
+
+
+    dependencies {
+        compile ('org.ghost4j:ghost4j:1.0.1'){
+            exclude group: 'commons-logging', module: 'commons-logging'
+        }
+        compile 'com.joanzapata.pdfview:android-pdfview:1.0.4@aar'
+        compile 'com.google.guava:guava:23.5-android'
+
+
+        compile 'com.github.nisrulz:qreader:2.1.2'
+        compile 'com.squareup.okhttp3:okhttp:3.4.1'
+        compile 'com.google.code.gson:gson:2.8.2'
+        compile 'com.android.support:multidex:1.0.1'
+
+        testCompile 'junit:junit:4.12'
+        compile 'com.android.support:appcompat-v7:27.1.1'
+        compile 'com.android.support:design:27.1.1'
+        compile 'com.android.support:recyclerview-v7:27.1.1'
+
+        compile 'com.sothree.slidinguppanel:library:3.3.0'
+        compile 'com.google.android.gms:play-services-location:11.4.2'
+        compile 'com.google.android.gms:play-services-places:11.4.2'
+        compile 'com.futuremind.recyclerfastscroll:fastscroll:0.2.5'
+        compile 'com.squareup:android-times-square:1.6.5@aar'
+        compile 'com.squareup.picasso:picasso:2.5.2'
+
+
+        //compile 'com.nineoldandroids:library:2.4.0'
+        // compile 'in.srain.cube:ultra-ptr:1.0.11'
+        // compile 'com.github.bumptech.glide:glide:3.7.0'
+
+
+    }
+}

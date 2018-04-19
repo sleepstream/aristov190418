@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:theme="@style/AppTheme"
+                android:layout_margin="20dp"
+                android:elevation="5dp"
+                android:gravity="center">
+
+
+<EditText
+        android:id="@+id/addFP"
+        android:background="@null"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="3dp"
+        android:paddingTop="3dp"
+        android:maxLength="20"
+        android:inputType="number"
+        android:textStyle="normal"
+        android:textSize="20sp"
+        android:fontFamily="sans-serif"
+        android:hint="@string/title_addinvoicemanualFP"/>
+    <View
+            android:layout_below="@+id/addFP"
+            android:id="@+id/lineFP"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/dark_gray"/>
+<EditText
+        android:id="@+id/addFN"
+        android:layout_below="@+id/addFP"
+        android:background="@null"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="3dp"
+        android:paddingTop="3dp"
+        android:maxLength="20"
+        android:inputType="number"
+        android:textStyle="normal"
+        android:textSize="20sp"
+        android:fontFamily="sans-serif"
+        android:hint="@string/title_addinvoicemanualFN"/>
+    <View
+            android:layout_below="@+id/addFN"
+            android:id="@+id/lineFN"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/dark_gray"/>
+<EditText
+        android:id="@+id/addFD"
+        android:layout_below="@+id/addFN"
+        android:background="@null"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="3dp"
+        android:paddingTop="3dp"
+        android:maxLength="20"
+        android:inputType="number"
+        android:textStyle="normal"
+        android:textSize="20sp"
+        android:fontFamily="sans-serif"
+        android:hint="@string/title_addinvoicemanualFD"/>
+<View
+        android:layout_below="@+id/addFD"
+        android:id="@+id/lineFD"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/dark_gray"/>
+
+</RelativeLayout>

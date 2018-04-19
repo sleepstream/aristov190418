@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="@string/load_inv_from_img_menu"
+          android:id="@+id/load_inv_from_img"
+          android:enabled="true"/>
+    <item android:title="@string/showPersonalData"
+          android:id="@+id/reset_fns_psw"
+          android:enabled="true"/>
+    <item android:title="@string/showAccountingLists"
+          android:id="@+id/show_acc_list"
+          android:enabled="true"/>
+
+</menu>

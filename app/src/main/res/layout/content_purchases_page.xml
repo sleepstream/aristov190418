@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    android:background="@drawable/gradient"
+    android:id="@+id/root_layout"
+    tools:targetApi="LOLLIPOP"
+    android:paddingRight="12dp"
+    android:paddingLeft="12dp">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:elevation="5dp"
+            android:id="@+id/conteiner">
+        <!--PAnel-->
+        <RelativeLayout
+                android:id="@+id/panel"
+                android:layout_alignParentTop="true"
+                android:layout_width="match_parent"
+                android:background="@color/white"
+                android:layout_height="56dp">
+            <RelativeLayout
+                    android:orientation="vertical"
+                    android:id="@+id/relativeToday"
+                    android:layout_marginBottom="0dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/colorSecondary">
+
+                <RelativeLayout
+                        android:id="@+id/circleNumberOfItems"
+                        android:layout_alignParentStart="true"
+                        android:layout_marginStart="20dp"
+                        android:layout_centerVertical="true"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/circle">
+                    <TextView
+                            android:id="@+id/currentNumber"
+                            android:fontFamily="sans-serif"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:textStyle="normal"
+                            android:textSize="12sp"
+                            android:textColor="@color/white"
+                            android:text=""/>
+                </RelativeLayout>
+
+                <RelativeLayout
+                        android:id="@+id/currentHeader"
+                        android:layout_centerHorizontal="true"
+                        android:layout_centerVertical="true"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <LinearLayout
+                                android:id="@+id/currentNameLyout"
+                                android:orientation="vertical"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="top"
+                                android:layout_marginBottom="5dp">
+                            <TextView
+                                    android:id="@+id/currentDate"
+                                    android:fontFamily="sans-serif"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textStyle="bold"
+                                    android:layout_gravity="center"
+                                    android:textColor="@color/white"
+                                    android:textSize="14sp"
+                                    android:textAllCaps="true"
+                                    android:text="@string/purchasListTitle"/>
+                        </LinearLayout>
+                        <LinearLayout
+                                android:id="@+id/currentDateLyout"
+                                android:orientation="vertical"
+                                android:layout_below="@+id/currentNameLyout"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_centerHorizontal="true">
+                            <TextView
+                                    android:id="@+id/currentName"
+                                    android:fontFamily="sans-serif"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textStyle="bold"
+                                    android:layout_gravity="center"
+                                    android:textColor="@color/white"
+                                    android:textSize="14sp"
+                                    android:textAllCaps="true"/>
+                        </LinearLayout>
+                </RelativeLayout>
+
+                <RelativeLayout
+                        android:id="@+id/settingsMenu"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginEnd="20dp"
+                        android:layout_centerVertical="true"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp">
+                    <ImageView
+                            android:id="@+id/settingsMenuImg"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:src="@drawable/ic_settings_black_48dp"/>
+                </RelativeLayout>
+
+            </RelativeLayout>
+        </RelativeLayout>
+
+        <!--MAin view-->
+        <RelativeLayout
+                android:id="@+id/storeData"
+                android:layout_below="@id/panel"
+                android:layout_alignParentStart="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/white">
+            <RelativeLayout
+                    android:id="@+id/placeImageLayout"
+                    android:elevation="5dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+                <ImageView
+                        android:id="@+id/placeImage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"/>
+            </RelativeLayout>
+            <RelativeLayout
+                    android:elevation="5dp"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:layout_toRightOf="@+id/placeImageLayout"
+                    android:layout_alignParentEnd="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/map">
+                <TextView
+                        android:id="@+id/strore_name"
+                        android:fontFamily="sans-serif"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#000"
+                        android:textSize="14sp"
+                        android:textAllCaps="true"
+                        android:gravity="center"/>
+
+                <TextView
+                        android:id="@+id/strore_adress"
+                        android:fontFamily="sans-serif"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="#000"
+                        android:textSize="14sp"
+                        android:gravity="center"
+                        android:textAllCaps="true"
+                        android:layout_below="@id/strore_name"/>
+            </RelativeLayout>
+        </RelativeLayout>
+        <RelativeLayout
+                android:elevation="5dp"
+                android:layout_below="@id/storeData"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:background="@color/white"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/mainView"
+                android:layout_alignParentBottom="true">
+
+            <android.support.v7.widget.RecyclerView
+                    android:id="@+id/cardList"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_horizontal|top"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentStart="true"/>
+        </RelativeLayout>
+
+
+    </RelativeLayout>
+
+
+
+
+
+
+</RelativeLayout>

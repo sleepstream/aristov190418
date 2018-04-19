@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    android:background="@drawable/gradient"
+    android:id="@+id/root_layout"
+    tools:targetApi="LOLLIPOP"
+    android:paddingRight="12dp"
+    android:paddingLeft="12dp">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:elevation="5dp"
+            android:id="@+id/conteiner">
+        <android.support.v4.widget.SwipeRefreshLayout
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:id="@+id/swipe_container"
+                android:layout_below="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+        <!--MAin view-->
+        <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:layout_alignParentTop="true">
+            <RelativeLayout
+                    android:elevation="5dp"
+                    android:paddingLeft="12dp"
+                    android:background="@color/white"
+                    android:layout_alignParentTop="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/mainView">
+                <android.support.v7.widget.RecyclerView
+                        android:id="@+id/invoicesList"
+                        android:layout_width="match_parent"
+                        android:layout_marginEnd="12dp"
+                        android:layout_height="match_parent"
+                        android:layout_alignParentTop="true"
+                        android:layout_gravity="center_horizontal|top"
+                        android:background="@color/white"/>
+                <com.futuremind.recyclerviewfastscroll.FastScroller
+                        android:id="@+id/fastscroll"
+                        android:orientation="vertical"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_alignParentEnd="true"/>
+            </RelativeLayout>
+        </RelativeLayout>
+        </android.support.v4.widget.SwipeRefreshLayout>
+
+
+</RelativeLayout>
+
+
+</RelativeLayout>
