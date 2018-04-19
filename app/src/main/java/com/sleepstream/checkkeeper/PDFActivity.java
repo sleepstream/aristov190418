@@ -1,24 +1,18 @@
 package com.sleepstream.checkkeeper;
 
-import android.Manifest;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.SurfaceView;
 import android.view.View;
-import android.widget.Toast;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 import com.joanzapata.pdfview.PDFView;
-import github.nisrulz.qreader.QRDataListener;
-import github.nisrulz.qreader.QREader;
 
 import java.io.File;
 

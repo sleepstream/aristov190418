@@ -7,7 +7,6 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.icu.util.Calendar;
 import android.os.Handler;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
@@ -24,13 +23,10 @@ import com.sleepstream.checkkeeper.helper.ItemTouchHelperAdapter;
 import com.sleepstream.checkkeeper.helper.ItemTouchHelperViewHolder;
 import com.sleepstream.checkkeeper.linkedListObjects.LinkedListData;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
-import static com.sleepstream.checkkeeper.modules.InvoicesPageFragment.invoiceListAdapter;
 
 
 public class LinkedListAdapter extends RecyclerView.Adapter<LinkedListAdapter.ItemViewHolder> implements ItemTouchHelperAdapter {

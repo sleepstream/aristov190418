@@ -14,7 +14,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import com.futuremind.recyclerviewfastscroll.FastScroller;
 import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
@@ -22,8 +21,6 @@ import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 import com.squareup.timessquare.CalendarPickerView;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.Random;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;

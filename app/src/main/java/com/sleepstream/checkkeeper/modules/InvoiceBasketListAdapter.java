@@ -6,20 +6,21 @@ import android.content.DialogInterface;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.icu.util.Calendar;
+import java.util.Calendar;
 import android.os.Handler;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
 import android.util.Log;
 import android.view.*;
-import android.widget.*;
+import android.widget.EditText;
+import android.widget.PopupMenu;
+import android.widget.Toast;
 import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
-import com.sleepstream.checkkeeper.helper.ItemTouchHelperViewHolder;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.linkedListObjects.LinkedListData;
@@ -30,8 +31,6 @@ import java.util.List;
 import java.util.Locale;
 
 import static com.sleepstream.checkkeeper.MainActivity.linkedListClass;
-import static com.sleepstream.checkkeeper.modules.InvoicesBasketPageFragment.fabDelete;
-import static com.sleepstream.checkkeeper.modules.InvoicesBasketPageFragment.fabSelectAll;
 import static com.sleepstream.checkkeeper.modules.InvoicesBasketPageFragment.selectedCount;
 
 

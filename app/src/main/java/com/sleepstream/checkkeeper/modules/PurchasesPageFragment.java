@@ -8,17 +8,13 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.icu.util.Calendar;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -38,15 +34,12 @@ import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
-import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
 import java.util.Random;
 
 import static android.view.View.GONE;
@@ -190,8 +183,8 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             public boolean onLongClick(View view) {
                 blurPlotter.setVisibility(View.VISIBLE);
 
-                View v=LayoutInflater.from(getContext()).inflate(R.layout.edit_store_information_layout, null);
-                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                View v=LayoutInflater.from(getActivity()).inflate(R.layout.edit_store_information_layout, null);
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                 builder.setView(v);
                 final EditText Name = v.findViewById(R.id.name);
                 final EditText storeType = v.findViewById(R.id.storeType);
@@ -500,7 +493,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     public boolean onMenuItemClick(final MenuItem item) {
                         if(item.getItemId() == R.id.setPhoto)
                         {
-                            Intent chooseImageIntent = ImagePicker.getPickImageIntent(getContext());
+                            Intent chooseImageIntent = ImagePicker.getPickImageIntent(getActivity());
                             getActivity().startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
                         }
                         return false;

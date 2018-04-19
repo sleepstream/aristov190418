@@ -17,7 +17,10 @@ import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
 import android.util.Log;
 import android.view.*;
-import android.widget.*;
+import android.widget.EditText;
+import android.widget.PopupMenu;
+import android.widget.TextView;
+import android.widget.Toast;
 import com.futuremind.recyclerviewfastscroll.SectionTitleProvider;
 import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
@@ -25,7 +28,6 @@ import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.helper.ItemTouchHelperAdapter;
-import com.sleepstream.checkkeeper.helper.ItemTouchHelperViewHolder;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.linkedListObjects.LinkedListData;
@@ -271,7 +273,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
             Long tmp = Long.valueOf(item.getDateInvoice(1));
 
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
-            android.icu.util.Calendar calendar = Calendar.getInstance();
+            java.util.Calendar calendar = java.util.Calendar.getInstance();
             calendar.setTimeInMillis(tmp);
 
             String tmpDate = dateFormat.format(calendar.getTime());

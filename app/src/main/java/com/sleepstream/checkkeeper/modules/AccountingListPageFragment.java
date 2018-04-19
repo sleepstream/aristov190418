@@ -22,7 +22,8 @@ import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 
 import java.util.Random;
 
-import static com.sleepstream.checkkeeper.MainActivity.*;
+import static com.sleepstream.checkkeeper.MainActivity.accountingList;
+import static com.sleepstream.checkkeeper.MainActivity.fab;
 
 public class AccountingListPageFragment extends Fragment implements AccountingListAdapter.OnStartDragListener {
 

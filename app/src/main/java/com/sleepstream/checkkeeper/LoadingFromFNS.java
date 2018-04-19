@@ -8,7 +8,6 @@ import android.location.Geocoder;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.provider.Settings;
-import android.util.Log;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.modules.InvoicesPageFragment;
