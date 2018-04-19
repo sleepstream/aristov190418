@@ -287,11 +287,11 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
                 .enableAutoManage(this, this)
                 .build();
 
-        /*intentService = new Intent(context, LoadingFromFNS.class);
+        intentService = new Intent(context, LoadingFromFNS.class);
         if(!isMyServiceRunning(LoadingFromFNS.class))
         {
             startService(intentService);
-        }*/
+        }
 
 /*
         slidingUpPanelLayout = (SlidingUpPanelLayout)findViewById(R.id.sliding_layout);
