@@ -194,6 +194,7 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
                 initializeCountDrawer();
+                setNavMenuChecked();
             }
         };
         drawer.addDrawerListener(toggle);
@@ -214,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
                 {
                     statusDateFilter = false;
                     navigation.clearFilter("date_day");
-                    navigation.openCurrentPage(new Page("", navigation.currentPageNumber));
+                    navigation.openCurrentPage(navigation.currentPage);
                     ivFilter.setImageResource(R.drawable.ic_filter_white_24dp);
                 }
             }
@@ -674,6 +675,37 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
         navigation.openCurrentPage(new Page("", 0));
     }
 
+    private void setNavMenuChecked() {
+        uncheckNavMenu();
+        switch(navigation.currentPage.position)
+        {
+            case 0:
+                setNavMenuItemChecked(R.id.invoicesPage);
+                break;
+            case 2:
+                setNavMenuItemChecked(R.id.accountingListPAge);
+                break;
+            case 3:
+                setNavMenuItemChecked(R.id.linkedListPage);
+                break;
+            case 1:
+                setNavMenuItemChecked(R.id.busketListPage);
+                break;
+            case 5:
+                setNavMenuItemChecked(R.id.invoicesLoadingPage);
+                break;
+        }
+    }
+    private void setNavMenuItemChecked(Integer Id)
+    {
+        Menu navMenu = navigationView.getMenu();
+        for(int i=0; i< navMenu.size(); i++)
+        {
+            if(navMenu.getItem(i).getItemId() == Id)
+                navMenu.getItem(i).setChecked(true);
+        }
+    }
+
     public  void initializeCountDrawer() {
         Map<String, String[]>filter = new ArrayMap<>();
         //все чеки
@@ -749,32 +781,29 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
             case R.id.invoicesPage:
                 menuItem.setChecked(true);
                 closeDrawer();
-                navigation.clearFilter("");
                 navigation.openCurrentPage(new Page("", 0));
                 return true;
             case R.id.accountingListPAge:
                 menuItem.setChecked(true);
                 closeDrawer();
-                navigation.clearFilter("");
                 navigation.openCurrentPage(new Page("", 2));
                 return true;
             case R.id.linkedListPage:
                 menuItem.setChecked(true);
                 closeDrawer();
-                navigation.clearFilter("");
+
                 navigation.openCurrentPage(new Page("", 3));
                 return true;
             case R.id.busketListPage:
                 menuItem.setChecked(true);
                 closeDrawer();
-                navigation.clearFilter("");
+
                 navigation.openCurrentPage(new Page("", 1));
                 return true;
             case R.id.invoicesLoadingPage:
                 menuItem.setChecked(true);
                 closeDrawer();
-                navigation.clearFilter("");
-                navigation.setFilter("_status", statusInvoices.get("loading"));
+
                 navigation.openCurrentPage(new Page(context.getString(R.string.loadingInvoicesTitle), 5));
                 return true;
         }
@@ -787,7 +816,7 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    private void uncheckNavMenu()
+    public void uncheckNavMenu()
     {
         int size = navigationView.getMenu().size();
         for (int i = 0; i < size; i++) {
@@ -797,15 +826,40 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
 
 
 
-    public static class Page
+    public static class Page implements Comparable<Page>
     {
         public Page(String pageName, Integer position) {
             this.pageName = pageName;
             this.position = position;
         }
 
+        private int id;
         public String pageName;
         public Integer position;
+        public static int lastId=0;
+
+        public void setId()
+        {
+            lastId = lastId+1;
+            id = lastId;
+        }
+        public int getId()
+        {
+            return id;
+        }
+
+
+
+
+        @Override
+        public int compareTo(Page page) {
+            if(this.id == page.id)
+                return 0;
+            else if(this.id<page.id)
+                return -1;
+            else
+                return 1;
+        }
     }
     private boolean showMap(InvoiceData currentInvoice) {
         if(currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)
@@ -1135,7 +1189,7 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
                         navigation.filterDates = new ArrayList<>();
                     navigation.filterDates.addAll(tmp);
                     invoice.filterDates = invoice.filterDates;
-                    navigation.openCurrentPage(new Page("", navigation.currentPageNumber));
+                    navigation.openCurrentPage(navigation.currentPage);
                 }
                 break;
             case cameraRequest:
@@ -2111,6 +2165,13 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
         else return "";
     }
 
+    @Override
+    public void onBackPressed() {
+        if(navigation.pageBackList.size()>0)
+            navigation.backPress();
+        else
+            finish();
+    }
 
     public static boolean invoiceClickAble(@Nullable Integer status)
     {

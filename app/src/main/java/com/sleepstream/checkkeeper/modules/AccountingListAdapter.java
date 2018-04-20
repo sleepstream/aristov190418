@@ -172,7 +172,7 @@ public class AccountingListAdapter extends RecyclerView.Adapter<AccountingListAd
 
                 navigation.clearFilter("");
                 navigation.setFilter("fk_invoice_accountinglist", new String[]{item.getId().toString()});
-                navigation.openCurrentPage(new MainActivity.Page("", 5));
+                navigation.openCurrentPage(new MainActivity.Page(item.getName(), 6));
 
                 //row_index =-1;
                 //notifyDataSetChanged();

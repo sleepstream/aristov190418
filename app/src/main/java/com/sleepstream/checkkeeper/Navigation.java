@@ -7,10 +7,7 @@ import android.util.Log;
 import android.widget.TextView;
 import com.sleepstream.checkkeeper.modules.*;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.sleepstream.checkkeeper.MainActivity.LOG_TAG;
 import static com.sleepstream.checkkeeper.MainActivity.invoice;
@@ -18,13 +15,18 @@ import static com.sleepstream.checkkeeper.MainActivity.invoice;
 public class Navigation {
 
     private final Context context;
-    public Integer currentPageNumber = null;
+    public MainActivity.Page currentPage = null;
     private android.app.FragmentTransaction fTrans;
     public ArrayList<Date> filterDates;
     public  Map<String, String[]> filterParam = new LinkedHashMap<>();
     private TextView toolbar_title;
+    public NavigableMap<MainActivity.Page, Map<String, String[]>> pageBackList = new TreeMap<>();
+    private boolean backpressed;
+    public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
 
     public Navigation(Context context, TextView toolbar_title) {
+        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1"});
+        statusInvoices.put("in_basket", new String[]{"1"});
         this.context = context;
         this.toolbar_title=toolbar_title;
     }
@@ -40,9 +42,42 @@ public class Navigation {
 
         if(MainActivity.invoice.filterDates!= null)
         Log.d(LOG_TAG, MainActivity.invoice.filterDates.size()+"");
+        if(backpressed)
+        {
+            backpressed = false;
+        }
+        else {
+            if (currentPage != null) {
+                if (pageBackList.size() > 0)
+                {
+                    boolean exist = false;
+                    Map.Entry<MainActivity.Page, Map<String, String[]>> entry =pageBackList.lastEntry();
+                    MainActivity.Page pageTmp = entry.getKey();
+                    Map<String, String[]> filterTmp = entry.getValue();
+                    if(!pageTmp.equals(currentPage) || !filterTmp.equals(filterParam)) {
+                        currentPage.setId();
+                        Map<String, String[]> Tmp = new LinkedHashMap<>();
+                        for(Map.Entry<String, String[]> item: filterParam.entrySet())
+                        {
+                            Tmp.put(item.getKey(), item.getValue());
+                        }
+                        pageBackList.put(currentPage, Tmp);
+                    }
+                }
+                else if (pageBackList.size() == 0) {
+                    currentPage.setId();
+                    Map<String, String[]> filterTmp = new LinkedHashMap<>();
+                    for(Map.Entry<String, String[]> item: filterParam.entrySet())
+                    {
+                        filterTmp.put(item.getKey(), item.getValue());
+                    }
+                    pageBackList.put(currentPage, filterTmp);
+                }
+            }
+        }
         switch (page.position) {
             case 0: {
-                currentPageNumber = page.position;
+                currentPage = page;
                 clearFilter("");
                 InvoicesPageFragment fragment = InvoicesPageFragment.newInstance(page);
                 fragment.InvoicesPageFragmentSet(this);
@@ -54,7 +89,8 @@ public class Navigation {
                 break;
             }
             case 1: {
-                currentPageNumber = page.position;
+                currentPage = page;
+                clearFilter("");
                 setFilter("in_basket", new String[]{"1"});
                 InvoicesBasketPageFragment fragment =InvoicesBasketPageFragment.newInstance(0);
                 fragment.InvoicesBasketPageFragmentSet(this);
@@ -63,7 +99,8 @@ public class Navigation {
                 break;
             }
             case 2: {
-                currentPageNumber = page.position;
+                currentPage = page;
+                clearFilter("");
                 AccountingListPageFragment fragment = AccountingListPageFragment.newInstance(0);
                 fragment.AccountingListPageFragmentSet(this);
                 fTrans.replace(R.id.pager, fragment);
@@ -71,7 +108,8 @@ public class Navigation {
                 break;
             }
             case 3: {
-                currentPageNumber = page.position;
+                currentPage = page;
+                clearFilter("");
                 LinkedListPageFragment fragmen = LinkedListPageFragment.newInstance(0);
                 fragmen.LinkedListPageFragmentSet(this);
                 fTrans.replace(R.id.pager, fragmen);
@@ -79,17 +117,28 @@ public class Navigation {
                 break;
             }
             case 4: {
-                currentPageNumber = page.position;
-                clearFilter("");
-                setFilter("in_basket", new String[]{"1"});
+                //currentPage = page.position;
                 PurchasesPageFragment fragment = PurchasesPageFragment.newInstance(0);
                 fragment.PurchasesPageFragmentSet(this);
                 fTrans.replace(R.id.pager, fragment);
                 toolbar_title.setText(context.getString(PurchasesPageFragment.page_title));
                 break;
             }
-            case 5: {//load invoices with filters
-                currentPageNumber = page.position;
+            case 5: {
+                currentPage = page;
+                clearFilter("");
+                setFilter("_status", statusInvoices.get("loading"));
+                InvoicesPageFragment fragment = InvoicesPageFragment.newInstance(page);
+                fragment.InvoicesPageFragmentSet(this);
+                fTrans.replace(R.id.pager, fragment);
+                if(InvoicesPageFragment.page_title != "")
+                    toolbar_title.setText(InvoicesPageFragment.page_title);
+                else
+                    toolbar_title.setText(context.getString(R.string.invoicesLoadingListTitle));
+                break;
+            }
+            case 6: {//load invoices with filters
+                currentPage = page;
                 InvoicesPageFragment fragment = InvoicesPageFragment.newInstance(page);
                 fragment.InvoicesPageFragmentSet(this);
                 fTrans.replace(R.id.pager, fragment);
@@ -100,12 +149,13 @@ public class Navigation {
                 break;
             }
             default: {
-                currentPageNumber = page.position;
+                currentPage = page;
                 fTrans.replace(R.id.pager, InvoicesPageFragment.newInstance(page));
                 toolbar_title.setText(InvoicesPageFragment.page_title);
                 break;
             }
         }
+
         fTrans.commit();
     }
 
@@ -166,4 +216,22 @@ public class Navigation {
         }
     }
 
+    public void backPress() {
+
+        backpressed = true;
+        if(pageBackList.size()>0)
+        {
+            MainActivity.Page page = pageBackList.lastEntry().getKey();
+            if(filterParam.size()>0 && pageBackList.lastEntry().getValue().size()>0) {
+
+                Map<String, String[]> tmp =  new ArrayMap<>();
+                tmp.putAll(pageBackList.lastEntry().getValue());
+                filterParam.clear();
+                filterParam.putAll(tmp);
+            }
+            pageBackList.remove(pageBackList.lastKey());
+            openCurrentPage(page);
+
+        }
+    }
 }

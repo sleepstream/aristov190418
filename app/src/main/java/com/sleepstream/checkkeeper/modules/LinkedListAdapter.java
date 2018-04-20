@@ -198,7 +198,7 @@ public class LinkedListAdapter extends RecyclerView.Adapter<LinkedListAdapter.It
 
                             navigation.clearFilter("");
                             navigation.setFilter("fk_invoice_accountinglist", new String[]{item.accountingListData.getId().toString()});
-                            navigation.openCurrentPage(new Page(item.accountingListData.getName(), 5));
+                            navigation.openCurrentPage(new Page(item.accountingListData.getName(), 6));
                         }
                     });
                     if (row_index == position) {
