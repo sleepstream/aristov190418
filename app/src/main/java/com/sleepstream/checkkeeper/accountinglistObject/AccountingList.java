@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
@@ -109,6 +110,8 @@ public class AccountingList {
         data.put("listName", listName);
         if(position !=null)
             data.put("_order", order);
+
+        data.put("date_add", new Date().getTime());
         id = dbHelper.insert(tableName, null, data);
         
         if(id>-1)

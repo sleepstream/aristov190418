@@ -414,6 +414,7 @@ public class Invoice {
         data.put("date", dateInvoice);
         data.put("date_day", invoiceData.date_day);
         data.put("fullPrice", fullPrice);
+        data.put("date_add", new Date().getTime());
         if(checkFilter("fk_invoice_accountinglist", null))
             data.put("fk_invoice_accountinglist", filterParam.get("fk_invoice_accountinglist")[0]);
         if(position!=null)
@@ -618,6 +619,8 @@ public class Invoice {
             data.put("store_type", store.store_type);
         if(store.iconName != null)
             data.put("iconName", store.iconName);
+
+        data.put("date_add", new Date().getTime());
 
         if((store.inn!=null && store.inn>0) || store.place_id!= null) {
             if(store.id == null || store.id <= 0) {
@@ -844,6 +847,7 @@ public class Invoice {
             values.put("prise_for_item", item.price/100);
             values.put("quantity", item.quantity);
             values.put("sum", item.sum/100);
+            values.put("date_add", new Date().getTime());
             Long tmp = dbHelper.insert("purchases", null, values);
             if(tmp == -1)
                 return -1;
@@ -871,6 +875,7 @@ public class Invoice {
         data.put("fk_kktRegId_stores", kktRegId.fk_kktRegId_stores != null ? kktRegId.fk_kktRegId_stores.toString() : null);
         data.put("kktRegId", kktRegId.kktRegId.toString());
         data.put("_status", kktRegId._status != null ? kktRegId._status : 0);
+        data.put("date_add", new Date().getTime());
         if(kktRegId.id != null) {
             id =(int) dbHelper.update(tableName, data, "id=?", new String[]{kktRegId.id.toString()});
         }
