@@ -132,7 +132,9 @@
                                 android:layout_height="wrap_content"
                                 android:src="@drawable/ic_camera_alt_black_48dp"/>
                     </RelativeLayout>
+
                 </RelativeLayout>
+
             </RelativeLayout>
 
             <RelativeLayout
@@ -160,7 +162,6 @@
                     android:layout_margin="@dimen/fab_margin"
                     android:src="@drawable/ic_add_white_24dp"/>
         </RelativeLayout>
-
     <android.support.design.widget.NavigationView
             android:id="@+id/nav_view"
             android:layout_width="wrap_content"

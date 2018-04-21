@@ -58,6 +58,9 @@
         <activity
                 android:name=".PDFActivity"
                 android:screenOrientation="portrait"/>
+        <activity
+                android:name=".crop.CropActivity"
+                android:screenOrientation="portrait"/>
 
         <service
                 android:name=".LoadingFromFNS"

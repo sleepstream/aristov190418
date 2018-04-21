@@ -34,12 +34,15 @@ import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
+import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
+import com.takusemba.cropme.CropView;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Random;
 
 import static android.view.View.GONE;
@@ -70,6 +73,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public static PurchasesListAdapter purchasesListAdapter;
     private final int PLACE_PICKER_REQUEST = 3000;
     public static String subTitle="";
+    private RelativeLayout placeImageLayout;
 
     public PurchasesPageFragment(){}
 
@@ -108,10 +112,9 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     }
     private void setPageData()
     {
-        currentNumber.setText("0");
         if(currentInvoice!=null) {
-            currentDate.setText(currentInvoice.getDateInvoice(null));
-            currentName.setText(String.valueOf((float) Math.round(currentInvoice.getFullPrice() * 100) / 100 ));
+            //currentDate.setText(currentInvoice.getDateInvoice(null));
+            //currentName.setText(String.valueOf((float) Math.round(currentInvoice.getFullPrice() * 100) / 100 ));
 
             if(currentInvoice.store != null && currentInvoice.store.place_id != null) {
                 String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/IMG_" + currentInvoice.store.place_id + ".png";
@@ -129,13 +132,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                         placeImage.setImageBitmap(myBitmap);
                     }
                 }
-                //PhotoTask photoTask = new PhotoTask(500, 500);
+                //PhotoTaskSaver photoTask = new PhotoTaskSaver(500, 500);
                 //photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
             }
-            currentNumber.setText(String.valueOf(currentInvoice.quantity == null? "0" : currentInvoice.quantity));
+            //currentNumber.setText(String.valueOf(currentInvoice.quantity == null? "0" : currentInvoice.quantity));
         }
         else {
-            currentName.setText("");
+            //currentName.setText("");
             placeImage.setImageBitmap(null);
         }
 
@@ -268,12 +271,20 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         View view = inflater.inflate(R.layout.content_purchases_page, null);
         final Context context = view.getContext();
         currentDate = view.findViewById(R.id.currentDate);
-        currentName = view.findViewById(R.id.currentName);
+        //currentName = view.findViewById(R.id.currentName);
         currentNumber =  view.findViewById(R.id.currentNumber);
         store_name =  view.findViewById(R.id.strore_name);
         strore_adress = view.findViewById(R.id.strore_adress);
         placeImage = view.findViewById(R.id.placeImage);
-        settingsMenu = view.findViewById(R.id.settingsMenu);
+        placeImageLayout = view.findViewById(R.id.placeImageLayout);
+        placeImageLayout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                showPopupMenuAccountingList(view);
+                return true;
+            }
+        });
+        //settingsMenu = view.findViewById(R.id.settingsMenu);
         //slidingUpPanelLayout = (SlidingUpPanelLayout) view.findViewById(R.id.sliding_layout);
         setPageData();
 
@@ -312,12 +323,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 */
 
 
-        settingsMenu.setOnClickListener(new View.OnClickListener() {
+        /*settingsMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 showPopupMenuAccountingList(view);
             }
         });
+        */
         recyclerViewPurList =  view.findViewById(R.id.cardList);
         assert recyclerViewPurList != null;
         recyclerViewPurList.setHasFixedSize(true);
@@ -331,7 +343,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         ItemTouchHelper.Callback callbackPurList = new SimpleItemTouchHelperCallback(purchasesListAdapter, context);
         mItemTouchHelperPurList = new ItemTouchHelper(callbackPurList);
         mItemTouchHelperPurList.attachToRecyclerView(recyclerViewPurList);
-        currentName.setText(purchasesList.title);
+        //currentName.setText(purchasesList.title);
         purchasesListAdapter.notifyDataSetChanged();
 
         //if(MainActivity.pageNow == "purchasesList")
@@ -345,7 +357,6 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         recyclerViewFotoList.setLayoutManager(llmFoto);
         googleFotoListAdapter = new GoogleFotoListAdapter(context);
         recyclerViewFotoList.setAdapter(googleFotoListAdapter);
-
 
 
         return view;
@@ -364,13 +375,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
 
 
-    class PhotoTask extends AsyncTask<String, Void, PurchasesPageFragment.PhotoTask.AttributedPhoto> {
+    class PhotoTaskSaver extends AsyncTask<String, Void, PhotoTaskSaver.AttributedPhoto> {
 
         private int mHeight;
 
         private int mWidth;
 
-        public PhotoTask(int width, int height) {
+        public PhotoTaskSaver(int width, int height) {
             mHeight = height;
             mWidth = width;
         }
@@ -384,14 +395,14 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
            super.onPostExecute(attributedPhoto);
        }
        @Override
-       protected PurchasesPageFragment.PhotoTask.AttributedPhoto doInBackground(String... params) {
+       protected PhotoTaskSaver.AttributedPhoto doInBackground(String... params) {
 
            Log.d(LOG_TAG, "trying to get place_id image ");
            if (params.length != 3) {
                return null;
            }
            final String placeId = params[0];
-           PurchasesPageFragment.PhotoTask.AttributedPhoto attributedPhoto = null;
+           PhotoTaskSaver.AttributedPhoto attributedPhoto = null;
            String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
            File file = new File(filepath, "IMG_"+placeId + ".png");
            Bitmap image = null;
@@ -456,9 +467,9 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                    fOut.flush();
                    fOut.close();
                }
-               attributedPhoto = new PurchasesPageFragment.PhotoTask.AttributedPhoto(image, mapImage);
+               attributedPhoto = new PhotoTaskSaver.AttributedPhoto(image, mapImage);
            } catch (Exception ex) {
-               attributedPhoto = new PurchasesPageFragment.PhotoTask.AttributedPhoto(image, mapImage);
+               attributedPhoto = new PhotoTaskSaver.AttributedPhoto(image, mapImage);
                Log.d(LOG_TAG, "ERROR to save place_id image folder \n" + ex.getMessage());
                ex.printStackTrace();
            }
@@ -491,11 +502,15 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
                     @Override
                     public boolean onMenuItemClick(final MenuItem item) {
+                        PhotoTask photoTask = new PhotoTask(500, 500);
+                        photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
+                        /*
                         if(item.getItemId() == R.id.setPhoto)
                         {
                             Intent chooseImageIntent = ImagePicker.getPickImageIntent(getActivity());
                             getActivity().startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
                         }
+                        */
                         return false;
                     }
                 });
@@ -513,5 +528,113 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         Handler handlerUndo=new Handler();
         handlerUndo.postDelayed(runnableUndo,2500);
 
+    }
+    public class PhotoTask extends AsyncTask<String, String, Void> {
+
+        private int mHeight;
+        private int mWidth;
+        private String filepath;
+        private File file;
+        private InvoiceData invoiceData;
+
+        public PhotoTask(int width, int height) {
+            mHeight = height;
+            mWidth = width;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            loadingPanel.setVisibility(GONE);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+            file = new File(filepath, "IMG_"+currentInvoice.store.place_id + ".png");
+            try {
+                this.invoiceData = (InvoiceData) currentInvoice.clone();
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+            }
+            if(googleFotoListAdapter != null) {
+                addMyPhotoContainer.setVisibility(View.VISIBLE);
+                blurPlotter.setVisibility(View.VISIBLE);
+                loadingPanel.setVisibility(View.VISIBLE);
+                //recyclerViewFotoList.bringToFront();
+            }
+            //googleFotoListAdapter.placePhotoMetadataList.add(getUrlToResource(context, R.drawable.loading_icon));
+            //googleFotoListAdapter.notifyDataSetChanged();
+        }
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            if(googleFotoListAdapter != null) {
+                loadingPanel.setVisibility(GONE);
+                googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
+                googleFotoListAdapter.photoData.put(values[1], values[0]);
+                googleFotoListAdapter.notifyDataSetChanged();
+            }
+        }
+
+        /**
+         * Loads the first photo for a place id from the Geo Data API.
+         * The place id must be the first (and only) parameter.
+         */
+        @Override
+        protected Void doInBackground(String... params) {
+            if (params.length != 3) {
+                return null;
+            }
+
+            final String placeId = params[0];
+            GooglePlace googlePlace = new GooglePlace(placeId, getContext());
+                Bitmap image = null;
+                if (googlePlace.photos != null) {
+                    for (int count = 0; count < googlePlace.photos.size(); count++) {
+                        GooglePlace.Photo photo = googlePlace.photos.get(count);
+                        File file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
+                        if (!file.exists()) {
+                            saveImages(googlePlace.loadImage(photo.photo_reference), placeId, count);
+                            file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
+                        }
+                        publishProgress(file.getPath(), photo.photo_reference);//cacheDir + "IMG_" + placeId + "_" + count + ".png");
+                    }
+
+                }
+            return null;
+        }
+
+    }
+
+    private void saveImages(Bitmap image, String place_id, int count)
+    {
+        FileOutputStream fOut= null;
+
+        try {
+            if(image!= null) {
+                //log.info(LOG_TAG+"\n"+ "trying to save place_id image folder " + cacheDir +"IMG_"+place_id +"_"+count +".png");
+                File file = new File(cacheDir, "IMG_"+place_id + "_"+count +".png");
+                fOut = new FileOutputStream(file);
+                image.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+            }
+        }
+        catch (Exception ex)
+        {
+            //log.info(LOG_TAG+"\n"+ "ERROR to save place_id image folder \n"+ex.getMessage());
+            ex.printStackTrace();
+        }
+        finally
+        {
+            try {
+                if (fOut != null) {
+                    fOut.flush();
+                    fOut.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

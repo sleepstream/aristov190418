@@ -63,10 +63,12 @@ import com.sleepstream.checkkeeper.smsListener.SmsListener;
 import com.sleepstream.checkkeeper.smsListener.SmsReceiver;
 import com.sleepstream.checkkeeper.userModule.UserDataActivity;
 import com.sleepstream.checkkeeper.userModule.personalData;
+import com.takusemba.cropme.CropView;
 import okhttp3.*;
 import org.ghost4j.document.PDFDocument;
 
 import java.io.*;
+import java.net.URI;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -100,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
     public String android_id;
 
     public static GoogleApiClient mGoogleApiClient;
-    private static String  cacheDir;
+    public static String  cacheDir;
     public static String pageNow= "accountingLists";
 
     public static DBHelper dbHelper;
@@ -170,6 +172,7 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
     public TextView invoicesLoadingPage;
 
     public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
+    public static CropView cropView;
 
 
     @Override
@@ -1966,7 +1969,8 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
 
             if(googleFotoListAdapter != null) {
                 loadingPanel.setVisibility(GONE);
-                googleFotoListAdapter.placePhotoMetadataList.add(values[0]);
+                googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
+                googleFotoListAdapter.photoData.put(values[1], values[0]);
                 googleFotoListAdapter.notifyDataSetChanged();
             }
         }
@@ -2017,8 +2021,9 @@ public class MainActivity extends AppCompatActivity implements  InvoiceListAdapt
                         File file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
                         if (!file.exists()) {
                             saveImages(googlePlace.loadImage(photo.photo_reference), placeId, count);
+                            file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
                         }
-                        publishProgress(cacheDir + "IMG_" + placeId + "_" + count + ".png");
+                        publishProgress(file.getPath(), photo.photo_reference);//cacheDir + "IMG_" + placeId + "_" + count + ".png");
                     }
 
                 }

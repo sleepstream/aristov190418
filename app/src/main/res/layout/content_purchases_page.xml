@@ -17,7 +17,7 @@
             android:elevation="5dp"
             android:id="@+id/conteiner">
         <!--PAnel-->
-        <RelativeLayout
+      <!--  <RelativeLayout
                 android:id="@+id/panel"
                 android:layout_alignParentTop="true"
                 android:layout_width="match_parent"
@@ -114,12 +114,12 @@
                 </RelativeLayout>
 
             </RelativeLayout>
-        </RelativeLayout>
+        </RelativeLayout>-->
 
         <!--MAin view-->
         <RelativeLayout
                 android:id="@+id/storeData"
-                android:layout_below="@id/panel"
+                android:layout_alignParentTop="true"
                 android:layout_alignParentStart="true"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -140,7 +140,7 @@
                     android:elevation="5dp"
                     android:paddingLeft="12dp"
                     android:paddingRight="12dp"
-                    android:layout_toRightOf="@+id/placeImageLayout"
+                    android:layout_below="@+id/placeImageLayout"
                     android:layout_alignParentEnd="true"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

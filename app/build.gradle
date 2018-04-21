@@ -44,6 +44,8 @@ android {
         compile 'com.joanzapata.pdfview:android-pdfview:1.0.4@aar'
         compile 'com.google.guava:guava:23.5-android'
 
+        compile 'com.github.takusemba:cropme:1.0.6'
+        compile "com.android.support:support-dynamic-animation:27.1.1"
 
         compile 'com.github.nisrulz:qreader:2.1.2'
         compile 'com.squareup.okhttp3:okhttp:3.4.1'

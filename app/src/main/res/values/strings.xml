@@ -59,7 +59,7 @@
     <string name="invoicesBasketListTitle">Корзина</string>
     <string name="empty">ничего нет</string>
     <string name="pick_image_intent_text">Выбрать фотографию</string>
-    <string name="title_setPhoto">Загрузить фото</string>
+    <string name="title_setPhoto">Изменить фотографию</string>
     <string name="title_addinvoicemanual">Добавить данные чека</string>
     <string name="title_addinvoicemanualFP">Укажите ФП из чека</string>
     <string name="title_addinvoicemanualFN">Укажите ФН из чека</string>

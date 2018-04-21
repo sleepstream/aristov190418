@@ -148,7 +148,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
     public void onBindViewHolder(final ItemViewHolder itemViewHolder, final int position) {
 
         final PurchasesListData item = purchasesList.purchasesListData.get(position);
-        invsNumber.setText(String.valueOf(getItemCount()));
+        //invsNumber.setText(String.valueOf(getItemCount()));
         itemViewHolder.itemName.setText(item.product.nameFromBill+"");
         itemViewHolder.priceForItem.setText(item.prise_for_item.toString());
         itemViewHolder.quantity.setText(item.quantity.toString());

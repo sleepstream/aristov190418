@@ -1,6 +1,7 @@
 package com.sleepstream.checkkeeper.modules;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.Environment;
 import android.support.v7.widget.RecyclerView;
@@ -13,16 +14,23 @@ import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.R;
 
 import java.io.File;
+import android.net.Uri;
+import com.sleepstream.checkkeeper.crop.CropActivity;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAdapter.ItemViewHolder>  {
     private Context context;
     public List<String> placePhotoMetadataList = new ArrayList<>();
+    public Map<String, String> photoData = new LinkedHashMap<>();
     private static final String LOG_TAG = "GoogleFotoListAdapter";
     private String backupDBPath;
+
 
     public GoogleFotoListAdapter(Context applicationContext) {
         this.context= applicationContext;
@@ -38,22 +46,26 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
 
     @Override
     public void onBindViewHolder(GoogleFotoListAdapter.ItemViewHolder holder, final int position) {
-        File imageFile = new  File(placePhotoMetadataList.get(position));
+        File imageFile = new  File(photoData.get(placePhotoMetadataList.get(position)));
         if(imageFile.exists()){
             Log.d(LOG_TAG, "onBindViewHolder set img  "+ placePhotoMetadataList.get(position));
-            holder.imageView.setImageBitmap(BitmapFactory.decodeFile(placePhotoMetadataList.get(position)));
+            holder.imageView.setImageBitmap(BitmapFactory.decodeFile(imageFile.getPath()));
         }
         holder.imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                placePhotoMetadataList.get(position);
-                String imgUrl = placePhotoMetadataList.get(position);
+                Intent intent = new Intent(context, CropActivity.class);
+                intent.putExtra("photoreference", placePhotoMetadataList.get(position));
+                intent.putExtra("place_id", currentInvoice.store.place_id);
+                context.startActivity(intent);
+                /*
                 MainActivity.copyfile(imgUrl, Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/" + "IMG_" + currentInvoice.store.place_id + ".png");
                 PurchasesPageFragment.placeImage.setImageBitmap(BitmapFactory.decodeFile(imgUrl));
                 blurPlotter.setVisibility(View.GONE);
                 addMyPhotoContainer.setVisibility(View.GONE);
                 placePhotoMetadataList.clear();
                 notifyDataSetChanged();
+                */
                 //((Activity)context).setResult(RESULT_OK, intent);
                 //((Activity)context).finish();
 
