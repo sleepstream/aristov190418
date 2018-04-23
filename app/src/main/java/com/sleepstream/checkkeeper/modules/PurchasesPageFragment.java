@@ -166,9 +166,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
                         builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude,  currentInvoice.store.longitude),
                                 new LatLng(currentInvoice.store.latitude, currentInvoice.store.longitude)));
+                    else  if(currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd >0)
+                    {builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),
+                            new LatLng(currentInvoice.latitudeAdd, currentInvoice.longitudeAdd)));}
 
 
                 }
+
 
                 //Context context = getApplicationContext();
                 try {
@@ -502,8 +506,19 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
                     @Override
                     public boolean onMenuItemClick(final MenuItem item) {
-                        PhotoTask photoTask = new PhotoTask(500, 500);
-                        photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
+                        switch(item.getItemId())
+                        {
+                            case R.id.setPhoto:
+                                PhotoTask photoTask = new PhotoTask(500, 500);
+                                photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
+                                break;
+                            case R.id.removePhoto:
+                                String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+                                File file = new File(filepath, "IMG_"+currentInvoice.store.place_id + ".png");
+                                file.delete();
+                                break;
+                        }
+
                         /*
                         if(item.getItemId() == R.id.setPhoto)
                         {

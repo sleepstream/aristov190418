@@ -232,6 +232,9 @@ public class Invoice {
                 invoiceData.set_status(cur.getInt(cur.getColumnIndex("_status")));
                 invoiceData.setfk_invoice_stores(cur.getInt(cur.getColumnIndex("fk_invoice_stores")));
 
+                invoiceData.latitudeAdd =cur.getDouble(cur.getColumnIndex("latitudeAdd"));
+                invoiceData.longitudeAdd =cur.getDouble(cur.getColumnIndex("longitudeAdd"));
+
 
 
 
@@ -415,6 +418,12 @@ public class Invoice {
         data.put("date_day", invoiceData.date_day);
         data.put("fullPrice", fullPrice);
         data.put("date_add", new Date().getTime());
+
+        if(invoiceData.longitudeAdd != null && invoiceData.latitudeAdd != null)
+        {
+            data.put("longitudeAdd", invoiceData.longitudeAdd);
+            data.put("latitudeAdd", invoiceData.latitudeAdd);
+        }
         if(checkFilter("fk_invoice_accountinglist", null))
             data.put("fk_invoice_accountinglist", filterParam.get("fk_invoice_accountinglist")[0]);
         if(position!=null)
@@ -756,7 +765,9 @@ public class Invoice {
         if(receipt.retailPlaceAddress != null)
             finalInvoiceData.store.address_from_fns = receipt.retailPlaceAddress.trim().replaceAll("\\s{2}", "");
 
-        if(finalInvoiceData.store.inn == 0)
+        if(finalInvoiceData.store.inn == null)
+            finalInvoiceData.store.update = true;
+        else if(finalInvoiceData.store.inn == 0)
             finalInvoiceData.store.update = true;
         finalInvoiceData.store.inn = Long.valueOf(receipt.userInn.trim());
 

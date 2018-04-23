@@ -125,35 +125,42 @@ public class CropActivity extends AppCompatActivity {
         Intent intent = getIntent();
         String tmp= intent.getStringExtra("photoreference");
         place_id = intent.getStringExtra("place_id");
-        loadImage(tmp);
+        String key = intent.getStringExtra("key");
+        loadImage(tmp, key);
     }
 
-    public  void loadImage(String photo_reference)
+    public  void loadImage(String photo_reference, String key)
     {
-        String urlGet="https://maps.googleapis.com/maps/api/place/photo?maxheight=5000&photoreference="+photo_reference+"&key="+ getString(R.string.google_maps_key);
-        final OkHttpClient okHttpClient = new OkHttpClient.Builder().retryOnConnectionFailure(true).build();
-        final okhttp3.Request request = new okhttp3.Request.Builder()
-                .url(urlGet)
-                .build();
+        if(key == null) {
+            String urlGet = "https://maps.googleapis.com/maps/api/place/photo?maxheight=5000&photoreference=" + photo_reference + "&key=" + getString(R.string.google_maps_key);
+            final OkHttpClient okHttpClient = new OkHttpClient.Builder().retryOnConnectionFailure(true).build();
+            final okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url(urlGet)
+                    .build();
 
-        new Thread(new Runnable() {
-        @Override
-        public void run() {
-            try {
-                Response response = okHttpClient.newCall(request).execute();
-                final Bitmap bitmap = BitmapFactory.decodeStream(response.body().byteStream());
-                response.close();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        cropView.setBitmap(bitmap);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Response response = okHttpClient.newCall(request).execute();
+                        final Bitmap bitmap = BitmapFactory.decodeStream(response.body().byteStream());
+                        response.close();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                cropView.setBitmap(bitmap);
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+                }
+            }).start();
         }
-    }).start();
+        else
+        {
+            cropView.setBitmap(BitmapFactory.decodeFile(photo_reference));
+        }
 
     }
 

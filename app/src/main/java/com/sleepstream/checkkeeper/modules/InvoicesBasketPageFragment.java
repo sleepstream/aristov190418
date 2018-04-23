@@ -178,7 +178,11 @@ public class InvoicesBasketPageFragment extends Fragment {
                 }
             }
         });
-
+        if(navigation.page!= null && navigation.page.positionInList != null) {
+            llm.scrollToPosition(navigation.page.positionInList);
+            invoiceBasketListAdapter.row_index = navigation.page.positionInList;
+            navigation.page.positionInList = null;
+        }
 
         return view;
     }

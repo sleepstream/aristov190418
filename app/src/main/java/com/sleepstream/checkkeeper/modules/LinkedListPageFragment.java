@@ -36,7 +36,7 @@ public class LinkedListPageFragment extends Fragment implements LinkedListAdapte
     private Context context;
 
     public static LinkedListAdapter linkedListAdapter;
-    private LinearLayoutManager linearLayoutManager;
+    public LinearLayoutManager linearLayoutManager;
     private Navigation navigation;
 
 
@@ -109,6 +109,11 @@ public class LinkedListPageFragment extends Fragment implements LinkedListAdapte
             }
         });
 
+        if(navigation.page!= null && navigation.page.positionInList != null) {
+            linearLayoutManager.scrollToPosition(navigation.page.positionInList);
+            linkedListAdapter.row_index = navigation.page.positionInList;
+            navigation.page.positionInList = null;
+        }
         return view;
 
 

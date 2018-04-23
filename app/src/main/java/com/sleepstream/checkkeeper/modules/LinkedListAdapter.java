@@ -156,7 +156,9 @@ public class LinkedListAdapter extends RecyclerView.Adapter<LinkedListAdapter.It
                                 MainActivity.purchasesList.setfilter("fk_purchases_invoice", item.invoiceData.getId().toString());
                                 MainActivity.currentInvoice = item.invoiceData;
 
-                                navigation.openCurrentPage(new Page("", 4));
+                                MainActivity.Page page =new MainActivity.Page("", 4);
+                                page.positionInList = position;
+                                navigation.openCurrentPage(page);
                                 //SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:MM:SS", Locale.getDefault());
                                 //android.icu.util.Calendar calendar = Calendar.getInstance();
                                 //calendar.setTimeInMillis(Long.parseLong(item.invoiceData.getDateInvoice(1)));
@@ -198,7 +200,11 @@ public class LinkedListAdapter extends RecyclerView.Adapter<LinkedListAdapter.It
 
                             navigation.clearFilter("");
                             navigation.setFilter("fk_invoice_accountinglist", new String[]{item.accountingListData.getId().toString()});
-                            navigation.openCurrentPage(new Page(item.accountingListData.getName(), 6));
+
+
+                            MainActivity.Page page =new Page(item.accountingListData.getName(), 6);
+                            page.positionInList = position;
+                            navigation.openCurrentPage(page);
                         }
                     });
                     if (row_index == position) {

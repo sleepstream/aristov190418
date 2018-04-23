@@ -22,10 +22,11 @@ public class Navigation {
     private TextView toolbar_title;
     public NavigableMap<MainActivity.Page, Map<String, String[]>> pageBackList = new TreeMap<>();
     private boolean backpressed;
+    public MainActivity.Page page;
     public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
 
     public Navigation(Context context, TextView toolbar_title) {
-        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1"});
+        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4"});
         statusInvoices.put("in_basket", new String[]{"1"});
         this.context = context;
         this.toolbar_title=toolbar_title;
@@ -38,6 +39,7 @@ public class Navigation {
     }
 
     public void openCurrentPage(MainActivity.Page page) {
+        this.page = page;
         fTrans =((Activity) context).getFragmentManager().beginTransaction();
 
         if(MainActivity.invoice.filterDates!= null)
@@ -55,6 +57,8 @@ public class Navigation {
                     MainActivity.Page pageTmp = entry.getKey();
                     Map<String, String[]> filterTmp = entry.getValue();
                     if(!pageTmp.equals(currentPage) || !filterTmp.equals(filterParam)) {
+                        if(page.positionInList != null)
+                            currentPage.positionInList =page.positionInList;
                         currentPage.setId();
                         Map<String, String[]> Tmp = new LinkedHashMap<>();
                         for(Map.Entry<String, String[]> item: filterParam.entrySet())
@@ -65,6 +69,8 @@ public class Navigation {
                     }
                 }
                 else if (pageBackList.size() == 0) {
+                    if(page.positionInList != null)
+                        currentPage.positionInList =page.positionInList;
                     currentPage.setId();
                     Map<String, String[]> filterTmp = new LinkedHashMap<>();
                     for(Map.Entry<String, String[]> item: filterParam.entrySet())
@@ -81,11 +87,13 @@ public class Navigation {
                 clearFilter("");
                 InvoicesPageFragment fragment = InvoicesPageFragment.newInstance(page);
                 fragment.InvoicesPageFragmentSet(this);
+
                 fTrans.replace(R.id.pager, fragment);
                 if(InvoicesPageFragment.page_title != "")
                     toolbar_title.setText(InvoicesPageFragment.page_title);
                 else
                     toolbar_title.setText(context.getString(R.string.invoicesListTitle));
+
                 break;
             }
             case 1: {
@@ -110,9 +118,11 @@ public class Navigation {
             case 3: {
                 currentPage = page;
                 clearFilter("");
-                LinkedListPageFragment fragmen = LinkedListPageFragment.newInstance(0);
-                fragmen.LinkedListPageFragmentSet(this);
-                fTrans.replace(R.id.pager, fragmen);
+                LinkedListPageFragment fragment = LinkedListPageFragment.newInstance(0);
+                fragment.LinkedListPageFragmentSet(this);
+                if(fragment.linearLayoutManager != null)
+                    fragment.linearLayoutManager.smoothScrollToPosition(fragment.recyclerViewLinkList, null, page.positionInList);
+                fTrans.replace(R.id.pager, fragment);
                 toolbar_title.setText(context.getString(LinkedListPageFragment.page_title));
                 break;
             }
@@ -145,7 +155,7 @@ public class Navigation {
                 if(InvoicesPageFragment.page_title != "")
                     toolbar_title.setText(InvoicesPageFragment.page_title);
                 else
-                    toolbar_title.setText(context.getString(R.string.invoicesLoadingListTitle));
+                    toolbar_title.setText(context.getString(R.string.invoicesNOTitleTitle));
                 break;
             }
             default: {

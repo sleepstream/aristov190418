@@ -199,7 +199,9 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                         MainActivity.purchasesList.clearFilter();
                         MainActivity.purchasesList.setfilter("fk_purchases_invoice", item.getId().toString());
                         MainActivity.currentInvoice = item;
-                        navigation.openCurrentPage(new MainActivity.Page("", 4));
+                        MainActivity.Page page =new MainActivity.Page("", 4);
+                        page.positionInList = position;
+                        navigation.openCurrentPage(page);
                     }
 
                 }

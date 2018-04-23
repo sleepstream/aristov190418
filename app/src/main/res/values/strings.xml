@@ -79,5 +79,7 @@
     <string name="loadingInvoicesTitle">Загрузка</string>
     <string name="sumOfInvoice">Сумма покупки</string>
     <string name="dateOfInvoice">Дата покупки</string>
+    <string name="invoicesNOTitleTitle">Чеки</string>
+    <string name="title_removePhoto">Удалить фотографию</string>
 
 </resources>

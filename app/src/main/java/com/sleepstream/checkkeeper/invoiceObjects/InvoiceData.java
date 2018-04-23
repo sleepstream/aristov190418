@@ -20,6 +20,8 @@ public class InvoiceData implements Cloneable
     private Long date_add;
     private Integer in_basket;
     public boolean selected = false;
+    public Double longitudeAdd;
+    public Double latitudeAdd;
 
     public Integer isIn_basket() {
         return in_basket;

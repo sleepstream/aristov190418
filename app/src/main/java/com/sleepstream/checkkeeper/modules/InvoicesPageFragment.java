@@ -141,6 +141,11 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
                 super.onScrolled(recyclerView, dx, dy);
             }
         });
+        if(navigation.page!= null && navigation.page.positionInList != null) {
+            llm.scrollToPosition(navigation.page.positionInList);
+            invoiceListAdapter.row_index = navigation.page.positionInList;
+            navigation.page.positionInList = null;
+        }
         return view;
     }
 
@@ -162,6 +167,8 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
         invoice.reLoadInvoice();
         MainActivity.currentNumber.setText(String.valueOf(invoice.invoices.size()));
         invoiceListAdapter.notifyDataSetChanged();
+
+
     }
 
     public void InvoicesPageFragmentSet(Navigation navigation) {
