@@ -22,5 +22,9 @@
           android:id="@+id/busketListPage"
           app:actionViewClass="android.widget.TextView"
           android:enabled="true"/>
+    <item android:title="@string/makeBackupTitle"
+          android:id="@+id/makeBackup"
+          app:actionViewClass="android.widget.TextView"
+          android:enabled="true"/>
 
 </menu>

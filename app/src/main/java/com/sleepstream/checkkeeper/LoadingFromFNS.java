@@ -159,6 +159,7 @@ public class LoadingFromFNS extends Service {
                         qrItem.FP = invoiceData.getFP();
                         qrItem.FD = invoiceData.getFD();
                         qrItem.FN = invoiceData.getFN();
+                        invoiceData.repeatCount+=1;
                         getFnsData.setHeaders(qrItem);
                         log.info(LOG_TAG+"\n"+"check new invoice " + invoiceData.getId());
                         Response response=null;

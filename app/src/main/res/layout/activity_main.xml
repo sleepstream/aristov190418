@@ -98,13 +98,18 @@
 
             <RelativeLayout
                     android:id="@+id/blurPlotter"
-                    android:elevation="7dp"
                     android:visibility="gone"
                     android:layout_alignParentStart="true"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@color/colorBackground"
                     android:layout_gravity="center">
+                <ProgressBar
+                        android:id="@+id/progressBar"
+                        android:visibility="gone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"/>
                 <RelativeLayout
                         android:id="@+id/addMyPhotoContainer"
                         android:layout_width="match_parent"
@@ -116,8 +121,7 @@
                             android:layout_height="wrap_content"
                             android:layout_centerVertical="true"
                             android:layout_alignParentStart="true"
-                            android:background="@color/colorAccent"
-                            android:elevation="10dp"/>
+                            android:background="@color/colorAccent"/>
                     <RelativeLayout
                             android:id="@+id/addMyPhoto"
                             android:paddingTop="50dp"
@@ -171,5 +175,7 @@
             app:headerLayout="@layout/nav_header_main"
             app:menu="@menu/activity_main_drawer"/>
     </android.support.v4.widget.DrawerLayout>
+
+
 
 </RelativeLayout>

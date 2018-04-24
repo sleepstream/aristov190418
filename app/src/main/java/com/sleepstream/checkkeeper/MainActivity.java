@@ -90,6 +90,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static android.view.View.GONE;
+import static android.view.View.VISIBLE;
 import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
 
 
@@ -155,6 +156,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public static RelativeLayout addMyPhoto;
     public static RelativeLayout addMyPhotoContainer;
 
+    private ProgressBar progressBar;
+
     public TextView toolbar_title;
 
     protected static Logger log = Logger.getLogger(MainActivity.class.getName());
@@ -215,6 +218,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         };
         drawer.addDrawerListener(toggle);
         toggle.syncState();
+        progressBar = findViewById(R.id.progressBar);
 
         currentNumber = findViewById(R.id.currentNumber);
         ivFilter = findViewById(R.id.ivFilter);
@@ -659,9 +663,16 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             case R.id.invoicesLoadingPage:
                 menuItem.setChecked(true);
                 closeDrawer();
-
                 navigation.openCurrentPage(new Page(context.getString(R.string.loadingInvoicesTitle), 5));
                 return true;
+            case R.id.makeBackup:
+                closeDrawer();
+                progressBar.setVisibility(View.VISIBLE);
+                blurPlotter.setVisibility(View.VISIBLE);
+                dbHelper.backUpDataBase(true);
+                progressBar.setVisibility(View.GONE);
+                blurPlotter.setVisibility(View.GONE);
+                break;
         }
 
         return false;

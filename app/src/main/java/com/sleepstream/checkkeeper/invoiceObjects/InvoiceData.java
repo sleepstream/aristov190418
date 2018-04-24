@@ -22,6 +22,7 @@ public class InvoiceData implements Cloneable
     public boolean selected = false;
     public Double longitudeAdd;
     public Double latitudeAdd;
+    public Integer repeatCount;
 
     public Integer isIn_basket() {
         return in_basket;

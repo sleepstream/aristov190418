@@ -81,5 +81,7 @@
     <string name="dateOfInvoice">Дата покупки</string>
     <string name="invoicesNOTitleTitle">Чеки</string>
     <string name="title_removePhoto">Удалить фотографию</string>
+    <string name="makeBackupTitle">Резервная копия</string>
+    <string name="backUpReady">Выполнено резервное копирование:</string>
 
 </resources>

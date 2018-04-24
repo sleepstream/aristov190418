@@ -9,9 +9,11 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
 import android.widget.Toast;
+import com.sleepstream.checkkeeper.R;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -34,7 +36,7 @@ public class DBHelper extends SQLiteOpenHelper{
             super(context, DB_NAME, null, DATABASE_VERSION);
             this.myContext= context;
         DB_PATH= myContext.getDatabasePath(DB_NAME).getAbsolutePath();
-        backUpDataBase();
+        backUpDataBase(false);
 
     }
 
@@ -119,15 +121,20 @@ public class DBHelper extends SQLiteOpenHelper{
         myInput.close();
 
     }
-    private void backUpDataBase() {
+    public void backUpDataBase( Boolean key) {
 
         try {
             File sd = Environment.getExternalStorageDirectory();
             File data = Environment.getDataDirectory();
 
             if (sd.canWrite()) {
+
                 String  currentDBPath= DB_PATH;
-                String backupDBPath  = Environment.getExternalStorageDirectory()+"/PriceKeeper/BackUp/"+DB_NAME;
+                String backupDBPath;
+                if(key)
+                    backupDBPath = Environment.getExternalStorageDirectory()+"/PriceKeeper/BackUp/"+new Date().getTime()+"-"+DB_NAME;
+                else
+                    backupDBPath  = Environment.getExternalStorageDirectory()+"/PriceKeeper/BackUp/"+DB_NAME;
 
                 File currentDB = new File(currentDBPath);
                 File backupDB = new File(backupDBPath);
@@ -146,7 +153,7 @@ public class DBHelper extends SQLiteOpenHelper{
                     src.close();
                     dst.close();
                 }
-                Toast.makeText(myContext, backupDB.toString(),
+                Toast.makeText(myContext, myContext.getString(R.string.backUpReady)+backupDB.getName().toString(),
                         Toast.LENGTH_LONG).show();
 
             }

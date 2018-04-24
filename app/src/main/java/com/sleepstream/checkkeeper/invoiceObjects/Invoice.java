@@ -234,7 +234,7 @@ public class Invoice {
 
                 invoiceData.latitudeAdd =cur.getDouble(cur.getColumnIndex("latitudeAdd"));
                 invoiceData.longitudeAdd =cur.getDouble(cur.getColumnIndex("longitudeAdd"));
-
+                invoiceData.repeatCount =cur.getInt(cur.getColumnIndex("repeatCount"));
 
 
 
