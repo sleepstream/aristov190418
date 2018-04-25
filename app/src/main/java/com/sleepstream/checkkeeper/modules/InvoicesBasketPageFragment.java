@@ -48,7 +48,6 @@ public class InvoicesBasketPageFragment extends Fragment {
     private WrapContentLinearLayoutManager llm;
     private Navigation navigation;
 
-
     public InvoicesBasketPageFragment(){}
 
     public static InvoicesBasketPageFragment newInstance(int page) {
@@ -58,7 +57,6 @@ public class InvoicesBasketPageFragment extends Fragment {
         page_title = R.string.invoicesBasketListTitle;
         arguments.putInt("currentName", R.string.invoicesBasketListTitle);
         invoicesBasketPageFragment.setArguments(arguments);
-
         return invoicesBasketPageFragment;
     }
 
@@ -80,7 +78,6 @@ public class InvoicesBasketPageFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.content_invoices_basket_page, null);
         final Context context = view.getContext();
-
         fab.hide();
         fabDelete = view.findViewById(R.id.fabDelete);
         fabSelectAll = view.findViewById(R.id.fabSelectAll);

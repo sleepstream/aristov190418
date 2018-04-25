@@ -102,14 +102,8 @@
                     android:layout_alignParentStart="true"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@color/colorBackground"
+                    android:background="@color/colorBlurPlotter"
                     android:layout_gravity="center">
-                <ProgressBar
-                        android:id="@+id/progressBar"
-                        android:visibility="gone"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerInParent="true"/>
                 <RelativeLayout
                         android:id="@+id/addMyPhotoContainer"
                         android:layout_width="match_parent"
@@ -129,7 +123,6 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_centerHorizontal="true"
-                            android:background="@color/colorBackground"
                             android:layout_gravity="center">
                         <ImageView
                                 android:layout_width="wrap_content"
@@ -142,12 +135,11 @@
             </RelativeLayout>
 
             <RelativeLayout
-                    android:id="@+id/loadingPanel"
+                    android:id="@+id/progressBar"
                     android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:elevation="11dp">
+                    android:gravity="center">
 
                 <ProgressBar
                         android:layout_width="wrap_content"

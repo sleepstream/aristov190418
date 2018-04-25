@@ -913,7 +913,8 @@ public class Invoice {
         data.put("date", invoiceData.getDateInvoice(1));
         data.put("fullprice", invoiceData.getFullPrice());
         data.put("in_basket", invoiceData.isIn_basket()==null ? 0: invoiceData.isIn_basket());
-
+        if(invoiceData.repeatCount != null)
+            data.put("repeatCount", invoiceData.repeatCount);
         if(invoiceData.get_status() != null)
             data.put("_status", invoiceData.get_status());
 

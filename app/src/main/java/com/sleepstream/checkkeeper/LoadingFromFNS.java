@@ -138,9 +138,10 @@ public class LoadingFromFNS extends Service {
                 //status -1 - error loading from FNS not exist
                 //status 1 - loaded from fns
                 //status 2 - confirmed by user
+                //-3 Status Not Found from Server
                 QRManager qrItem;
                 invoice = new Invoice(null);
-                invoice.setfilter("_status", count == 0 ? new String[]{"0", "-1", "-2", "-4", "3"} : new String[]{"0", "-1", "-2", "-4",});
+                invoice.setfilter("_status", count == 0 ? new String[]{"0", "-1", "-2", "-4", "3", "-3"} : new String[]{"0", "-1", "-2", "-4","-3"});
                 invoice.reLoadInvoice();
                 log.info(LOG_TAG+"\n"+"reloaded from DB " + invoice.invoices.size());
                 if(invoice.invoices.size()<=0)

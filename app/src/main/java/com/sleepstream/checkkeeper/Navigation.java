@@ -15,6 +15,7 @@ import static com.sleepstream.checkkeeper.MainActivity.invoice;
 public class Navigation {
 
     private final Context context;
+    public PurchasesPageFragment purchasesPageFragment;
     public MainActivity.Page currentPage = null;
     private android.app.FragmentTransaction fTrans;
     public ArrayList<Date> filterDates;
@@ -26,7 +27,7 @@ public class Navigation {
     public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
 
     public Navigation(Context context, TextView toolbar_title) {
-        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4"});
+        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
         statusInvoices.put("in_basket", new String[]{"1"});
         this.context = context;
         this.toolbar_title=toolbar_title;
@@ -128,9 +129,9 @@ public class Navigation {
             }
             case 4: {
                 //currentPage = page.position;
-                PurchasesPageFragment fragment = PurchasesPageFragment.newInstance(0);
-                fragment.PurchasesPageFragmentSet(this);
-                fTrans.replace(R.id.pager, fragment);
+                purchasesPageFragment = PurchasesPageFragment.newInstance(0);
+                purchasesPageFragment.PurchasesPageFragmentSet(this, context);
+                fTrans.replace(R.id.pager, purchasesPageFragment);
                 toolbar_title.setText(context.getString(PurchasesPageFragment.page_title));
                 break;
             }
@@ -227,7 +228,11 @@ public class Navigation {
     }
 
     public void backPress() {
-
+        if(purchasesPageFragment!= null)
+        {
+            purchasesPageFragment.onDestroy();
+            purchasesPageFragment = null;
+        }
         backpressed = true;
         if(pageBackList.size()>0)
         {

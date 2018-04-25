@@ -4,7 +4,6 @@ import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -16,10 +15,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.*;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
@@ -35,7 +31,6 @@ import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
-import com.takusemba.cropme.CropView;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -74,6 +69,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private final int PLACE_PICKER_REQUEST = 3000;
     public static String subTitle="";
     private RelativeLayout placeImageLayout;
+    private Context context;
 
     public PurchasesPageFragment(){}
 
@@ -89,9 +85,10 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         return purchasesPageFragment;
     }
 
-    public void PurchasesPageFragmentSet(Navigation navigation)
+    public void PurchasesPageFragmentSet(Navigation navigation, Context context)
     {
         this.navigation = navigation;
+        this.context = context;
     }
 
     @Override
@@ -147,126 +144,177 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     @Override
     public void onResume() {
         super.onResume();
-        purchasesList.reloadPurchasesList();
-        purchasesListAdapter.notifyDataSetChanged();
+        try {
+            purchasesList.reloadPurchasesList();
+            purchasesListAdapter.notifyDataSetChanged();
+            if ((currentInvoice.store != null && currentInvoice.store._status == 0) || (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
 
-        MainActivity.currentNumber.setText(String.valueOf(purchasesList.purchasesListData.size()));
-        strore_adress.setText("");
-        store_name.setText("");
-        placeImage.setImageBitmap(null);
-        View map=  getView().findViewById(R.id.map);
-        setPageData();
-
-
-        map.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
-                if(currentInvoice.store != null) {
-                    if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
-                        builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude,  currentInvoice.store.longitude),
-                                new LatLng(currentInvoice.store.latitude, currentInvoice.store.longitude)));
-                    else  if(currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd >0)
-                    {builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),
-                            new LatLng(currentInvoice.latitudeAdd, currentInvoice.longitudeAdd)));}
+                LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                View dialoglayout = inflater.inflate(R.layout.butn_layout, null);
+                TextView dialogHint = dialoglayout.findViewById(R.id.whatToDo);
+                dialogHint.setHint(R.string.finde_store_on_map);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setView(dialoglayout);
+                final AlertDialog dialog = builder.create();
 
 
-                }
-
-
-                //Context context = getApplicationContext();
-                try {
-                    getActivity().startActivityForResult(builder.build(getActivity()), PLACE_PICKER_REQUEST);
-                } catch (GooglePlayServicesRepairableException e) {
-                    Log.d(LOG_TAG, e.getMessage() + "Error");
-                    e.printStackTrace();
-                } catch (GooglePlayServicesNotAvailableException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        map.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View view) {
-                blurPlotter.setVisibility(View.VISIBLE);
-
-                View v=LayoutInflater.from(getActivity()).inflate(R.layout.edit_store_information_layout, null);
-                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                builder.setView(v);
-                final EditText Name = v.findViewById(R.id.name);
-                final EditText storeType = v.findViewById(R.id.storeType);
-
-                Name.setText(MainActivity.currentInvoice.store.name);
-                storeType.setText(MainActivity.currentInvoice.store.store_type);
-
-                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                TextView btnOk = dialoglayout.findViewById(R.id.btnOk);
+                TextView btnCancel = dialoglayout.findViewById(R.id.btnCancel);
+                btnCancel.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        blurPlotter.setVisibility(GONE);
-                        MainActivity.currentInvoice.store.name = Name.getText().toString();
-                        MainActivity.currentInvoice.store.update = true;
-                        invoice.updateInvoice(MainActivity.currentInvoice);
-                    }
-                });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        blurPlotter.setVisibility(GONE);
+                    public void onClick(View view) {
                         dialog.cancel();
+                        //do nothing
                     }
                 });
-                builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                btnOk.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onCancel(DialogInterface dialogInterface) {
-                        blurPlotter.setVisibility(GONE);
+                    public void onClick(View view) {
+                        dialog.cancel();
+
+                        PlacePicker.IntentBuilder builder = placeBuilder();
+                        //Context context = getApplicationContext();
+                        try {
+                            getActivity().startActivityForResult(builder.build(getActivity()), PLACE_PICKER_REQUEST);
+                        } catch (Exception e) {
+                            Log.d(LOG_TAG, e.getMessage() + "Error");
+                            e.printStackTrace();
+                        }
                     }
                 });
-                builder.show();
 
-                return true;
+                WindowManager.LayoutParams wmlp = dialog.getWindow().getAttributes();
+                wmlp.gravity = Gravity.TOP | Gravity.CENTER;
+                dialog.show();
+                dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                    @Override
+                    public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent keyEvent) {
+                        if (keyCode == KeyEvent.KEYCODE_BACK) {
+                            dialogInterface.cancel();
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+
             }
-        });
-        if(currentInvoice != null) {
-            try {
-                if(currentInvoice.store.name == null || (currentInvoice.store.name != null && currentInvoice.store.name == "")) {
-                    if (currentInvoice.store.name_from_fns != null && currentInvoice.store.name_from_fns != "")
-                        store_name.setText(currentInvoice.store.name_from_fns);
+
+            MainActivity.currentNumber.setText(String.valueOf(purchasesList.purchasesListData.size()));
+            strore_adress.setText("");
+            store_name.setText("");
+            placeImage.setImageBitmap(null);
+            View map = getView().findViewById(R.id.map);
+            setPageData();
+
+
+            map.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    PlacePicker.IntentBuilder builder = placeBuilder();
+                    //Context context = getApplicationContext();
+                    try {
+                        getActivity().startActivityForResult(builder.build(getActivity()), PLACE_PICKER_REQUEST);
+                    } catch (GooglePlayServicesRepairableException e) {
+                        Log.d(LOG_TAG, e.getMessage() + "Error");
+                        e.printStackTrace();
+                    } catch (GooglePlayServicesNotAvailableException e) {
+                        e.printStackTrace();
+                    }
                 }
-                else if(currentInvoice.store.name != null && currentInvoice.store.name != "") {
-                    store_name.setText(currentInvoice.store.name);
+            });
+            map.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    blurPlotter.setVisibility(View.VISIBLE);
+
+                    View v = LayoutInflater.from(getActivity()).inflate(R.layout.edit_store_information_layout, null);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                    builder.setView(v);
+                    final EditText Name = v.findViewById(R.id.name);
+                    final EditText storeType = v.findViewById(R.id.storeType);
+
+                    Name.setText(MainActivity.currentInvoice.store.name);
+                    storeType.setText(MainActivity.currentInvoice.store.store_type);
+
+                    builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            blurPlotter.setVisibility(View.GONE);
+                            MainActivity.currentInvoice.store.name = Name.getText().toString();
+                            MainActivity.currentInvoice.store.update = true;
+                            invoice.updateInvoice(MainActivity.currentInvoice);
+                        }
+                    });
+                    builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            blurPlotter.setVisibility(View.GONE);
+                            dialog.cancel();
+                        }
+                    });
+                    builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                        @Override
+                        public void onCancel(DialogInterface dialogInterface) {
+                            blurPlotter.setVisibility(View.GONE);
+                        }
+                    });
+                    builder.show();
+
+                    return true;
                 }
-                else
+            });
+            if (currentInvoice != null) {
+                try {
+                    if (currentInvoice.store.name == null || (currentInvoice.store.name != null && currentInvoice.store.name == "")) {
+                        if (currentInvoice.store.name_from_fns != null && currentInvoice.store.name_from_fns != "")
+                            store_name.setText(currentInvoice.store.name_from_fns);
+                    } else if (currentInvoice.store.name != null && currentInvoice.store.name != "") {
+                        store_name.setText(currentInvoice.store.name);
+                    } else
+                        store_name.setText("");
+
+
+                    if (currentInvoice.store.adress == null || (currentInvoice.store.adress != null && currentInvoice.store.adress == "")) {
+                        if (currentInvoice.store.address_from_fns != null && currentInvoice.store.address_from_fns != "")
+                            strore_adress.setText(currentInvoice.store.address_from_fns);
+                    } else if (currentInvoice.store.adress != null && currentInvoice.store.adress != "") {
+                        strore_adress.setText(currentInvoice.store.adress);
+                    } else {
+                        strore_adress.setText("");
+                    }
+                } catch (Exception e) {
                     store_name.setText("");
-
-
-                if(currentInvoice.store.adress == null || (currentInvoice.store.adress != null && currentInvoice.store.adress == ""))
-                {
-                    if(currentInvoice.store.address_from_fns != null && currentInvoice.store.address_from_fns != "")
-                        strore_adress.setText(currentInvoice.store.address_from_fns);
-                }
-                else if(currentInvoice.store.adress != null && currentInvoice.store.adress != "")
-                {
-                    strore_adress.setText(currentInvoice.store.adress);
-                }
-                else
-                {
                     strore_adress.setText("");
+
+                    Log.d(LOG_TAG, e.getMessage() + " Error no store name/adress");
                 }
             }
-            catch (Exception e)
-            {
-                store_name.setText("");
-                strore_adress.setText("");
 
-                Log.d(LOG_TAG, e.getMessage() + " Error no store name/adress");
-            }
+            //change name of store
+            //if(MainActivity.pageNow == "purchasesList")
+            //   fab.hide();
         }
-
-        //change name of store
-        //if(MainActivity.pageNow == "purchasesList")
-         //   fab.hide();
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
     }
 
+    private PlacePicker.IntentBuilder placeBuilder()
+    {
+        PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+        if(currentInvoice.store != null) {
+            if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
+                builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude,  currentInvoice.store.longitude),
+                        new LatLng(currentInvoice.store.latitude, currentInvoice.store.longitude)));
+            else  if(currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd >0)
+            {builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),
+                    new LatLng(currentInvoice.latitudeAdd, currentInvoice.longitudeAdd)));}
+
+
+        }
+        return builder;
+    }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -288,52 +336,10 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                 return true;
             }
         });
-        //settingsMenu = view.findViewById(R.id.settingsMenu);
-        //slidingUpPanelLayout = (SlidingUpPanelLayout) view.findViewById(R.id.sliding_layout);
+
         setPageData();
 
-        //slidingUpPanelLayout.setTouchEnabled(false);
-/*
-        slidingUpPanelLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
-            @Override
-            public void onPanelSlide(View view, float v) {
-            }
 
-            @Override
-            public void onPanelStateChanged(View view, SlidingUpPanelLayout.PanelState panelState, SlidingUpPanelLayout.PanelState panelState1) {
-                if (panelState.equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
-                    Toast.makeText(context, panelState + " page1 " + currentName.getText().toString(), Toast.LENGTH_LONG).show();
-                    currentName.setText(context.getString(R.string.purchasesListTitle));
-                    currentNumber.setText(purchasesList.purchasesListData.size() + "");
-                    //MainActivity.pageNow = "purchasesList";
-                    purchasesListAdapter.notifyDataSetChanged();
-                }
-
-                if (panelState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED) && currentName.getText().equals(context.getString(R.string.purchasesListTitle))) {
-
-                    if (!purchasesList.checkFilter()) {
-                        purchasesList.clearFilter();
-                        purchasesList.reloadPurchasesList();
-                    }
-                    //MainActivity.pageNow = "onePurchaseLists";
-                    currentName.setText(R.string.purchasListTitle);
-                    //currentNumber.setText(purchase.invoices.size() + "");
-
-                    purchasesListAdapter.notifyDataSetChanged();
-                }
-
-            }
-        });
-*/
-
-
-        /*settingsMenu.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showPopupMenuAccountingList(view);
-            }
-        });
-        */
         recyclerViewPurList =  view.findViewById(R.id.cardList);
         assert recyclerViewPurList != null;
         recyclerViewPurList.setHasFixedSize(true);
@@ -515,7 +521,15 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                             case R.id.removePhoto:
                                 String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
                                 File file = new File(filepath, "IMG_"+currentInvoice.store.place_id + ".png");
-                                file.delete();
+                                if(file.exists())
+                                    file.delete();
+                                else
+                                {
+                                    file = new File(filepath, "MAP_"+currentInvoice.store.place_id + ".png");
+                                    if(file.exists())
+                                        file.delete();
+                                }
+                                onResume();
                                 break;
                         }
 
@@ -560,7 +574,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            loadingPanel.setVisibility(GONE);
+            onResume();
         }
 
         @Override
@@ -576,7 +590,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             if(googleFotoListAdapter != null) {
                 addMyPhotoContainer.setVisibility(View.VISIBLE);
                 blurPlotter.setVisibility(View.VISIBLE);
-                loadingPanel.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.VISIBLE);
                 //recyclerViewFotoList.bringToFront();
             }
             //googleFotoListAdapter.placePhotoMetadataList.add(getUrlToResource(context, R.drawable.loading_icon));
@@ -586,7 +600,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         protected void onProgressUpdate(String... values) {
             super.onProgressUpdate(values);
             if(googleFotoListAdapter != null) {
-                loadingPanel.setVisibility(GONE);
+                progressBar.setVisibility(View.GONE);
                 googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
                 googleFotoListAdapter.photoData.put(values[1], values[0]);
                 googleFotoListAdapter.notifyDataSetChanged();
