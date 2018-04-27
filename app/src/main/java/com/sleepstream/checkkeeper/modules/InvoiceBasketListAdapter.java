@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.*;
 import android.widget.EditText;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
@@ -45,6 +46,8 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
     private Navigation navigation;
     private String currentGroupDate= "";
 
+    private TextView groupDate;
+    private float totalSum=0;
     private boolean movement = false;
 
     public Integer row_index = -1;
@@ -328,7 +331,7 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                     public boolean onMenuItemClick(final MenuItem item) {
                         if(item.getItemId() == R.id.addButton)
                         {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(), R.style.AppCompatAlertDialogStyle);
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);

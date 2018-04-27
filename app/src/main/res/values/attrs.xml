@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <attr name="colorSecondary" format="reference"/>
-    <attr name="colorTouch" format="reference"/>
+    <attr name="colorSecondary" format="color"/>
+    <attr name="colorTouch" format="color"/>
+    <attr name="TextAppeareance" format="reference"/>
+    <attr name="TextAppeareance_small" format="reference"/>
+    <attr name="AppCompatAlertDialogStyle" format="reference"/>
+    <attr name="colorBackground" format="color"/>
+    <attr name="AppTheme_Orange" format="reference"/>
 </resources>

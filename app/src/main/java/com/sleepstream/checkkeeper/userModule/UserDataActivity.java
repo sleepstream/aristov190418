@@ -30,12 +30,13 @@ public class UserDataActivity extends AppCompatActivity {
     private EditText e_mail;
     private GetFnsData getFnsData;
     private Button okButton;
-    private final  String LOG_TAG="UserDataActivity";
+    private final String LOG_TAG = "UserDataActivity";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+    }
+/*
         String android_id = Settings.Secure.getString(this.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
 
@@ -45,7 +46,6 @@ public class UserDataActivity extends AppCompatActivity {
         surname = (EditText) findViewById(R.id.SurnameField);
         phone = (EditText) findViewById(R.id.phone);
         e_mail = (EditText) findViewById(R.id.e_mail);
-        okButton = (Button) findViewById(R.id.OKbtn);
 
 
         phone.setOnKeyListener(new View.OnKeyListener() {
@@ -256,5 +256,5 @@ public class UserDataActivity extends AppCompatActivity {
             break;
 
         }
-    }
+    }*/
 }

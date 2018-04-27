@@ -89,7 +89,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static android.view.View.GONE;
 import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
 
 
@@ -186,9 +185,39 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
     public static CropView cropView;
 
+    public SettingsApp settings;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        //check and create DB if nessesary
+        dbHelper = new DBHelper(this);
+        try {
+            dbHelper.createDataBase();
+        } catch (IOException ioe) {
+            throw new Error("Unable to create database");
+        }
+        try {
+            dbHelper.openDataBase();
+        } catch (SQLException sqle) {
+            log.info(LOG_TAG + "\n" + "Error opening database, Exeption");
+            //throw sqle;
+        }
+
+        if (!permChecked) {
+            try {
+                permChecked = getIntent().getExtras().getBoolean("permChecked");
+            } catch (Exception ex) {
+                permChecked = false;
+            }
+        }
+
+        settings = new SettingsApp();
+        if(settings.settings.containsKey("theme"))
+        {
+            int theme = Integer.valueOf(settings.settings.get("theme"));
+            setTheme(theme);
+        }
+
         super.onCreate(savedInstanceState);
         //status 0 - just loaded waiting for loading
         //status 3 - loading in progress
@@ -341,34 +370,14 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         getFnsData = new GetFnsData(android_id);
 
 
-        //check and create DB if nessesary
-        dbHelper = new DBHelper(this);
-        try {
-            dbHelper.createDataBase();
-        } catch (IOException ioe) {
-            throw new Error("Unable to create database");
-        }
-        try {
-            dbHelper.openDataBase();
-        } catch (SQLException sqle) {
-            log.info(LOG_TAG + "\n" + "Error opening database, Exeption");
-            //throw sqle;
-        }
 
-        if (!permChecked) {
-            try {
-                permChecked = getIntent().getExtras().getBoolean("permChecked");
-            } catch (Exception ex) {
-                permChecked = false;
-            }
-        }
         //initiolisation userData
         user = new personalData(context);
         //if new user
         if ((user.id == null && permChecked) || user._status == -1) {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View v = inflater.inflate(R.layout.greetings, null);
-            AlertDialog.Builder adb = new AlertDialog.Builder(this);
+            AlertDialog.Builder adb = new AlertDialog.Builder(this, R.style.AppCompatAlertDialogStyle);
             adb.setView(v);
             //adb.setTitle(getString(R.string.titleGreetingMessage));
             adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -391,7 +400,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
         //если пользователь не новый, но нужна повторная авторизация
         else if (user._status == 0) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
             builder.setMessage(getString(R.string.getNewPswFNS))
                     .setCancelable(false)
                     .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
@@ -444,7 +453,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 blurPlotter.setVisibility(View.VISIBLE);
 
                 View v = LayoutInflater.from(context).inflate(R.layout.add_invoicemanual_layout, null);
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
                 builder.setView(v);
                 final EditText fP = v.findViewById(R.id.addFP);
                 final EditText fN = v.findViewById(R.id.addFN);
@@ -672,6 +681,22 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 progressBar.setVisibility(View.GONE);
                 blurPlotter.setVisibility(View.GONE);
                 break;
+            case R.id.settings:
+                Intent intent = new Intent(context, SettingsActivity.class);
+                startActivity(intent);
+                break;
+            /*case R.id.changeTheme:
+                Map<String, String> setTmp =new ArrayMap<>();
+
+                Log.d("themetheme", settings.settings.get("theme") + "|"+String.valueOf(R.style.FirstTheme));
+                if(!settings.settings.get("theme").equals(String.valueOf(R.style.FirstTheme)))
+                    setTmp.put("theme", String.valueOf(R.style.FirstTheme));
+                else
+                    setTmp.put("theme", String.valueOf(R.style.SecondTheme));
+                settings.setSettings(setTmp);
+                restartActivity();
+                break;
+                */
         }
 
         return false;
@@ -739,91 +764,6 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     }
 
-/*
-    public class MyFragmentPagerAdapter extends FragmentPagerAdapter {
-
-        private FragmentManager mFragmentManager;
-        //private Map<Integer, String> mFragmentTags;
-        private Map<Integer, String> mFragmentTags;
-
-
-        public MyFragmentPagerAdapter(FragmentManager fm) {
-            super(fm);
-            mFragmentManager = fm;
-            mFragmentTags = new HashMap<Integer, String>();
-
-        }
-
-        @Override
-        public Fragment getItem(int position) {
-
-            Fragment purchasesPageFragment=null;
-
-            switch(position)
-            {
-                case 0:
-                    purchasesPageFragment= LinkedListPageFragment.newInstance(0);
-                    break;
-                case 1:
-                    purchasesPageFragment= AccountingListPageFragment.newInstance(0);
-                    break;
-                case 2:
-                    //purchasesPageFragment= InvoicesPageFragment.newInstance(0);
-                    break;
-                case PURCHASE_PAGE:
-                    purchasesPageFragment= PurchasesPageFragment.newInstance(0);
-                    break;
-                case 4:
-                    purchasesPageFragment= InvoicesBasketPageFragment.newInstance(0);
-                    break;
-                default:
-                    return null;
-            }
-
-
-            return  purchasesPageFragment;
-        }
-
-        @Override
-        public int getCount() {
-            return PAGE_COUNT;
-        }
-        @Override
-        public CharSequence getPageTitle(int position) {
-            return "Page " + position;
-        }
-
-
-
-        @Override
-        public Fragment instantiateItem(ViewGroup container, int position) {
-            Fragment object = (Fragment)super.instantiateItem(container, position);
-            if (object instanceof Fragment) {
-                Fragment purchasesPageFragment = object;
-                String tag = purchasesPageFragment.getTag();
-                mFragmentTags.put(position, tag);
-            }
-            return object;
-        }
-
-        public Fragment getFragment(int position) {
-            Fragment purchasesPageFragment = null;
-            String tag = mFragmentTags.get(position);
-            if (tag != null) {
-
-                purchasesPageFragment = mFragmentManager.findFragmentByTag(tag);
-
-            }
-            return purchasesPageFragment;
-        }
-
-
-
-
-
-
-    }
-*/
 
 
     @Override
@@ -1133,7 +1073,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 log.info(LOG_TAG + "\n" + "result from personalDataRequestFull\n" + result);
                 switch (result) {
                     case "conflict": {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
                         builder.setMessage(getString(R.string.errorUserAlreadyRegistered))
                                 .setCancelable(false)
                                 .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
@@ -1163,7 +1103,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                         break;
                     }
                     case "connection": {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
                         builder.setMessage(getString(R.string.connectionError))
                                 .setCancelable(false)
                                 .setNegativeButton(R.string.btnCancel, new DialogInterface.OnClickListener() {
@@ -1232,6 +1172,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 intent.putExtra("photoreference", filepath);
                 intent.putExtra("place_id", currentInvoice.store.place_id);
                 intent.putExtra("key", "1");
+                blurPlotter.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+                addMyPhotoContainer.setVisibility(View.GONE);
+                if (googleFotoListAdapter != null) {
+                    googleFotoListAdapter.placePhotoMetadataList.clear();
+                }
                 context.startActivity(intent);
 
                 break;
@@ -1331,7 +1277,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         if (grantResults.length > 0) {
             for (int i = 0; i < permissions.length; i++) {
                 if (!RuntimePermissionUtil.checkPermissonGranted(MainActivity.this, permissions[i])) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppCompatAlertDialogStyle);
                     builder.setMessage("Необходимо предоставить все разрешенния.")
                             .setCancelable(false)
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -1345,7 +1291,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             restartActivity();
         } else {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppCompatAlertDialogStyle);
             builder.setMessage("Необходимо предоставить все разрешенния.")
                     .setCancelable(false)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -1418,98 +1364,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             mItemTouchHelperInvList.startDrag(viewHolder);
     }
 
-    /*
-        private void setTabs() {
 
-            TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout);
-            assert tabLayout !=null;
-            tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab1)));
-            tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab2)));
-            tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab3)));
-            tabLayout.addTab(tabLayout.newTab().setText(context.getString(R.id.tab4)));
-
-            LinearLayout tabStrip = (LinearLayout) tabLayout.getChildAt(0);
-            for (int i = 0; i < tabStrip.getChildCount(); i++) {
-                final int finalI = i;
-                switch(i) {
-                    case 0:
-                        tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                setPageBack(pager.getCurrentItem(), 0);
-                                //MainActivity.pageNow="linkedList";
-                                //fab.setVisibility(View.VISIBLE);
-                                pager.setCurrentItem(0, false);
-                            }
-                        });
-                        break;
-                    case 1:
-                        tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                setPageBack(pager.getCurrentItem(), 1);
-                                //MainActivity.pageNow = "accountingList";
-                                //fab.setVisibility(View.VISIBLE);
-                                pager.setCurrentItem(1, false);
-                            }
-                        });
-                        break;
-                    case 2:
-                        tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                setPageBack(pager.getCurrentItem(), 2);
-                                invoice.clearFilter("");
-                                invoice.reLoadInvoice();
-
-                                //fab.setVisibility(View.VISIBLE);
-                                if(InvoicesPageFragment.invoiceListAdapter != null)
-                                    InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
-                                //MainActivity.pageNow = "invoicesLists";
-                                pager.setCurrentItem(2, false);
-                            }
-                        });
-                        break;
-                    case 3:
-                        tabStrip.getChildAt(i).setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                setPageBack(pager.getCurrentItem(),4);
-                                invoice.clearFilter("");
-                                invoice.setfilter("in_basket", new String[]{"1"});
-                                //invoice.reLoadInvoice();
-
-                                //fab.setVisibility(View.GONE);
-                                if(invoiceBasketListAdapter != null) {
-                                    invoiceBasketListAdapter.notifyDataSetChanged();
-                                    selectedCount = 0;
-                                    InvoicesBasketPageFragment.fabShowHide();
-                                }
-                                //MainActivity.pageNow = "invoicesLists";
-                                pager.setCurrentItem(4, false);
-                            }
-                        });
-                        break;
-                }
-            }
-
-            //TabLayout font & size
-            ViewGroup vg = (ViewGroup) tabLayout.getChildAt(0);
-
-            int tabsCount = vg.getChildCount();
-            for (int j = 0; j < tabsCount; j++) {
-                ViewGroup vgTab = (ViewGroup) vg.getChildAt(j);
-                int tabChildsCount = vgTab.getChildCount();
-                for (int i = 0; i < tabChildsCount; i++) {
-                    View tabViewChild = vgTab.getChildAt(i);
-                    if (tabViewChild instanceof TextView) {
-                        ((TextView) tabViewChild).setTypeface(Typefaces.getRobotoBlack(this));
-                        ((TextView) tabViewChild).setTextSize(3);
-                    }
-                }
-            }
-        }
-    */
     private void showPopupMenuAccountingList(View v) {
         final PopupMenu popupMenu = new PopupMenu(context, v);
         popupMenu.inflate(R.menu.popupmenu);
@@ -1533,7 +1388,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
                         if (item.getItemId() == R.id.addButton) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);

@@ -601,7 +601,9 @@ public class Invoice {
         }
         return;
     }
-    private void setStoreData(InvoiceData invoiceData) {
+
+
+    public void setStoreData(InvoiceData invoiceData) {
         InvoiceData.Store store = invoiceData.store;
         Cursor cur_stores= null;
         Integer id_stores=null;
@@ -628,8 +630,11 @@ public class Invoice {
             data.put("store_type", store.store_type);
         if(store.iconName != null)
             data.put("iconName", store.iconName);
+        if(store.photoreference != null)
+            data.put("photo_reference", store.photoreference);
 
-        data.put("date_add", new Date().getTime());
+        if(store.date_add == null)
+            data.put("date_add", new Date().getTime());
 
         if((store.inn!=null && store.inn>0) || store.place_id!= null) {
             if(store.id == null || store.id <= 0) {
@@ -671,6 +676,11 @@ public class Invoice {
                     }*/
                     //Log.d(LOG_TAG, "added stores " + (store.adress !=null ? store.adress : " adress not known"));
                 } else {
+                    if(store.update)
+                    {
+                        dbHelper.update(tablenameStores, data, "place_id=?", new String[]{store.place_id});
+                    }
+
                     store.id = cur_stores.getInt(cur_stores.getColumnIndex("id"));
                     store.inn = (long) cur_stores.getInt(cur_stores.getColumnIndex("inn"));
                 }

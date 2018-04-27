@@ -3,4 +3,11 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">6dp</dimen>
+    <dimen name="list_text_name">18sp</dimen>
+    <dimen name="list_text_date">15sp</dimen>
+    <dimen name="list_text_sum">15sp</dimen>
+    <dimen name="list_text_count">15sp</dimen>
+    <dimen name="list_text_group_date">20sp</dimen>
+    <dimen name="list_text_priceForItem">15sp</dimen>
+    <dimen name="list_text_sumPerPosition">15sp</dimen>
 </resources>

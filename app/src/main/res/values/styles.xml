@@ -1,29 +1,64 @@
 <resources>
-
-
-
-    <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="colorSecondary">@color/colorSecondary</item>
     </style>
 
+    <style name="AppTheme_Orange" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimaryOrange</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkOrange</item>
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="colorSecondary">@color/colorSecondaryOrange</item>
+    </style>
+
+    <style name="AppCompatAlertDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">#FFCC00</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:background">@color/white50</item>
+    </style>
+
+    <style name="TextAppeareance">
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColorHint">@color/textlight30</item>
+    </style>
+
+    <style name="TextAppeareance_small">
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColorHint">@color/textlight30</item>
+    </style>
+
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
-
-
-    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
-    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
-
-    <style name="CustomTextStyle" parent="@android:style/TextAppearance.Widget.TabWidget">
-        <item name="android:textSize">13sp</item>
-        <item name="android:textAllCaps">true</item>
-
+    
+    
+    
+    
+    <style name="FirstTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="TextAppeareance">@style/TextAppeareance</item>
+        <item name="TextAppeareance_small">@style/TextAppeareance_small</item>
+        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyle</item>
+        <item name="colorBackground">@color/colorSecondary</item>
     </style>
-
+    <style name="SecondTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimaryOrange</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkOrange</item>
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="colorSecondary">@color/colorSecondaryOrange</item>
+        <item name="TextAppeareance">@style/TextAppeareance</item>
+        <item name="TextAppeareance_small">@style/TextAppeareance_small</item>
+        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyle</item>
+        <item name="colorBackground">@color/colorBackgroundOrange</item>
+    </style>
 </resources>

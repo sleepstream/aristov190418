@@ -57,6 +57,8 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
     private final int invoicePageRequest =3000;
     private String currentGroupDate= "";
 
+    private TextView groupDate;
+    private float totalSum=0;
     private boolean movement = false;
 
     public Integer row_index = -1;
@@ -261,7 +263,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
             else
                 itemViewHolder.quantity.setText("");
             if (item.store != null && item.store.name != null) {
-                itemViewHolder.storeName.setText( item.store.store_type+" " +item.store.name);
+                itemViewHolder.storeName.setText(item.store.name);
             } else if (item.store != null && item.store.name == null && item.store.name_from_fns != null) {
                 itemViewHolder.storeName.setText(item.store.name_from_fns);
             } else {
@@ -301,7 +303,6 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
             {
                 itemViewHolder.groupDate.setVisibility(View.GONE);
             }*/
-
                 itemViewHolder.groupDateText.setText(tmpDate);
                 itemViewHolder.groupDate.setVisibility(View.VISIBLE);
             } else if (position == 0) {
@@ -557,7 +558,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                     public boolean onMenuItemClick(final MenuItem item) {
                         if(item.getItemId() == R.id.addButton)
                         {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(), R.style.AppCompatAlertDialogStyle);
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT);

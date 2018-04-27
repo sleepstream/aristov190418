@@ -196,6 +196,8 @@ public class InvoiceData implements Cloneable
         public String iconName;
         public Integer _status;
         public boolean update;
+        public String photoreference;
+        public Integer date_add;
     }
     public static class KktRegId
     {

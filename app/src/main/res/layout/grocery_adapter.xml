@@ -21,11 +21,9 @@
 
         <View
            android:layout_alignParentBottom="true"
-            android:layout_marginLeft="22dp"
-            android:layout_marginRight="22dp"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:background="@color/textlight30" />
+            android:background="@drawable/line"/>
 
              <LinearLayout
                 android:id="@+id/name"
@@ -40,13 +38,12 @@
                     android:id="@+id/invoiceName"
                     android:background="@android:color/transparent"
                     android:layout_gravity="start|center_vertical"
-                    android:fontFamily="sans-serif"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="20dp"
                     android:layout_marginEnd="60dp"
-                    android:textSize="18sp"
-                    android:textColor="@color/textlight" />
+                    style="?TextAppeareance"
+                    android:textSize="@dimen/list_text_name" />
 
              </LinearLayout>
         <LinearLayout
@@ -68,7 +65,8 @@
                     android:layout_marginStart="10dp"
                     android:layout_marginEnd="10dp"
                     android:gravity="center_vertical"
-                    android:textSize="15sp"/>
+                    style="?TextAppeareance"
+                    android:textSize="@dimen/list_text_count" />
             <TextView
                     android:id="@+id/sign"
                     android:layout_width="wrap_content"
@@ -83,7 +81,8 @@
                     android:layout_marginStart="10dp"
                     android:layout_marginEnd="10dp"
                     android:gravity="center_vertical"
-                    android:textSize="15sp"/>
+                    style="?TextAppeareance"
+                    android:textSize="@dimen/list_text_priceForItem"/>
             <TextView
                     android:id="@+id/sumPerPosition"
                     android:gravity="end"
@@ -91,7 +90,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:layout_marginEnd="10dp"
-                    android:textSize="15sp"/>
+                    style="?TextAppeareance"
+                    android:textSize="@dimen/list_text_sumPerPosition"/>
         </LinearLayout>
 
             <RelativeLayout

@@ -8,13 +8,17 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
+import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.R;
+import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.takusemba.cropme.CropView;
 import com.takusemba.cropme.OnCropListener;
 import okhttp3.OkHttpClient;
@@ -35,6 +39,7 @@ public class CropActivity extends AppCompatActivity {
     private RelativeLayout parent;
     private CropView cropView;
     private ProgressBar progressBar;
+    public String photoreference;
 
     private static final int REQUEST_CODE_PERMISSION = 100;
     private String place_id;
@@ -118,15 +123,21 @@ public class CropActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         progressBar.setVisibility(View.GONE);
+        InvoiceData.Store store = new InvoiceData.Store();
+        store.photoreference = this.photoreference;
+        store.place_id =place_id;
+        InvoiceData invoiceData = new InvoiceData();
+        invoiceData.store = store;
+        MainActivity.invoice.setStoreData(invoiceData);
         finish();
     }
 
     private void loadAlbums() {
         Intent intent = getIntent();
-        String tmp= intent.getStringExtra("photoreference");
+        photoreference= intent.getStringExtra("photoreference");
         place_id = intent.getStringExtra("place_id");
         String key = intent.getStringExtra("key");
-        loadImage(tmp, key);
+        loadImage(photoreference, key);
     }
 
     public  void loadImage(String photo_reference, String key)
@@ -138,6 +149,7 @@ public class CropActivity extends AppCompatActivity {
                     .url(urlGet)
                     .build();
 
+            progressBar.setVisibility(View.VISIBLE);
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -148,11 +160,20 @@ public class CropActivity extends AppCompatActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                progressBar.setVisibility(View.GONE);
                                 cropView.setBitmap(bitmap);
                             }
                         });
                     } catch (Exception e) {
                         e.printStackTrace();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressBar.setVisibility(View.GONE);
+                                Toast.makeText(getBaseContext(), getBaseContext().getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+                                finish();
+                            }
+                        });
                     }
                 }
             }).start();

@@ -11,6 +11,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -153,7 +154,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                 View dialoglayout = inflater.inflate(R.layout.butn_layout, null);
                 TextView dialogHint = dialoglayout.findViewById(R.id.whatToDo);
                 dialogHint.setHint(R.string.finde_store_on_map);
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
                 builder.setView(dialoglayout);
                 final AlertDialog dialog = builder.create();
 
@@ -228,13 +229,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     blurPlotter.setVisibility(View.VISIBLE);
 
                     View v = LayoutInflater.from(getActivity()).inflate(R.layout.edit_store_information_layout, null);
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AppCompatAlertDialogStyle);
                     builder.setView(v);
                     final EditText Name = v.findViewById(R.id.name);
-                    final EditText storeType = v.findViewById(R.id.storeType);
+                    //final EditText storeType = v.findViewById(R.id.storeType);
 
                     Name.setText(MainActivity.currentInvoice.store.name);
-                    storeType.setText(MainActivity.currentInvoice.store.store_type);
+                    //storeType.setText(MainActivity.currentInvoice.store.store_type);
 
                     builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                         @Override
