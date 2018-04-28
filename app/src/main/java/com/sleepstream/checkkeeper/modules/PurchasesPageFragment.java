@@ -154,7 +154,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                 View dialoglayout = inflater.inflate(R.layout.butn_layout, null);
                 TextView dialogHint = dialoglayout.findViewById(R.id.whatToDo);
                 dialogHint.setHint(R.string.finde_store_on_map);
-                AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppCompatAlertDialogStyle);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
                 builder.setView(dialoglayout);
                 final AlertDialog dialog = builder.create();
 
@@ -229,7 +229,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     blurPlotter.setVisibility(View.VISIBLE);
 
                     View v = LayoutInflater.from(getActivity()).inflate(R.layout.edit_store_information_layout, null);
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.style.AppCompatAlertDialogStyle);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.attr.AppCompatAlertDialogStyle);
                     builder.setView(v);
                     final EditText Name = v.findViewById(R.id.name);
                     //final EditText storeType = v.findViewById(R.id.storeType);

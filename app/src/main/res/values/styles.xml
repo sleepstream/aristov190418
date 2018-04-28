@@ -12,10 +12,19 @@
         <item name="colorAccent">@color/colorAccentOrange</item>
         <item name="colorSecondary">@color/colorSecondaryOrange</item>
     </style>
-
     <style name="AppCompatAlertDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="colorAccent">#FFCC00</item>
-        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="android:textColorPrimary">@color/colorPrimaryOrange</item>
+        <item name="android:background">@color/white50</item>
+    </style>
+    <style name="AppCompatAlertDialogStyleSecond" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="android:textColorPrimary">@color/colorPrimaryOrange</item>
+        <item name="android:background">@color/white50</item>
+    </style>
+    <style name="AppCompatAlertDialogStyleFirst" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColorPrimary">@color/colorPrimary</item>
         <item name="android:background">@color/white50</item>
     </style>
 
@@ -37,10 +46,10 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
-    
-    
-    
-    
+
+
+
+
     <style name="FirstTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
@@ -48,7 +57,7 @@
         <item name="colorSecondary">@color/colorSecondary</item>
         <item name="TextAppeareance">@style/TextAppeareance</item>
         <item name="TextAppeareance_small">@style/TextAppeareance_small</item>
-        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyle</item>
+        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyleFirst</item>
         <item name="colorBackground">@color/colorSecondary</item>
     </style>
     <style name="SecondTheme" parent="Theme.AppCompat.Light.NoActionBar">
@@ -58,7 +67,7 @@
         <item name="colorSecondary">@color/colorSecondaryOrange</item>
         <item name="TextAppeareance">@style/TextAppeareance</item>
         <item name="TextAppeareance_small">@style/TextAppeareance_small</item>
-        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyle</item>
+        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyleSecond</item>
         <item name="colorBackground">@color/colorBackgroundOrange</item>
     </style>
 </resources>

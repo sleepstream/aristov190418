@@ -558,7 +558,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                     public boolean onMenuItemClick(final MenuItem item) {
                         if(item.getItemId() == R.id.addButton)
                         {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(), R.style.AppCompatAlertDialogStyle);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(), R.attr.AppCompatAlertDialogStyle);
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT);

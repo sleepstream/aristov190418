@@ -24,6 +24,11 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        if(MainActivity.settings != null) {
+            String themeId = MainActivity.settings.settings.get("theme");
+            if (themeId.length() > 0)
+                setTheme(Integer.valueOf(themeId));
+        }
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_camera);

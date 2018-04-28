@@ -1,27 +1,22 @@
 package com.sleepstream.checkkeeper;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.*;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.preference.PreferenceActivity;
-import android.preference.PreferenceFragment;
+import android.support.annotation.IdRes;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.util.ArrayMap;
 import android.view.*;
-import android.widget.EditText;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
-import android.widget.Toast;
-import com.sleepstream.checkkeeper.modules.InvoicesPageFragment;
+import android.widget.*;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
-import com.sleepstream.checkkeeper.userModule.UserDataActivity;
 import com.sleepstream.checkkeeper.userModule.personalData;
+import worker8.com.github.radiogroupplus.RadioGroupPlus;
 
 import java.util.Map;
 
@@ -30,8 +25,15 @@ public class SettingsActivity extends AppCompatActivity {
     private android.app.FragmentTransaction fTrans;
     private Context context;
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if(MainActivity.settings != null) {
+            String themeId = MainActivity.settings.settings.get("theme");
+            if (themeId.length() > 0)
+                setTheme(Integer.valueOf(themeId));
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.settings_main_page);
         context = this;
@@ -39,9 +41,10 @@ public class SettingsActivity extends AppCompatActivity {
         MainSettingsPage fragment = new MainSettingsPage();
         fTrans.replace(R.id.pager, fragment);
         fTrans.commit();
+        fragment.setRetainInstance(true);
     }
 
-
+    @SuppressLint("ValidFragment")
     public class MainSettingsPage extends Fragment
     {
         private RelativeLayout userSettings;
@@ -68,19 +71,26 @@ public class SettingsActivity extends AppCompatActivity {
                     fTrans =((Activity) context).getFragmentManager().beginTransaction();
                     UsersDataPreferenceFragment fragment = new UsersDataPreferenceFragment();
                     fTrans.replace(R.id.pager, fragment);
+                    fTrans.addToBackStack(null);
                     fTrans.commit();
+                    fragment.setRetainInstance(true);
                 }
             });
             appSettings.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-
+                    fTrans =((Activity) context).getFragmentManager().beginTransaction();
+                    AppSettingsPage fragment = new AppSettingsPage();
+                    fTrans.replace(R.id.pager, fragment);
+                    fTrans.addToBackStack(null);
+                    fTrans.commit();
+                    fragment.setRetainInstance(true);
                 }
             });
             return view;
         }
     }
-
+    @SuppressLint("ValidFragment")
     public class UsersDataPreferenceFragment extends Fragment
     {
 
@@ -109,7 +119,7 @@ public class SettingsActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, final ViewGroup container,
                                  Bundle savedInstanceState) {
 
-            View view = inflater.inflate(R.layout.activity_getnewpassword, null);
+            View view = inflater.inflate(R.layout.activity_settings_main, null);
             name = view.findViewById(R.id.NameField);
             surname = view.findViewById(R.id.SurnameField);
             phone =  view.findViewById(R.id.phone);
@@ -344,6 +354,85 @@ public class SettingsActivity extends AppCompatActivity {
         public void onResume() {
             super.onResume();
             setData();
+        }
+    }
+    @SuppressLint("ValidFragment")
+    public class AppSettingsPage extends Fragment
+    {
+        private RelativeLayout ThemeSettings;
+        private RelativeLayout appSettings;
+        public AppSettingsPage(){};
+        public String themeId="";
+
+        @Override
+        public void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+
+        }
+        @Override
+        public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+                                 Bundle savedInstanceState) {
+
+            View view = inflater.inflate(R.layout.settings_app_settings_fragment, null);
+            ThemeSettings = view.findViewById(R.id.ThemeSettings);
+            ThemeSettings.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
+                    alertDialog.setTitle(context.getString(R.string.Settings_ThemesChoice));
+                    alertDialog.setMessage(R.string.Settings_ThemesChoice_message);
+                    View viewDialog = inflater.inflate(R.layout.theme_choice_dialog, null);
+                    int theme =Integer.valueOf(MainActivity.settings.settings.get("theme"));
+                    switch(theme)
+                    {
+                        case R.style.FirstTheme:
+                            ((RadioButton)viewDialog.findViewById(R.id.ThemeFirstButton)).setChecked(true);
+                            break;
+                        case R.style.SecondTheme:
+                            ((RadioButton)viewDialog.findViewById(R.id.ThemeSecondButton)).setChecked(true);
+                            break;
+                    }
+                    RadioGroupPlus mRadioGroupPlus = viewDialog.findViewById(R.id.radio_group_plus);
+                    mRadioGroupPlus.setOnCheckedChangeListener(new RadioGroupPlus.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(RadioGroupPlus radioGroupPlus, @IdRes int i) {
+
+                            switch(i)
+                            {
+                                case R.id.ThemeFirstButton:
+                                    themeId = String.valueOf(R.style.FirstTheme);
+                                    break;
+                                case R.id.ThemeSecondButton:
+                                    themeId = String.valueOf(R.style.SecondTheme);
+                                    break;
+                            }
+                        }
+                    });
+                    alertDialog.setView(viewDialog);
+                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener(){
+
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            if(themeId != MainActivity.settings.settings.get("theme")) {
+                                SettingsApp settingsApp = new SettingsApp();
+                                Map<String, String> settings = new ArrayMap<>();
+                                settings.put("theme", themeId);
+                                settingsApp.setSettings(settings);
+                                Toast.makeText(context, context.getString(R.string.theme_updated_need_reload), Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            themeId="";
+                        }
+                    });
+                    alertDialog.show();
+                }
+            });
+
+            return view;
         }
     }
 }

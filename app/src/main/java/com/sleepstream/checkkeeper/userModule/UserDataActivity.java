@@ -41,7 +41,7 @@ public class UserDataActivity extends AppCompatActivity {
                 Settings.Secure.ANDROID_ID);
 
         getFnsData = new GetFnsData(android_id);
-        setContentView(R.layout.activity_getnewpassword);
+        setContentView(R.layout.activity_settings_main);
         name = (EditText) findViewById(R.id.NameField);
         surname = (EditText) findViewById(R.id.SurnameField);
         phone = (EditText) findViewById(R.id.phone);

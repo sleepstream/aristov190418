@@ -24,6 +24,11 @@ public class CalendarPickerActivity extends Activity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if(MainActivity.settings != null) {
+            String themeId = MainActivity.settings.settings.get("theme");
+            if (themeId.length() > 0)
+                setTheme(Integer.valueOf(themeId));
+        }
         super.onCreate(savedInstanceState);
 
         super.onCreate(savedInstanceState);
