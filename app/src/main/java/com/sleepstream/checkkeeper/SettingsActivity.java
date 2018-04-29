@@ -83,7 +83,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     }
 
-
+    @SuppressLint("ValidFragment")
     public static class MainSettingsPage extends Fragment
     {
         private final Context context;
@@ -131,7 +131,7 @@ public class SettingsActivity extends AppCompatActivity {
             return view;
         }
     }
-
+    @SuppressLint("ValidFragment")
     public static class UsersDataPreferenceFragment extends Fragment
     {
 
@@ -501,7 +501,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
     }
-
+    @SuppressLint("ValidFragment")
     public static class AppSettingsPage extends Fragment
     {
         private final Context context;
