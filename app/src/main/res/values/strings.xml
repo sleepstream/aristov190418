@@ -9,7 +9,7 @@
     <string name="SurnameField">Фамилия</string>
     <string name="E_mailAdress">E-mail</string>
     <string name="UserDataEddedSuccesfuly">Данные пользователя сохранены</string>
-    <string name="firstTimeEnter">Добро пожаловть!\nДля дальнейшей работы приложения необходимо пройти авторизацию на
+    <string name="firstTimeEnter">Для дальнейшей работы приложения необходимо пройти авторизацию на
         сервере ФНС nalog.ru. \nНажмите ОК, чтобы авторизоваться.
     </string>
     <string name="titleGreetingMessage">Вимание!</string>
@@ -117,5 +117,7 @@
     <string name="Settings_ThemesChoice_message">Выберите цветовое оформление</string>
     <string name="theme_updated_need_reload">Тема обновлена, необходимо перезапустить приложение</string>
     <string name="press_back_to_exit">Нажмити еще раз для выхода</string>
+    <string name="settings_input_data_incorrect">Неверный ввод</string>
+    <string name="restoreFromBackupTitle">Восстановить</string>
 
 </resources>

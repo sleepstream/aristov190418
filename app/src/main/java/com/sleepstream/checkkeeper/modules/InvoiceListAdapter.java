@@ -558,10 +558,11 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                     public boolean onMenuItemClick(final MenuItem item) {
                         if(item.getItemId() == R.id.addButton)
                         {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(), R.attr.AppCompatAlertDialogStyle);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT);
+                            input.setGravity(Gravity.CENTER);
                             builder.setView(input);
                             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                 @Override
@@ -644,8 +645,8 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
         };
 
 
-        Handler handlerUndo=new Handler();
-        handlerUndo.postDelayed(runnableUndo,2500);
+        //Handler handlerUndo=new Handler();
+        //handlerUndo.postDelayed(runnableUndo,2500);
 
     }
 

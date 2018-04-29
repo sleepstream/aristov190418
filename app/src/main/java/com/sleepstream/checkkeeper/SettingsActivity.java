@@ -5,7 +5,9 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.*;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.IdRes;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -16,9 +18,15 @@ import android.view.*;
 import android.widget.*;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
 import com.sleepstream.checkkeeper.userModule.personalData;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 import worker8.com.github.radiogroupplus.RadioGroupPlus;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -31,25 +39,58 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         if(MainActivity.settings != null) {
             String themeId = MainActivity.settings.settings.get("theme");
-            if (themeId.length() > 0)
+            if (themeId!= null && themeId.length() > 0)
                 setTheme(Integer.valueOf(themeId));
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.settings_main_page);
         context = this;
-        fTrans =((Activity) context).getFragmentManager().beginTransaction();
-        MainSettingsPage fragment = new MainSettingsPage();
-        fTrans.replace(R.id.pager, fragment);
-        fTrans.commit();
-        fragment.setRetainInstance(true);
+
+        Intent intent = getIntent();
+        Bundle extraData = intent.getExtras();
+        String settingsPage = "";
+        if(extraData != null)
+            settingsPage = intent.getExtras().getString("settingsPage");
+        switch(settingsPage)
+        {
+            case "UsersDataPreferenceFragment": {
+                fTrans = ((Activity) context).getFragmentManager().beginTransaction();
+                UsersDataPreferenceFragment fragment = new UsersDataPreferenceFragment(context);
+                fTrans.replace(R.id.pager, fragment);
+                fTrans.commit();
+                fragment.setRetainInstance(true);
+                break;
+            }
+            case "AppSettingsPage": {
+                fTrans = ((Activity) context).getFragmentManager().beginTransaction();
+                AppSettingsPage fragment = new AppSettingsPage(context);
+                fTrans.replace(R.id.pager, fragment);
+                fTrans.commit();
+                fragment.setRetainInstance(true);
+                break;
+            }
+            default: {
+                fTrans = ((Activity) context).getFragmentManager().beginTransaction();
+                MainSettingsPage fragment = new MainSettingsPage(context);
+                fTrans.replace(R.id.pager, fragment);
+                fTrans.commit();
+                fragment.setRetainInstance(true);
+                break;
+            }
+        }
+
+
+
     }
 
-    @SuppressLint("ValidFragment")
-    public class MainSettingsPage extends Fragment
+
+    public static class MainSettingsPage extends Fragment
     {
+        private final Context context;
         private RelativeLayout userSettings;
         private RelativeLayout appSettings;
-        public MainSettingsPage(){};
+
+        public MainSettingsPage(Context context){ this.context = context;};
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -68,8 +109,8 @@ public class SettingsActivity extends AppCompatActivity {
             userSettings.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    fTrans =((Activity) context).getFragmentManager().beginTransaction();
-                    UsersDataPreferenceFragment fragment = new UsersDataPreferenceFragment();
+                    android.app.FragmentTransaction fTrans =getActivity().getFragmentManager().beginTransaction();
+                    UsersDataPreferenceFragment fragment = new UsersDataPreferenceFragment(context);
                     fTrans.replace(R.id.pager, fragment);
                     fTrans.addToBackStack(null);
                     fTrans.commit();
@@ -79,8 +120,8 @@ public class SettingsActivity extends AppCompatActivity {
             appSettings.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    fTrans =((Activity) context).getFragmentManager().beginTransaction();
-                    AppSettingsPage fragment = new AppSettingsPage();
+                    android.app.FragmentTransaction fTrans =getActivity().getFragmentManager().beginTransaction();
+                    AppSettingsPage fragment = new AppSettingsPage(context);
                     fTrans.replace(R.id.pager, fragment);
                     fTrans.addToBackStack(null);
                     fTrans.commit();
@@ -90,10 +131,11 @@ public class SettingsActivity extends AppCompatActivity {
             return view;
         }
     }
-    @SuppressLint("ValidFragment")
-    public class UsersDataPreferenceFragment extends Fragment
+
+    public static class UsersDataPreferenceFragment extends Fragment
     {
 
+        private final Context context;
         private RelativeLayout name;
         private RelativeLayout surname;
         private RelativeLayout phone;
@@ -105,15 +147,13 @@ public class SettingsActivity extends AppCompatActivity {
         private TextView phone_summary;
         private TextView e_mail_summary;
         private TextView password_summary;
-        private personalData personalData;
+        private personalData personalData = MainActivity.user;
 
-        public UsersDataPreferenceFragment () {}
+        public UsersDataPreferenceFragment (Context context) {this.context = context;}
         @Override
         public void onCreate(final Bundle savedInstanceState)
         {
             super.onCreate(savedInstanceState);
-            personalData = new personalData(context);
-
         }
         @Override
         public View onCreateView(LayoutInflater inflater, final ViewGroup container,
@@ -124,21 +164,27 @@ public class SettingsActivity extends AppCompatActivity {
             surname = view.findViewById(R.id.SurnameField);
             phone =  view.findViewById(R.id.phone);
             e_mail = view.findViewById(R.id.e_mail);
-            password = view.findViewById(R.id.password);
+            //password = view.findViewById(R.id.password);
 
             name_summary = view.findViewById(R.id.NameField_summary);
             surname_summary = view.findViewById(R.id.SurnameField_summary);
             phone_summary =  view.findViewById(R.id.phone_summary);
             e_mail_summary = view.findViewById(R.id.e_mail_summary);
-            password_summary = view.findViewById(R.id.password_summary);
+            //password_summary = view.findViewById(R.id.password_summary);
 
             setData();
+            final Pattern PnameSurnmae = Pattern.compile("[A-Za-zА-Яа-я ]+");
+            final Pattern PPhone = Pattern.compile("^(\\+[0-9]{11})$");
+            final Pattern PE_mail = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,6}$");
+
+
+
 
 
 
             name.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(View view) {
+                public void onClick(final View view) {
                     AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
                     alertDialog.setTitle(context.getString(R.string.Settings_NameField));
                     alertDialog.setMessage(R.string.Settings_NameField_message);
@@ -151,14 +197,29 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString();
+                            String name = input.getText().toString().trim();
                             if(name.length()==0)
                                 Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
                             else
                             {
-                                personalData.name = name;
-                                personalData.updatePersonalData();
-                                onResume();
+                                Matcher MName = PnameSurnmae.matcher(name);
+                                RelativeLayout NameField_status_layout = view.findViewById(R.id.NameField_status_layout);
+                                ImageView NameField_status = view.findViewById(R.id.NameField_status);
+                                if(MName.matches())
+                                {
+                                    NameField_status_layout.setVisibility(View.VISIBLE);
+                                    NameField_status.setImageResource(R.drawable.ic_done_black_24dp);
+                                    personalData.name = name;
+                                    onResume();
+                                }
+                                else
+                                {
+                                    NameField_status_layout.setVisibility(View.VISIBLE);
+                                    NameField_status.setImageResource(R.drawable.ic_error_black_24dp);
+                                    name_summary.setText(context.getString(R.string.settings_input_data_incorrect));
+                                    name_summary.setTextColor(Color.RED);
+                                }
+
                             }
 
                         }
@@ -175,7 +236,7 @@ public class SettingsActivity extends AppCompatActivity {
             });
             surname.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(View view) {
+                public void onClick(final View view) {
                     AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
                     alertDialog.setTitle(context.getString(R.string.SurnameField));
                     alertDialog.setMessage(R.string.Settings_SurnameField_message);
@@ -188,14 +249,29 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString();
+                            String name = input.getText().toString().trim();
                             if(name.length()==0)
                                 Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
                             else
                             {
-                                personalData.surname = name;
-                                personalData.updatePersonalData();
-                                onResume();
+                                Matcher MSurnmae = PnameSurnmae.matcher(name);
+                                RelativeLayout SurnameField_status_layout = view.findViewById(R.id.SurnameField_status_layout);
+                                ImageView SurnameField_status = view.findViewById(R.id.SurnameField_status);
+                                if(MSurnmae.matches())
+                                {
+                                    SurnameField_status_layout.setVisibility(View.VISIBLE);
+                                    SurnameField_status.setImageResource(R.drawable.ic_done_black_24dp);
+                                    personalData.surname = name;
+                                    onResume();
+                                }
+                                else
+                                {
+                                    SurnameField_status_layout.setVisibility(View.VISIBLE);
+                                    SurnameField_status.setImageResource(R.drawable.ic_error_black_24dp);
+                                    surname_summary.setText(context.getString(R.string.settings_input_data_incorrect));
+                                    surname_summary.setTextColor(Color.RED);
+                                }
+
                             }
 
                         }
@@ -212,7 +288,7 @@ public class SettingsActivity extends AppCompatActivity {
             });
             phone.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(View view) {
+                public void onClick(final View view) {
                     AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
                     alertDialog.setTitle(context.getString(R.string.settings_phone_number));
                     alertDialog.setMessage(R.string.Settings_phone_number_message);
@@ -226,7 +302,7 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString();
+                            String name = input.getText().toString().trim();
                             if(name.length()==0)
                                 Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
                             else
@@ -235,10 +311,24 @@ public class SettingsActivity extends AppCompatActivity {
                                     Toast.makeText(context, context.getString(R.string.settings_field_input_error), Toast.LENGTH_LONG).show();
                                 else
                                 {
-                                    //save number
-                                    personalData.telephone_number = name;
-                                    personalData.updatePersonalData();
-                                    onResume();
+                                    Matcher MPhone = PPhone.matcher(name);
+                                    RelativeLayout phone_status_layout = view.findViewById(R.id.phone_status_layout);
+                                    ImageView phone_status = view.findViewById(R.id.phone_status);
+                                    if(MPhone.matches())
+                                    {
+                                        phone_status_layout.setVisibility(View.VISIBLE);
+                                        phone_status.setImageResource(R.drawable.ic_done_black_24dp);
+                                        personalData.telephone_number = name;
+                                        onResume();
+                                    }
+                                    else
+                                    {
+                                        phone_status_layout.setVisibility(View.VISIBLE);
+                                        phone_status.setImageResource(R.drawable.ic_error_black_24dp);
+                                        phone_summary.setText(context.getString(R.string.settings_input_data_incorrect));
+                                        phone_summary.setTextColor(Color.RED);
+                                    }
+
                                 }
                             }
 
@@ -256,7 +346,7 @@ public class SettingsActivity extends AppCompatActivity {
             });
             e_mail.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(View view) {
+                public void onClick(final View view) {
                     AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
                     alertDialog.setTitle(context.getString(R.string.E_mailAdress));
                     alertDialog.setMessage(R.string.Settings_E_mailAdress_message);
@@ -269,14 +359,28 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString();
+                            String name = input.getText().toString().trim();
                             if(name.length()==0)
                                 Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
                             else
                             {
-                                personalData.e_mail = name;
-                                personalData.updatePersonalData();
-                                onResume();
+                                Matcher ME_mail= PE_mail.matcher(name);
+                                RelativeLayout e_mail_status_layout = view.findViewById(R.id.e_mail_status_layout);
+                                ImageView e_mail_status = view.findViewById(R.id.e_mail_status);
+                                if(ME_mail.matches()) {
+                                    personalData.e_mail = name;
+                                    e_mail_status_layout.setVisibility(View.VISIBLE);
+                                    e_mail_status.setImageResource(R.drawable.ic_done_black_24dp);
+                                    onResume();
+                                }
+                                else
+                                {
+                                    e_mail_status_layout.setVisibility(View.VISIBLE);
+                                    e_mail_status.setImageResource(R.drawable.ic_error_black_24dp);
+                                    e_mail_summary.setText(context.getString(R.string.settings_input_data_incorrect));
+                                    e_mail_summary.setTextColor(Color.RED);
+                                }
+
                             }
 
                         }
@@ -291,7 +395,7 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.show();
                 }
             });
-            password.setOnClickListener(new View.OnClickListener() {
+/*            password.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
@@ -310,7 +414,6 @@ public class SettingsActivity extends AppCompatActivity {
                             else
                             {
                                 personalData.password = name;
-                                personalData.updatePersonalData();
                                 onResume();
                             }
 
@@ -326,7 +429,7 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.show();
                 }
             });
-
+*/
 
             return view;
         }
@@ -350,18 +453,61 @@ public class SettingsActivity extends AppCompatActivity {
                 e_mail_summary.setText(personalData.e_mail);
             }
         }
+
+        @Override
+        public void onDestroy() {
+            if(personalData.name != null && personalData.surname != null && personalData.telephone_number!= null && personalData.e_mail!= null) {
+                if(personalData.id == null)
+                {
+                    GetFnsData getFnsData = new GetFnsData(Settings.Secure.getString(context.getContentResolver(),
+                            Settings.Secure.ANDROID_ID));
+                    //get password from FNS
+                    getFnsData.registerNewUser(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                            personalData._status = -1;
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            if(response.message().toLowerCase().equals("conflict"))
+                            {
+                                personalData._status = 0;
+                            }
+                            else if(response.message().toLowerCase().equals("bad request"))
+                            {
+                                personalData._status = -1;
+                            }
+                            else {
+                                personalData._status = 1;
+                            }
+
+
+                        }
+                    });
+                }
+                personalData.setPersonalData();
+            }
+
+
+
+            super.onDestroy();
+        }
+
         @Override
         public void onResume() {
             super.onResume();
             setData();
         }
+
     }
-    @SuppressLint("ValidFragment")
-    public class AppSettingsPage extends Fragment
+
+    public static class AppSettingsPage extends Fragment
     {
+        private final Context context;
         private RelativeLayout ThemeSettings;
         private RelativeLayout appSettings;
-        public AppSettingsPage(){};
+        public AppSettingsPage(Context context){ this.context = context;};
         public String themeId="";
 
         @Override
@@ -382,7 +528,10 @@ public class SettingsActivity extends AppCompatActivity {
                     alertDialog.setTitle(context.getString(R.string.Settings_ThemesChoice));
                     alertDialog.setMessage(R.string.Settings_ThemesChoice_message);
                     View viewDialog = inflater.inflate(R.layout.theme_choice_dialog, null);
-                    int theme =Integer.valueOf(MainActivity.settings.settings.get("theme"));
+                    String themeStr= MainActivity.settings.settings.get("theme");
+                    int theme = 0;
+                    if(themeStr!=null)
+                        theme =Integer.valueOf(MainActivity.settings.settings.get("theme"));
                     switch(theme)
                     {
                         case R.style.FirstTheme:

@@ -12,22 +12,42 @@ android:padding="15dp">
             android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
             android:padding="10dp">
+        <RelativeLayout
+                android:id="@+id/NameField_status_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerInParent="true"
+                android:visibility="gone">
+            <ImageView
+                    android:id="@+id/NameField_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
 
-        <TextView
-                android:id="@+id/NameField_text"
-                android:layout_width="match_parent"
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/NameField_status_data"
+                android:layout_toEndOf="@+id/NameField_status_layout"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
-                android:text="@string/Settings_NameField"
-                style="?TextAppeareance"/>
-        <TextView
-                android:id="@+id/NameField_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/NameField_text"
-                style="?TextAppeareance_small"/>
+                android:paddingStart="10dp">
+
+            <TextView
+                    android:id="@+id/NameField_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:text="@string/Settings_NameField"
+                    style="?TextAppeareance"/>
+            <TextView
+                    android:id="@+id/NameField_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/NameField_text"
+                    style="?TextAppeareance_small"/>
+        </RelativeLayout>
         <View
-                android:layout_below="@+id/NameField_summary"
+                android:layout_below="@+id/NameField_status_data"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
@@ -40,21 +60,41 @@ android:padding="15dp">
             android:layout_height="wrap_content"
             android:layout_below="@+id/NameField"
             android:padding="10dp">
+        <RelativeLayout
+                android:id="@+id/SurnameField_status_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerInParent="true"
+                android:visibility="gone">
+            <ImageView
+                    android:id="@+id/SurnameField_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
 
-        <TextView
-                android:id="@+id/SurnameField_text"
-                android:layout_width="match_parent"
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/SurnameField_status_data"
+                android:layout_toEndOf="@+id/SurnameField_status_layout"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/SurnameField"
-                style="?TextAppeareance"/>
-        <TextView
-                android:id="@+id/SurnameField_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/SurnameField_text"
-                style="?TextAppeareance_small"/>
+                android:paddingStart="10dp">
+
+            <TextView
+                    android:id="@+id/SurnameField_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/SurnameField"
+                    style="?TextAppeareance"/>
+            <TextView
+                    android:id="@+id/SurnameField_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/SurnameField_text"
+                    style="?TextAppeareance_small"/>
+        </RelativeLayout>
         <View
-                android:layout_below="@+id/SurnameField_summary"
+                android:layout_below="@+id/SurnameField_status_data"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
@@ -67,21 +107,41 @@ android:padding="15dp">
             android:layout_height="wrap_content"
             android:layout_below="@+id/SurnameField"
             android:padding="10dp">
+        <RelativeLayout
+                android:id="@+id/e_mail_status_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerInParent="true"
+                android:visibility="gone">
+            <ImageView
+                    android:id="@+id/e_mail_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
 
-        <TextView
-                android:id="@+id/e_mail_text"
-                android:layout_width="match_parent"
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/e_mail_status_data"
+                android:layout_toEndOf="@+id/e_mail_status_layout"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/E_mailAdress"
-                style="?TextAppeareance"/>
-        <TextView
-                android:id="@+id/e_mail_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/e_mail_text"
-                style="?TextAppeareance_small"/>
+                android:paddingStart="10dp">
+
+            <TextView
+                    android:id="@+id/e_mail_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/E_mailAdress"
+                    style="?TextAppeareance"/>
+            <TextView
+                    android:id="@+id/e_mail_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/e_mail_text"
+                    style="?TextAppeareance_small"/>
+        </RelativeLayout>
         <View
-                android:layout_below="@+id/e_mail_summary"
+                android:layout_below="@+id/e_mail_status_data"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
@@ -92,28 +152,48 @@ android:padding="15dp">
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@+id/e_mail"
-            android:padding="10dp">
+            android:padding="10dp"
+            android:paddingBottom="0dp">
+        <RelativeLayout
+                android:id="@+id/phone_status_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerInParent="true"
+                android:visibility="gone">
+            <ImageView
+                    android:id="@+id/phone_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
 
-        <TextView
-                android:id="@+id/phone_text"
-                android:layout_width="match_parent"
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/phone_status_data"
+                android:layout_toEndOf="@+id/phone_status_layout"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_phone_number"
-                style="?TextAppeareance"/>
-        <TextView
-                android:id="@+id/phone_summary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/phone_text"
-                style="?TextAppeareance_small"/>
+                android:paddingStart="10dp">
+            <TextView
+                    android:id="@+id/phone_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_phone_number"
+                    style="?TextAppeareance"/>
+            <TextView
+                    android:id="@+id/phone_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/phone_text"
+                    style="?TextAppeareance_small"/>
+        </RelativeLayout>
         <View
-                android:layout_below="@+id/phone_summary"
+                android:layout_below="@+id/phone_status_data"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
     </RelativeLayout>
 
-    <RelativeLayout
+   <!-- <RelativeLayout
             android:id="@+id/password"
             android:orientation="vertical"
             android:layout_width="match_parent"
@@ -139,6 +219,7 @@ android:padding="15dp">
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
     </RelativeLayout>
+    -->
 
 
 </RelativeLayout>

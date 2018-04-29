@@ -149,30 +149,17 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             purchasesList.reloadPurchasesList();
             purchasesListAdapter.notifyDataSetChanged();
             if ((currentInvoice.store != null && currentInvoice.store._status == 0) || (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
-
-                LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                View dialoglayout = inflater.inflate(R.layout.butn_layout, null);
-                TextView dialogHint = dialoglayout.findViewById(R.id.whatToDo);
-                dialogHint.setHint(R.string.finde_store_on_map);
-                AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
-                builder.setView(dialoglayout);
-                final AlertDialog dialog = builder.create();
-
-
-                TextView btnOk = dialoglayout.findViewById(R.id.btnOk);
-                TextView btnCancel = dialoglayout.findViewById(R.id.btnCancel);
-                btnCancel.setOnClickListener(new View.OnClickListener() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setTitle(context.getString(R.string.finde_store_on_map));
+                builder.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(View view) {
-                        dialog.cancel();
-                        //do nothing
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
                     }
                 });
-                btnOk.setOnClickListener(new View.OnClickListener() {
+                builder.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(View view) {
-                        dialog.cancel();
-
+                    public void onClick(DialogInterface dialogInterface, int i) {
                         PlacePicker.IntentBuilder builder = placeBuilder();
                         //Context context = getApplicationContext();
                         try {
@@ -183,20 +170,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                         }
                     }
                 });
-
-                WindowManager.LayoutParams wmlp = dialog.getWindow().getAttributes();
-                wmlp.gravity = Gravity.TOP | Gravity.CENTER;
-                dialog.show();
-                dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
-                    @Override
-                    public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent keyEvent) {
-                        if (keyCode == KeyEvent.KEYCODE_BACK) {
-                            dialogInterface.cancel();
-                            return true;
-                        }
-                        return false;
-                    }
-                });
+                builder.show();
 
             }
 
@@ -229,7 +203,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     blurPlotter.setVisibility(View.VISIBLE);
 
                     View v = LayoutInflater.from(getActivity()).inflate(R.layout.edit_store_information_layout, null);
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity(), R.attr.AppCompatAlertDialogStyle);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                     builder.setView(v);
                     final EditText Name = v.findViewById(R.id.name);
                     //final EditText storeType = v.findViewById(R.id.storeType);

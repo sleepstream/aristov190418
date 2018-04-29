@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public static final int SetImageFromGoogle_REQUEST = 5000;
     public static final int PICK_INVOICE_FROM_IMAGE = 6000;
     public static final int CAPTURE_FROM_PDF_QR = 7000;
+    public static final int restoreFromBackUp = 8000;
 
     boolean hasCameraPermission = false;
     boolean hasSmsPermission = false;
@@ -376,18 +377,16 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         user = new personalData(context);
         //if new user
         if ((user.id == null && permChecked) || (user._status!= null && user._status == -1)) {
-            LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            View v = inflater.inflate(R.layout.greetings, null);
-            AlertDialog.Builder adb = new AlertDialog.Builder(this, R.attr.AppCompatAlertDialogStyle);
-            adb.setView(v);
-            //adb.setTitle(getString(R.string.titleGreetingMessage));
+            AlertDialog.Builder adb = new AlertDialog.Builder(context);
+            adb.setTitle(getString(R.string.titleGreetingMessage));
+            adb.setMessage(R.string.firstTimeEnter);
             adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
                     //send to registration page
-                    Intent intent = new Intent(MainActivity.this, UserDataActivity.class);
-                    intent.putExtra("requestCode", personalDataRequestFull);
-                    startActivityForResult(intent, personalDataRequestFull);
+                    Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+                    intent.putExtra("settingsPage", "UsersDataPreferenceFragment");
+                    startActivity(intent);
                 }
             });
             adb.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -400,8 +399,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
         }
         //если пользователь не новый, но нужна повторная авторизация
-        else if (user._status == 0) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
+        else if (user._status != null && user._status == 0) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setMessage(getString(R.string.getNewPswFNS))
                     .setCancelable(false)
                     .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
@@ -454,7 +453,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 blurPlotter.setVisibility(View.VISIBLE);
 
                 View v = LayoutInflater.from(context).inflate(R.layout.add_invoicemanual_layout, null);
-                AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
                 builder.setView(v);
                 final EditText fP = v.findViewById(R.id.addFP);
                 final EditText fN = v.findViewById(R.id.addFN);
@@ -686,6 +685,13 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 Intent intent = new Intent(context, SettingsActivity.class);
                 startActivity(intent);
                 closeDrawer();
+                break;
+            case R.id.restoreBackup:
+                intent = new Intent()
+                        .setType("file/db")
+                        .setAction(Intent.ACTION_GET_CONTENT);
+
+                startActivityForResult(Intent.createChooser(intent, "Select a file"), restoreFromBackUp);
                 break;
             /*case R.id.changeTheme:
                 Map<String, String> setTmp =new ArrayMap<>();
@@ -925,6 +931,14 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
 
         switch (requestCode) {
+            case restoreFromBackUp:
+                Uri uri = null;
+                if (data != null) {
+                    uri = data.getData();
+                    String mimeType = getApplicationContext().getContentResolver().getType(uri);
+                    Log.d(LOG_TAG, mimeType);
+
+                }
             case CAPTURE_FROM_PDF_QR: {
                 if (data == null) {
                     return;
@@ -1075,7 +1089,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 log.info(LOG_TAG + "\n" + "result from personalDataRequestFull\n" + result);
                 switch (result) {
                     case "conflict": {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
                         builder.setMessage(getString(R.string.errorUserAlreadyRegistered))
                                 .setCancelable(false)
                                 .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
@@ -1105,7 +1119,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                         break;
                     }
                     case "connection": {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
                         builder.setMessage(getString(R.string.connectionError))
                                 .setCancelable(false)
                                 .setNegativeButton(R.string.btnCancel, new DialogInterface.OnClickListener() {
@@ -1279,7 +1293,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         if (grantResults.length > 0) {
             for (int i = 0; i < permissions.length; i++) {
                 if (!RuntimePermissionUtil.checkPermissonGranted(MainActivity.this, permissions[i])) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this, R.attr.AppCompatAlertDialogStyle);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setMessage("Необходимо предоставить все разрешенния.")
                             .setCancelable(false)
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -1293,7 +1307,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             restartActivity();
         } else {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this, R.attr.AppCompatAlertDialogStyle);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setMessage("Необходимо предоставить все разрешенния.")
                     .setCancelable(false)
                     .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -1390,7 +1404,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
                         if (item.getItemId() == R.id.addButton) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(context, R.attr.AppCompatAlertDialogStyle);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);

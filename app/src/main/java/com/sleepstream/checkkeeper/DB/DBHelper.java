@@ -7,6 +7,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.net.Uri;
 import android.os.Environment;
 import android.widget.Toast;
 import com.sleepstream.checkkeeper.R;
@@ -54,7 +55,7 @@ public class DBHelper extends SQLiteOpenHelper{
 
             try {
 
-                copyDataBase();
+                copyDataBase(null);
 
             } catch (IOException e) {
 
@@ -97,10 +98,14 @@ public class DBHelper extends SQLiteOpenHelper{
      * system folder, from where it can be accessed and handled.
      * This is done by transfering bytestream.
      * */
-    private void copyDataBase() throws IOException{
+    private void copyDataBase(Uri input) throws IOException{
 
         //Open your local db as the input stream
-        InputStream myInput = myContext.getAssets().open(DB_NAME);
+        InputStream myInput;
+        if(input == null)
+            myInput = myContext.getAssets().open(DB_NAME);
+        else
+            myInput = myContext.getContentResolver().openInputStream(input);
 
         // Path to the just created empty db
         String outFileName = DB_PATH;

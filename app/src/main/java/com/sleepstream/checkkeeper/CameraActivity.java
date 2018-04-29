@@ -26,7 +26,7 @@ public class CameraActivity extends AppCompatActivity {
     protected void onCreate(final Bundle savedInstanceState) {
         if(MainActivity.settings != null) {
             String themeId = MainActivity.settings.settings.get("theme");
-            if (themeId.length() > 0)
+            if (themeId != null && themeId.length() > 0)
                 setTheme(Integer.valueOf(themeId));
         }
         super.onCreate(savedInstanceState);

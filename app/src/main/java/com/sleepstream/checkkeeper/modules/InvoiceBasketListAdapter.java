@@ -331,7 +331,7 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                     public boolean onMenuItemClick(final MenuItem item) {
                         if(item.getItemId() == R.id.addButton)
                         {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext(), R.attr.AppCompatAlertDialogStyle);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
                             builder.setTitle(R.string.title_addAccointingList);
                             final EditText input = new EditText(context);
                             input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
@@ -417,8 +417,8 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
         };
 
 
-        Handler handlerUndo=new Handler();
-        handlerUndo.postDelayed(runnableUndo,2500);
+        //Handler handlerUndo=new Handler();
+        //handlerUndo.postDelayed(runnableUndo,2500);
 
     }
 

@@ -29,6 +29,11 @@
           android:icon="@drawable/ic_backup_black_24dp"
           app:actionViewClass="android.widget.TextView"
           android:enabled="true"/>
+    <item android:title="@string/restoreFromBackupTitle"
+          android:id="@+id/restoreBackup"
+          android:icon="@drawable/ic_backup_black_24dp"
+          app:actionViewClass="android.widget.TextView"
+          android:enabled="true"/>
 
     <item android:title="@string/settings"
           android:id="@+id/settings"

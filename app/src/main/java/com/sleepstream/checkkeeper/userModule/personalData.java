@@ -32,7 +32,7 @@ public class personalData {
         this.context = context;
         data = new HashMap();
         
-        Cursor cur = dbHelper.query(tableName, null, null, null, null, null, null, null);
+        Cursor cur = dbHelper.query(tableName, null, null, null, null, null, null, "1");
         if(cur.getCount() >0)
         {
             cur.moveToFirst();
@@ -77,6 +77,18 @@ public class personalData {
         int count = dbHelper.update(tableName, data, "id=?", new String[]{id+""});
         Log.d(LOG_TAG, "Updated records: "+count);
         
+    }
+
+    public void setPersonalData()
+    {
+        if(id == null)
+        {
+            insertPersonalData();
+        }
+        else
+        {
+            updatePersonalData();
+        }
     }
 
     public void insertPersonalData ()
