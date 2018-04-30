@@ -7,4 +7,6 @@
     <attr name="AppCompatAlertDialogStyle" format="reference"/>
     <attr name="colorBackground" format="color"/>
     <attr name="AppTheme_Orange" format="reference"/>
+    <attr name="circle_background" format="reference"/>
+    <attr name="TextAppeareance_onDark" format="reference"/>
 </resources>

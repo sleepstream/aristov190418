@@ -4,9 +4,11 @@ import android.content.Context;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.Html;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -22,6 +24,8 @@ import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
 import com.sleepstream.checkkeeper.purchasesObjects.PurchasesListData;
 
 import java.util.Collections;
+
+import static com.sleepstream.checkkeeper.MainActivity.fromHtml;
 
 
 public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdapter.ItemViewHolder> implements ItemTouchHelperAdapter {
@@ -264,7 +268,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
             quantity = (TextView) v.findViewById(R.id.quantity);
             priceForItem = (TextView) v.findViewById(R.id.priceForItem);
             sumPerPosition = (TextView) v.findViewById(R.id.sumPerPosition);
-            sign.setText(Html.fromHtml("&#xd7", Html.FROM_HTML_MODE_COMPACT));
+            sign.setText(fromHtml("&#xd7"));
 
         }
 
@@ -272,6 +276,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
         public void onClick(View view) {
 
         }
+
 
 
         @Override

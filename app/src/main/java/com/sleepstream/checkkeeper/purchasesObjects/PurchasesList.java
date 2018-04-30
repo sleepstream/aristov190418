@@ -2,7 +2,7 @@ package com.sleepstream.checkkeeper.purchasesObjects;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.icu.util.Calendar;
+import java.util.Calendar;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
@@ -95,7 +95,7 @@ public class PurchasesList {
                                     PurchasesListData.Invoice invoice = new PurchasesListData.Invoice();
 
                                     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:MM:SS", Locale.getDefault());
-                                    android.icu.util.Calendar calendar = Calendar.getInstance();
+                                    java.util.Calendar calendar = Calendar.getInstance();
                                     calendar.setTimeInMillis(fk_cur.getLong(fk_cur.getColumnIndex("date")));
 
                                     invoice.date = dateFormat.format(calendar.getTime());
