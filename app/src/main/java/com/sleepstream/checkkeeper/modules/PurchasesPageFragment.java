@@ -285,6 +285,15 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             else  if(currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd >0)
             {builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),
                     new LatLng(currentInvoice.latitudeAdd, currentInvoice.longitudeAdd)));}
+            else
+            {
+                //find best location
+                LatLng latLng = invoice.findBestLocation(currentInvoice.store);
+                if(latLng != null)
+                {
+                    builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),latLng));
+                }
+            }
 
 
         }

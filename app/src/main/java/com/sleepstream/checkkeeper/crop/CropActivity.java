@@ -128,6 +128,7 @@ public class CropActivity extends AppCompatActivity {
         store.place_id =place_id;
         InvoiceData invoiceData = new InvoiceData();
         invoiceData.store = store;
+        invoiceData.store.update = true;
         MainActivity.invoice.setStoreData(invoiceData);
         finish();
     }

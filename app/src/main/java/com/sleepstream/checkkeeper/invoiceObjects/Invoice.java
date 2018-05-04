@@ -3,6 +3,7 @@ package com.sleepstream.checkkeeper.invoiceObjects;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.util.Log;
+import com.google.android.gms.maps.model.LatLng;
 import com.sleepstream.checkkeeper.GetFnsData;
 import com.sleepstream.checkkeeper.Navigation;
 
@@ -1100,5 +1101,24 @@ public class Invoice {
             return count;
         else
             return 0;
+    }
+
+    public LatLng findBestLocation(InvoiceData.Store store) {
+        LatLng latLng = null;
+        int count=0;
+        Cursor cur = dbHelper.query(tablenameStores, null, "name_from_fns=? AND inn=? AND _status=? AND (latitude notnull AND longitude notnull)", new String[]{store.name_from_fns, store.inn.toString(), "1"},null, null, null, null);
+        if(cur.moveToFirst())
+        {
+            do {
+                Cursor curInvoice = dbHelper.query(tableName, null, "fk_invoice_stores=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))}, null, null, null, null);
+                int tmp = curInvoice.getCount();
+                if(count< tmp) {
+                    count = tmp;
+                    latLng = new LatLng(curInvoice.getDouble(curInvoice.getColumnIndex("latitude")), curInvoice.getDouble(curInvoice.getColumnIndex("longitude")));
+                }
+            }
+            while(cur.moveToNext());
+        }
+        return  latLng;
     }
 }
