@@ -1015,53 +1015,7 @@ public class Invoice {
     }
 
 
-    public void findBestLocationByDataFromFNS(InvoiceData.Store store)
-    {
-        try {
-            if(store.inn == null)
-                return;
-            String whereKey = "address_from_fns=? AND name_from_fns=? AND inn=?";
-            String[] whereVal = new String[]{
-                    store.address_from_fns == null ? "" : store.address_from_fns,
-                    store.name_from_fns == null ? "" : store.name_from_fns,
-                    store.inn.toString()
-            };
-            Integer maxInvoices = 0;
-            Integer bestStoreId = 0;
-            Cursor placeStore = dbHelper.query(tablenameStores, null, whereKey, whereVal, null, null, null, null);
-            if (placeStore.moveToFirst()) {
-                do {
-                    Integer storeId = placeStore.getInt(placeStore.getColumnIndex("id"));
-                    Cursor kktCur = dbHelper.query("kktRegId", new String[]{"id"}, "fk_kktRegId_stores=?", new String[]{storeId.toString()}, null, null, null, null);
-                    if (kktCur.moveToFirst()) {
-                        Integer countInvoices = 0;
-                        do {
-                            Integer kktId = kktCur.getInt(kktCur.getColumnIndex("id"));
-                            Cursor invCur = dbHelper.query(tableName, new String[]{"id"}, "fk_invoice_kktRegId=? AND id<>?", new String[]{kktId.toString(), currentInvoice.getId().toString()}, null, null, null, null);
-                            if (invCur.getCount() > 0)
-                                countInvoices += invCur.getCount();
-                            invCur.close();
-                        }
-                        while (kktCur.moveToNext());
-                        kktCur.close();
-                        if (countInvoices > maxInvoices) {
-                            maxInvoices = countInvoices;
-                            bestStoreId = storeId;
-                            store.latitude = placeStore.getDouble(placeStore.getColumnIndex("latitude"));
-                            store.longitude = placeStore.getDouble(placeStore.getColumnIndex("longitude"));
-                        }
-                    }
-
-                }
-                while (placeStore.moveToNext());
-            }
-            placeStore.close();
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-        }
-    }
+    
 
 
     public int getCount(Map<String, String[]> filter) {
