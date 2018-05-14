@@ -71,6 +71,8 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public static String subTitle="";
     private RelativeLayout placeImageLayout;
     private Context context;
+    private Double map_offset= 0.0;
+    public static PhotoTask photoTask;
 
     public PurchasesPageFragment(){}
 
@@ -96,6 +98,9 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if(settings.settings.containsKey("map_offset")) {
+            map_offset = Double.valueOf(settings.settings.get("map_offset"));
+        }
         try {
             pageNumber = getArguments().getInt(ARGUMENT_PAGE_NUMBER);
         }
@@ -288,11 +293,17 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             else
             {
                 //find best location
-                LatLng latLng = invoice.findBestLocation(currentInvoice.store);
+                Double[] latLng = invoice.findBestLocation(currentInvoice.store);
                 if(latLng != null)
                 {
-                    builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),latLng));
+
+                    builder.setLatLngBounds(new LatLngBounds(new LatLng(latLng[0]-map_offset, latLng[1]-map_offset), new LatLng(latLng[0]+map_offset, latLng[1]+map_offset)));
                 }
+                else if(currentInvoice.latitudeAdd != null && currentInvoice.longitudeAdd != null)
+                {
+                    builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd,currentInvoice.longitudeAdd),new LatLng(currentInvoice.latitudeAdd,currentInvoice.longitudeAdd)));
+                }
+
             }
 
 
@@ -358,7 +369,11 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
     @Override
     public void onDestroyView() {
+
         super.onDestroyView();
+        if(photoTask!= null)
+            photoTask.cancel(true);
+        googleFotoListAdapter = null;
     }
 
     @Override
@@ -499,7 +514,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                         switch(item.getItemId())
                         {
                             case R.id.setPhoto:
-                                PhotoTask photoTask = new PhotoTask(500, 500);
+                                photoTask = new PhotoTask(500, 500);
                                 photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
                                 break;
                             case R.id.removePhoto:

@@ -14,6 +14,7 @@ import java.util.*;
 
 import static com.sleepstream.checkkeeper.MainActivity.currentInvoice;
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
+import static com.sleepstream.checkkeeper.MainActivity.log;
 
 public class Invoice {
 
@@ -808,7 +809,7 @@ public class Invoice {
                 e.printStackTrace();
             }
         }
-
+        log.info(LOG_TAG+"\n"+receipt.totalSum +" totalSum");
         updateData.put("fullprice", Float.parseFloat(receipt.totalSum)/100);
         updateData.put("ecashTotalSum", Float.parseFloat(receipt.ecashTotalSum)/100);
         updateData.put("cashTotalSum", Float.parseFloat(receipt.cashTotalSum)/100);
@@ -1015,7 +1016,7 @@ public class Invoice {
     }
 
 
-    
+
 
 
     public int getCount(Map<String, String[]> filter) {
@@ -1057,18 +1058,33 @@ public class Invoice {
             return 0;
     }
 
-    public LatLng findBestLocation(InvoiceData.Store store) {
-        LatLng latLng = null;
+    public Double[] findBestLocation(InvoiceData.Store store) {
+        Double[] latLng = new Double[2];
+        String selection="";
+        String[] args;
         int count=0;
-        Cursor cur = dbHelper.query(tablenameStores, null, "name_from_fns=? AND inn=? AND _status=? AND (latitude notnull AND longitude notnull)", new String[]{store.name_from_fns, store.inn.toString(), "1"},null, null, null, null);
+        if(store.address_from_fns != null && store.address_from_fns != "")
+        {
+            selection = "name_from_fns=? AND address_from_fns=? AND inn=? AND _status=? AND (latitude notnull AND longitude notnull)";
+            args = new String[]{store.name_from_fns, store.address_from_fns, store.inn.toString(), "1"};
+        }
+        else
+        {
+            selection = "name_from_fns=? AND inn=? AND _status=? AND (latitude notnull AND longitude notnull)";
+            args = new String[]{store.name_from_fns, store.inn.toString(), "1"};
+        }
+        Cursor cur = dbHelper.query(tablenameStores, null, selection, args,null, null, null, null);
+
         if(cur.moveToFirst())
         {
+            int id = cur.getInt(cur.getColumnIndex("id"));
             do {
                 Cursor curInvoice = dbHelper.query(tableName, null, "fk_invoice_stores=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))}, null, null, null, null);
                 int tmp = curInvoice.getCount();
                 if(count< tmp) {
                     count = tmp;
-                    latLng = new LatLng(curInvoice.getDouble(curInvoice.getColumnIndex("latitude")), curInvoice.getDouble(curInvoice.getColumnIndex("longitude")));
+                    latLng[0] = cur.getDouble(cur.getColumnIndex("latitude"));
+                    latLng[1] = cur.getDouble(cur.getColumnIndex("longitude"));
                 }
             }
             while(cur.moveToNext());

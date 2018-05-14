@@ -13,14 +13,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.Typeface;
+import android.location.*;
 import android.location.Address;
-import android.location.Geocoder;
-import android.location.LocationManager;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
+import android.os.*;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -99,6 +95,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     static final int PAGE_COUNT = 5;
     private static final int PURCHASE_PAGE = 3;
+    private static final float LOCATION_REFRESH_DISTANCE = (float) 100.0;
+    private static final long LOCATION_REFRESH_TIME = 10000;
     public static Intent intentService;
     public static CustomViewPager pager;
     public static InvoiceData currentInvoice;
@@ -143,6 +141,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     boolean hasCameraPermission = false;
     boolean hasSmsPermission = false;
     boolean hasSDPermission = false;
+    private boolean hasGPSPermission = false;
 
     public static Invoice invoice;
     public static AccountingList accountingList;
@@ -160,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     public TextView toolbar_title;
 
-    protected static Logger log = Logger.getLogger(MainActivity.class.getName());
+    public static Logger log = Logger.getLogger(MainActivity.class.getName());
 
     private int nu = 0;
 
@@ -191,6 +190,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     public static SettingsApp settings;
     private int backCount=0;
+    private LocationManager mLocationManager;
+
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -224,6 +225,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
 
         super.onCreate(savedInstanceState);
+
+
         //status 0 - just loaded waiting for loading
         //status 3 - loading in progress
         //status -1 - error loading from FNS not exist
@@ -317,6 +320,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 addMyPhotoContainer.setVisibility(View.GONE);
                 if (googleFotoListAdapter != null) {
                     googleFotoListAdapter.placePhotoMetadataList.clear();
+                    googleFotoListAdapter.notifyDataSetChanged();
                 }
                 return true;
             }
@@ -336,7 +340,6 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 .addApi(Places.PLACE_DETECTION_API)
                 .enableAutoManage(this, this)
                 .build();
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         intentService = new Intent(context, LoadingFromFNS.class);
         if (!isMyServiceRunning(LoadingFromFNS.class)) {
             startService(intentService);
@@ -350,7 +353,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         hasSmsPermission = RuntimePermissionUtil.checkPermissonGranted(this, smsPerm);
         hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
         hasSDPermission = RuntimePermissionUtil.checkPermissonGranted(this, sdPerm);
-        if (!hasSmsPermission || !hasCameraPermission || !hasSDPermission) {
+        hasGPSPermission = RuntimePermissionUtil.checkPermissonGranted(this, MapPerm);
+        if (!hasSmsPermission || !hasCameraPermission || !hasSDPermission || !hasGPSPermission) {
             RuntimePermissionUtil.requestPermission(MainActivity.this, permisions, 200);
         } else
             permChecked = true;
@@ -552,6 +556,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         navigation.openCurrentPage(new Page("", 0));
     }
 
+    
     private void setNavMenuChecked() {
         uncheckNavMenu();
         switch (navigation.currentPage.position) {
@@ -1196,6 +1201,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 addMyPhotoContainer.setVisibility(View.GONE);
                 if (googleFotoListAdapter != null) {
                     googleFotoListAdapter.placePhotoMetadataList.clear();
+                    googleFotoListAdapter.notifyDataSetChanged();
                 }
                 context.startActivity(intent);
 
@@ -1491,7 +1497,6 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     }
 
-
     class AsyncFirstAddInvoice extends AsyncTask<String, Void, InvoiceData> {
 
         @Override
@@ -1503,79 +1508,43 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         protected InvoiceData doInBackground(String... resultQR) {
             InvoiceData currentInvoiceData =new InvoiceData();
             InvoiceData invoiceData = new InvoiceData();
-
-
-
             try {
+                //set coordinates in background
 
-                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi.getCurrentPlace(mGoogleApiClient, null);
-                    final CountDownLatch latch = new CountDownLatch(1);
-                    final InvoiceData finalInvoiceData = invoiceData;
-                    result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
-                        @Override
-                        public void onResult(@NonNull PlaceLikelihoodBuffer likelyPlaces) {
-                            float tmpIndex=0;
-                            LatLng latLng = null;
-                            for (PlaceLikelihood placeLikelihood : likelyPlaces) {
-                                if(placeLikelihood.getLikelihood()> tmpIndex) {
-                                    tmpIndex = placeLikelihood.getLikelihood();
-                                    latLng = placeLikelihood.getPlace().getLatLng();
-                                }
-                                Log.d(LOG_TAG, String.format("Place '%s' has likelihood: %g",
-                                        placeLikelihood.getPlace().getName(),
-                                        placeLikelihood.getLikelihood()));
-                            }
-                            likelyPlaces.release();
-                            if(latLng != null) {
-                                finalInvoiceData.longitudeAdd = latLng.longitude;
-                                finalInvoiceData.latitudeAdd = latLng.latitude;
-                            }
-                            latch.countDown();
-
-                        }
-                    });
-                    latch.await();
-                    invoiceData = finalInvoiceData;
-                }
-                //resultQR = data.getStringExtra("resultQR");
-                //text.setText(resultQR);
                 QRitem = new QRManager(resultQR[0]);//место редактирования полученного кода. стоит сразу создать объект
-                //fillTextFields();
-
                 //save QR data to DB
+                Pattern p = Pattern.compile("t=[0-9]{6,}[Tt]{1}[0-9]{4,}&s=[0-9.]{1,}&fn=[0-9]{16}&i=[0-9]{4,}&fp=[0-9]{9,}");
+                Matcher m = p.matcher(QRitem.resultQR);
+                if(m.find()) {
 
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                SimpleDateFormat dateFormat_day = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                    SimpleDateFormat dateFormat_day = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
-                Long invoiceDate = null;
-                Long invoiceDate_day = null;
-                try {
-                    if(QRitem.date.equals("") || QRitem.time.equals(""))
-                    {
-                        invoiceDate = new Date().getTime();
-                        invoiceDate_day = dateFormat_day.parse(dateFormat_day.format(new Date())).getTime();
+                    Long invoiceDate = null;
+                    Long invoiceDate_day = null;
+                    try {
+                        if (QRitem.date.equals("") || QRitem.time.equals("")) {
+                            invoiceDate = new Date().getTime();
+                            invoiceDate_day = dateFormat_day.parse(dateFormat_day.format(new Date())).getTime();
+                        } else {
+                            invoiceDate = dateFormat.parse(QRitem.date + " " + QRitem.time).getTime();
+                            invoiceDate_day = dateFormat_day.parse(QRitem.date).getTime();
+                        }
+                    } catch (ParseException e) {
+                        e.printStackTrace();
                     }
-                    else {
-                        invoiceDate = dateFormat.parse(QRitem.date + " " + QRitem.time).getTime();
-                        invoiceDate_day = dateFormat_day.parse(QRitem.date).getTime();
-                    }
-                } catch (ParseException e) {
-                    e.printStackTrace();
+                    //Toast.makeText(context, QRitem.totalSum, Toast.LENGTH_LONG).show();
+                    invoiceData.setAll(QRitem.FP, QRitem.FD, QRitem.FN, invoiceDate, QRitem.totalSum, null, null, resultQR[1] == null ? null : Integer.valueOf(resultQR[1]), null);
+
+                    //just add data from QR - first time to save and check already exist
+                    invoiceData.date_day = invoiceDate_day;
+                    invoiceData.setDate_add(new Date().getTime());
+                    String existInvoice = invoice.addInvoice(null, invoiceData);
+                    currentInvoiceData = invoice.invoices.get(invoice.lastIDCollection);
+                    if (existInvoice != "exist")
+                        invoice.reLoadInvoice();
+
                 }
-                //Toast.makeText(context, QRitem.totalSum, Toast.LENGTH_LONG).show();
-                invoiceData.setAll(QRitem.FP, QRitem.FD, QRitem.FN, invoiceDate, QRitem.totalSum, null, null, resultQR[1] == null? null: Integer.valueOf(resultQR[1]), null);
-
-                //just add data from QR - first time to save and check already exist
-                invoiceData.date_day = invoiceDate_day;
-                invoiceData.setDate_add(new Date().getTime());
-                String existInvoice = invoice.addInvoice(null, invoiceData);
-                currentInvoiceData = invoice.invoices.get(invoice.lastIDCollection);
-                if(existInvoice != "exist")
-                    invoice.reLoadInvoice();
-
-
-
             } catch (Exception e) {
                 log.info(LOG_TAG+"\n"+ "ERROR\n");
                 log.info(LOG_TAG+"\n"+ e.getMessage());
@@ -1590,6 +1559,23 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
             int position = -1;
             if(result.getId()!= null) {
+                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+                    final InvoiceData invoiceData = result;
+                    SingleShotLocationProvider.requestSingleUpdate(context,
+                            new SingleShotLocationProvider.LocationCallback() {
+                                @Override public void onNewLocationAvailable(SingleShotLocationProvider.GPSCoordinates location) {
+                                    Log.d("Location", "my location is " + location.toString());
+                                    if(location.latitude>0 && location.longitude>0)
+                                    {
+                                        invoiceData.longitudeAdd = location.longitude;
+                                        invoiceData.latitudeAdd = location.latitude;
+                                        invoice.updateInvoice(invoiceData);
+                                    }
+                                }
+                            });
+                }
+
                 if (InvoicesPageFragment.invoiceListAdapter != null) {
                     position = InvoicesPageFragment.invoiceListAdapter.findPosition(result);
                     InvoicesPageFragment.invoiceListAdapter.row_index = position;
@@ -1603,6 +1589,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 {
                     startService(intentService);
                 }
+            }
+            else
+            {
+                Toast.makeText(context, context.getString(R.string.QRData_Error), Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -1637,7 +1627,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 navigation.purchasesPageFragment.onResume();
 
             progressBar.setVisibility(View.GONE);
-            if(googleFotoListAdapter.placePhotoMetadataList.size()==0)
+            if(googleFotoListAdapter == null)
                 blurPlotter.setVisibility(View.GONE);
         }
 
@@ -1880,16 +1870,34 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     @Override
     public void onBackPressed() {
-        if(navigation.pageBackList.size()>0) {
-            navigation.backPress();
-            closeDrawer();
-        }
-        else if(backCount == 0) {
-            backCount+=1;
-            Toast.makeText(context, context.getString(R.string.press_back_to_exit), Toast.LENGTH_LONG).show();
+        if(blurPlotter.getVisibility() == View.VISIBLE)
+        {
+            blurPlotter.setVisibility(View.GONE);
+            progressBar.setVisibility(View.GONE);
         }
         else
-            finish();
+        {
+            if (navigation.pageBackList.size() > 0) {
+                navigation.backPress();
+
+                closeDrawer();
+            } else if (backCount == 0) {
+                backCount += 1;
+                Toast.makeText(context, context.getString(R.string.press_back_to_exit), Toast.LENGTH_LONG).show();
+
+                //reset if no press for interval
+                Runnable runnableUndo = new Runnable() {
+
+                    @Override
+                    public void run() {
+                        backCount = 0;
+                    }
+                };
+                Handler handlerUndo=new Handler();
+                handlerUndo.postDelayed(runnableUndo,2500);
+            } else
+                finish();
+        }
     }
 
     public static boolean invoiceClickAble(@Nullable Integer status)

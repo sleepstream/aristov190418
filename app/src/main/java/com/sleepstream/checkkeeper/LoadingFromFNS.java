@@ -168,7 +168,7 @@ public class LoadingFromFNS extends Service {
                             response = getFnsData.runGet();
                             if (response.message().toLowerCase().equals("unauthorized")) {
                                 //need to notify user to update password
-                                log.info(LOG_TAG+"\n"+response.message() + " \nerror" + getFnsData.requestStr);
+                                log.info(LOG_TAG+"\n"+response.message() + " \nerror\n" + getFnsData.requestStr);
                                 invoiceData.set_status(-2);
                                 invoice.updateInvoice(invoiceData);
                                 user._status = -1;
@@ -177,7 +177,7 @@ public class LoadingFromFNS extends Service {
                             }
                             else if(response.message().toLowerCase().equals("forbidden"))
                             {
-                                log.info(LOG_TAG+"\n"+response.message() + " \nerror" + getFnsData.requestStr);
+                                log.info(LOG_TAG+"\n"+response.message() + " \nerror\n" + getFnsData.requestStr);
                                 invoiceData.set_status(-2);
                                 invoice.updateInvoice(invoiceData);
                                 user._status = 0;
@@ -185,43 +185,43 @@ public class LoadingFromFNS extends Service {
                                 return null;
                             }
                             else if (response.message().toLowerCase().equals("ok")) {
-                                log.info(LOG_TAG+"\n"+"Status OK, update invoice");
+                                log.info(LOG_TAG+"\n"+"Status OK, update invoice\n"+getFnsData.requestStr);
                                 invoiceData.set_status(1);
                                 fillData(response, invoiceData);
                             } else if (response.message().toLowerCase().equals("accepted")) {
-                                log.info(LOG_TAG+"\n"+"Status Accepted, reload from FNS");
+                                log.info(LOG_TAG+"\n"+"Status Accepted, reload from FNS\n"+getFnsData.requestStr);
                                 Response respRepeat = getFnsData.runGet();
                                 if (respRepeat.message().toLowerCase().equals("ok")) {
-                                    log.info(LOG_TAG+"\n"+"Status OK, update invoice");
+                                    log.info(LOG_TAG+"\n"+"Status OK, update invoice\n"+getFnsData.requestStr);
                                     invoiceData.set_status(1);
                                     fillData(respRepeat, invoiceData);
                                 }
                                 else
                                 {
-                                    log.info(LOG_TAG+"\n"+"Status Accepted, reload error\n"+respRepeat.message());
+                                    log.info(LOG_TAG+"\n"+"Status Accepted, reload error\n"+respRepeat.message()+"\n"+ "message\n"+getFnsData.requestStr);
                                     invoiceData.set_status(-1);
                                     invoice.updateInvoice(invoiceData);
                                 }
                             }
                             else if(response.message().toLowerCase().equals("not acceptable"))
                             {
-                                log.info(LOG_TAG+"\n"+"Status Not Acceptable from Server");
+                                log.info(LOG_TAG+"\n"+"Status Not Acceptable from Server\n"+getFnsData.requestStr);
                                 invoiceData.set_status(-4);
                                 invoice.updateInvoice(invoiceData);
                             }
                             else if (response.message().toLowerCase().equals("not found"))
                             {
-                                log.info(LOG_TAG+"\n"+"Status Not Found from Server");
+                                log.info(LOG_TAG+"\n"+"Status Not Found from Server\n"+getFnsData.requestStr);
                                 invoiceData.set_status(-3);
                                 invoice.updateInvoice(invoiceData);
                             }
                             else {
-                                log.info(LOG_TAG+"\n"+"UnKnown answer from Server " + response.message());
+                                log.info(LOG_TAG+"\n"+"UnKnown answer from Server " + response.message()+"\n"+getFnsData.requestStr);
                                 invoiceData.set_status(-1);
                                 invoice.updateInvoice(invoiceData);
                             }
                         } catch (IOException e) {
-                            log.info(LOG_TAG+"\n"+ Arrays.toString(e.getStackTrace()) + "error" + getFnsData.requestStr);
+                            log.info(LOG_TAG+"\n"+ Arrays.toString(e.getStackTrace()) + "\nerror\n" + getFnsData.requestStr);
                             invoiceData.set_status(-1);
                             invoice.updateInvoice(invoiceData);
                             e.printStackTrace();
@@ -233,7 +233,7 @@ public class LoadingFromFNS extends Service {
                     }
                     catch (Exception ex)
                     {
-                        log.info(LOG_TAG+"\n"+Arrays.toString(ex.getStackTrace()) + "error" );
+                        log.info(LOG_TAG+"\n"+Arrays.toString(ex.getStackTrace()) + "error\nException" );
                         invoiceData.set_status(-1);
                         invoice.updateInvoice(invoiceData);
                         ex.printStackTrace();

@@ -13,6 +13,7 @@ public class SettingsApp {
 
     private final String tableName = "settings";
     public Map<String, String> settings = new LinkedHashMap<>();
+
     public SettingsApp(){
         reloadSettings();
     }
