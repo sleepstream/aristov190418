@@ -57,7 +57,7 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(context, CropActivity.class);
-                intent.putExtra("photoreference", placePhotoMetadataList.get(position));
+                intent.putExtra("photo_reference", placePhotoMetadataList.get(position));
                 intent.putExtra("place_id", currentInvoice.store.place_id);
                 context.startActivity(intent);
                 /*

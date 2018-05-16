@@ -75,7 +75,7 @@ public class GooglePlace {
 
     public  Bitmap loadImage(String photo_reference)
     {
-        String urlGet="https://maps.googleapis.com/maps/api/place/photo?maxheight="+mHeight+"&photoreference="+photo_reference+"&key="+context.getString(R.string.google_maps_key);
+        String urlGet="https://maps.googleapis.com/maps/api/place/photo?maxheight="+mHeight+"&photo_reference="+photo_reference+"&key="+context.getString(R.string.google_maps_key);
         OkHttpClient okHttpClient = new OkHttpClient.Builder().retryOnConnectionFailure(true).build();
         okhttp3.Request request = new okhttp3.Request.Builder()
                 .url(urlGet)

@@ -73,7 +73,7 @@ public class LoadingFromFNS extends Service {
         //prase data from FNS
         getFnsData.bodyJsonParse();
 
-        //get GPS from adress and full adress
+        //get GPS from address and full address
 
 
        /* if(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress == null &&
@@ -93,7 +93,7 @@ public class LoadingFromFNS extends Service {
                         finalInvoiceData.store = new InvoiceData.Store();
                     }
                     if(finalInvoiceData.store.latitude == null || finalInvoiceData.store.longitude == null ) {
-                        //finalInvoiceData.store.adress = addresses.get(0).getAddressLine(0);
+                        //finalInvoiceData.store.address = addresses.get(0).getAddressLine(0);
                         finalInvoiceData.store.latitude = addresses.get(0).getLatitude();
                         finalInvoiceData.store.longitude = addresses.get(0).getLongitude();
                     }
@@ -108,10 +108,10 @@ public class LoadingFromFNS extends Service {
         }
         //finalInvoiceData.set_status(2);
         //invoice.updateInvoice(finalInvoiceData);
-        //check is adress in
+        //check is address in
         final int count = invoice.fillReceiptData(getFnsData.dataFromReceipt.document.receipt, finalInvoiceData);
 
-        //run activity with map to confirm adress
+        //run activity with map to confirm address
     }
 
     class AsyncLoadDataInvoice extends AsyncTask<Void, InvoiceData, Void> {
@@ -120,8 +120,8 @@ public class LoadingFromFNS extends Service {
 
             if(InvoicesPageFragment.invoiceListAdapter != null) {
                 int status = values[0].get_status();
-               // MainActivity.invoice.reLoadInvoice();
-                //InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                MainActivity.invoice.reLoadInvoice();
+                InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
                 //int position = InvoicesPageFragment.invoiceListAdapter.findPosition(values[0]);
                 //InvoicesPageFragment.llm.scrollToPosition(position);
             }
@@ -187,6 +187,7 @@ public class LoadingFromFNS extends Service {
                             else if (response.message().toLowerCase().equals("ok")) {
                                 log.info(LOG_TAG+"\n"+"Status OK, update invoice\n"+getFnsData.requestStr);
                                 invoiceData.set_status(1);
+                                invoiceData.fromFNS = true;
                                 fillData(response, invoiceData);
                             } else if (response.message().toLowerCase().equals("accepted")) {
                                 log.info(LOG_TAG+"\n"+"Status Accepted, reload from FNS\n"+getFnsData.requestStr);
@@ -194,6 +195,7 @@ public class LoadingFromFNS extends Service {
                                 if (respRepeat.message().toLowerCase().equals("ok")) {
                                     log.info(LOG_TAG+"\n"+"Status OK, update invoice\n"+getFnsData.requestStr);
                                     invoiceData.set_status(1);
+                                    invoiceData.fromFNS = true;
                                     fillData(respRepeat, invoiceData);
                                 }
                                 else

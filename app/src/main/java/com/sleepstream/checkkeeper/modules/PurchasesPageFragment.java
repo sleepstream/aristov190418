@@ -11,7 +11,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -41,7 +40,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
-import static android.view.View.GONE;
 import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class PurchasesPageFragment extends Fragment implements PurchasesListAdapter.OnStartDragListener{
@@ -71,7 +69,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public static String subTitle="";
     private RelativeLayout placeImageLayout;
     private Context context;
-    private Double map_offset= 0.0;
+    private Double map_offset= 0.02;
     public static PhotoTask photoTask;
 
     public PurchasesPageFragment(){}
@@ -254,11 +252,11 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                         store_name.setText("");
 
 
-                    if (currentInvoice.store.adress == null || (currentInvoice.store.adress != null && currentInvoice.store.adress == "")) {
+                    if (currentInvoice.store.address == null || (currentInvoice.store.address != null && currentInvoice.store.address == "")) {
                         if (currentInvoice.store.address_from_fns != null && currentInvoice.store.address_from_fns != "")
                             strore_adress.setText(currentInvoice.store.address_from_fns);
-                    } else if (currentInvoice.store.adress != null && currentInvoice.store.adress != "") {
-                        strore_adress.setText(currentInvoice.store.adress);
+                    } else if (currentInvoice.store.address != null && currentInvoice.store.address != "") {
+                        strore_adress.setText(currentInvoice.store.address);
                     } else {
                         strore_adress.setText("");
                     }
@@ -266,7 +264,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     store_name.setText("");
                     strore_adress.setText("");
 
-                    Log.d(LOG_TAG, e.getMessage() + " Error no store name/adress");
+                    Log.d(LOG_TAG, e.getMessage() + " Error no store name/address");
                 }
             }
 
@@ -285,23 +283,22 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
         if(currentInvoice.store != null) {
             if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
-                builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude,  currentInvoice.store.longitude),
-                        new LatLng(currentInvoice.store.latitude, currentInvoice.store.longitude)));
+                builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude-map_offset,  currentInvoice.store.longitude-map_offset),
+                        new LatLng(currentInvoice.store.latitude+map_offset, currentInvoice.store.longitude+map_offset)));
             else  if(currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd >0)
-            {builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd,  currentInvoice.longitudeAdd),
-                    new LatLng(currentInvoice.latitudeAdd, currentInvoice.longitudeAdd)));}
+            {builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.latitudeAdd-map_offset,  currentInvoice.longitudeAdd-map_offset),
+                    new LatLng(currentInvoice.latitudeAdd+map_offset, currentInvoice.longitudeAdd+map_offset)));}
             else
             {
                 //find best location
                 Double[] latLng = invoice.findBestLocation(currentInvoice.store);
-                if(latLng != null)
+                if(latLng.length==2 && latLng[0] != null && latLng[1] != null)
                 {
-
                     builder.setLatLngBounds(new LatLngBounds(new LatLng(latLng[0]-map_offset, latLng[1]-map_offset), new LatLng(latLng[0]+map_offset, latLng[1]+map_offset)));
                 }
                 else if(currentInvoice.latitudeAdd != null && currentInvoice.longitudeAdd != null)
                 {
-                    builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd,currentInvoice.longitudeAdd),new LatLng(currentInvoice.latitudeAdd,currentInvoice.longitudeAdd)));
+                    builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd-map_offset,currentInvoice.longitudeAdd-map_offset),new LatLng(currentInvoice.latitudeAdd+map_offset,currentInvoice.longitudeAdd+map_offset)));
                 }
 
             }

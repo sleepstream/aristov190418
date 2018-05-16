@@ -6,9 +6,11 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.*;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.IdRes;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputFilter;
@@ -17,9 +19,7 @@ import android.util.ArrayMap;
 import android.view.*;
 import android.widget.*;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
-import com.sleepstream.checkkeeper.userModule.personalData;
-import okhttp3.Call;
-import okhttp3.Callback;
+import com.sleepstream.checkkeeper.userModule.PersonalData;
 import okhttp3.Response;
 import worker8.com.github.radiogroupplus.RadioGroupPlus;
 
@@ -33,6 +33,9 @@ public class SettingsActivity extends AppCompatActivity {
     private android.app.FragmentTransaction fTrans;
     private Context context;
 
+    public UsersDataPreferenceFragment usersDataPreferenceFragment;
+    public AppSettingsPage appSettingsPage;
+    private MainSettingsPage mainSettingsPage;
 
 
     @Override
@@ -55,26 +58,26 @@ public class SettingsActivity extends AppCompatActivity {
         {
             case "UsersDataPreferenceFragment": {
                 fTrans = ((Activity) context).getFragmentManager().beginTransaction();
-                UsersDataPreferenceFragment fragment = new UsersDataPreferenceFragment(context);
-                fTrans.replace(R.id.pager, fragment);
+                usersDataPreferenceFragment = new UsersDataPreferenceFragment(context);
+                fTrans.replace(R.id.pager, usersDataPreferenceFragment);
                 fTrans.commit();
-                fragment.setRetainInstance(true);
+                usersDataPreferenceFragment.setRetainInstance(true);
                 break;
             }
             case "AppSettingsPage": {
                 fTrans = ((Activity) context).getFragmentManager().beginTransaction();
-                AppSettingsPage fragment = new AppSettingsPage(context);
-                fTrans.replace(R.id.pager, fragment);
+                appSettingsPage = new AppSettingsPage(context);
+                fTrans.replace(R.id.pager, appSettingsPage);
                 fTrans.commit();
-                fragment.setRetainInstance(true);
+                appSettingsPage.setRetainInstance(true);
                 break;
             }
             default: {
                 fTrans = ((Activity) context).getFragmentManager().beginTransaction();
-                MainSettingsPage fragment = new MainSettingsPage(context);
-                fTrans.replace(R.id.pager, fragment);
+                mainSettingsPage= new MainSettingsPage(context);
+                fTrans.replace(R.id.pager, mainSettingsPage);
                 fTrans.commit();
-                fragment.setRetainInstance(true);
+                mainSettingsPage.setRetainInstance(true);
                 break;
             }
         }
@@ -84,7 +87,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     @SuppressLint("ValidFragment")
-    public static class MainSettingsPage extends Fragment
+    public  class MainSettingsPage extends Fragment
     {
         private final Context context;
         private RelativeLayout userSettings;
@@ -131,8 +134,113 @@ public class SettingsActivity extends AppCompatActivity {
             return view;
         }
     }
+
+    private class RegisterNewAsyncTask extends AsyncTask<PersonalData, Void, Integer> {
+        private PersonalData personalData=null;
+        @Override
+        protected void onPostExecute(Integer integer) {
+            if(usersDataPreferenceFragment!= null && usersDataPreferenceFragment.fab_get_update_passw != null)
+                usersDataPreferenceFragment.fab_get_update_passw.setEnabled(true);
+            if (integer != null) {
+                switch (integer) {
+                    case -1:
+                        Toast.makeText(context, context.getString(R.string.personal_data_request_BadRequest), Toast.LENGTH_LONG).show();
+                        break;
+                    case 0:
+                        AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
+                        alertDialog.setMessage(R.string.personal_data_request_AlreadyRegister);
+                        alertDialog.setPositiveButton(context.getString(R.string.btnReset), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                new RegisterNewAsyncTask().execute(personalData);
+                            }
+                        });
+                        alertDialog.setNegativeButton(context.getString(R.string.btnManual), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                if(usersDataPreferenceFragment != null)
+                                    usersDataPreferenceFragment.allertDialogShowPassw();
+                            }
+                        });
+                        alertDialog.show();
+                        break;
+                    case 1:
+                        Toast.makeText(context, context.getString(R.string.personal_data_request_UserRegistered), Toast.LENGTH_LONG).show();
+                        break;
+                    case 2:
+                        Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordRequested), Toast.LENGTH_LONG).show();
+                        break;
+                }
+            }
+            else
+            {
+                Toast.makeText(context, context.getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+            }
+        }
+
+        @Override
+        protected Integer doInBackground(PersonalData... params) {
+            if (params[0] != null) {
+                personalData = params[0];
+
+                if (personalData.name != null && personalData.surname != null && personalData.telephone_number != null && personalData.e_mail != null) {
+                    if (personalData.id == null || personalData._status == -1) {
+                        GetFnsData getFnsData = new GetFnsData(Settings.Secure.getString(context.getContentResolver(),
+                                Settings.Secure.ANDROID_ID));
+                        try {
+                            Response response = getFnsData.registerNewUser();
+                            if (response.message().toLowerCase().equals("conflict")) {
+                                personalData._status = 0;
+                                return 0;
+                            } else if (response.message().toLowerCase().equals("bad request")) {
+                                personalData._status = -1;
+                                return -1;
+                            } else {
+                                personalData._status = 1;
+                                return 1;
+                            }
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } finally {
+                            personalData.setPersonalData();
+                        }
+                    }
+                    else if(personalData._status == 0 || personalData._status == 1)
+                    {
+                        GetFnsData getFnsData = new GetFnsData(Settings.Secure.getString(context.getContentResolver(),
+                                Settings.Secure.ANDROID_ID));
+                        //get password from FNS
+                        Response response = null;
+                        try {
+                            response = getFnsData.resetPassword();
+                            if(response.code() == 200 ||response.code() == 204)
+                            {
+                                personalData._status = 1;
+                                return 2;
+                            }
+                            else
+                            {
+                                personalData._status=0;
+                                return -1;
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                        finally {
+                            personalData.setPersonalData();
+                        }
+                    }
+                }
+
+            }
+            return null;
+        }
+    }
+
     @SuppressLint("ValidFragment")
-    public static class UsersDataPreferenceFragment extends Fragment
+    public class UsersDataPreferenceFragment extends Fragment
     {
 
         private final Context context;
@@ -147,7 +255,9 @@ public class SettingsActivity extends AppCompatActivity {
         private TextView phone_summary;
         private TextView e_mail_summary;
         private TextView password_summary;
-        private personalData personalData = MainActivity.user;
+        private FloatingActionButton fab_get_update_passw;
+
+        private PersonalData personalData = MainActivity.user;
 
         public UsersDataPreferenceFragment (Context context) {this.context = context;}
         @Override
@@ -164,6 +274,7 @@ public class SettingsActivity extends AppCompatActivity {
             surname = view.findViewById(R.id.SurnameField);
             phone =  view.findViewById(R.id.phone);
             e_mail = view.findViewById(R.id.e_mail);
+            fab_get_update_passw = view.findViewById(R.id.fab_get_update_passw);
             //password = view.findViewById(R.id.password);
 
             name_summary = view.findViewById(R.id.NameField_summary);
@@ -177,6 +288,20 @@ public class SettingsActivity extends AppCompatActivity {
             final Pattern PPhone = Pattern.compile("^(\\+[0-9]{11})$");
             final Pattern PE_mail = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,6}$");
 
+
+            fab_get_update_passw.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    fab_get_update_passw.setEnabled(false);
+                    if(personalData._status == null || (personalData._status!= null && personalData._status ==0))
+                    {
+                        allertDialogShowPassw();
+                    }
+                    else {
+                        new RegisterNewAsyncTask().execute(personalData);
+                    }
+                }
+            });
 
 
 
@@ -413,7 +538,7 @@ public class SettingsActivity extends AppCompatActivity {
                                 Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
                             else
                             {
-                                personalData.password = name;
+                                PersonalData.password = name;
                                 onResume();
                             }
 
@@ -432,6 +557,49 @@ public class SettingsActivity extends AppCompatActivity {
 */
 
             return view;
+        }
+        public void allertDialogShowPassw()
+        {
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
+            alertDialog.setMessage(R.string.personal_data_request_AlreadyRegister);
+            alertDialog.setPositiveButton(context.getString(R.string.btnReset), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    new RegisterNewAsyncTask().execute(personalData);
+                }
+            });
+            alertDialog.setNegativeButton(context.getString(R.string.btnManual), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
+                    alertDialog.setTitle(context.getString(R.string.Settings_PasswField));
+                    alertDialog.setMessage(R.string.Settings_PasswField_message);
+                    final EditText input = new EditText(context);
+                    input.setGravity(Gravity.CENTER);
+                    input.setInputType(InputType.TYPE_CLASS_TEXT);
+                    alertDialog.setView(input);
+                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            String passw = input.getText().toString();
+                            Pattern p = Pattern.compile("[0-9]{6,10}");
+                            Matcher m = p.matcher(passw);
+                            if (m.matches()) {
+                                personalData._status = 1;
+                                personalData.generateAuth(passw);
+                                Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                        }
+                    });
+                    alertDialog.show();
+                }
+            });
+            alertDialog.show();
         }
 
         private void setData()
@@ -454,38 +622,11 @@ public class SettingsActivity extends AppCompatActivity {
             }
         }
 
+
+
         @Override
         public void onDestroy() {
             if(personalData.name != null && personalData.surname != null && personalData.telephone_number!= null && personalData.e_mail!= null) {
-                if(personalData.id == null)
-                {
-                    GetFnsData getFnsData = new GetFnsData(Settings.Secure.getString(context.getContentResolver(),
-                            Settings.Secure.ANDROID_ID));
-                    //get password from FNS
-                    getFnsData.registerNewUser(new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                            personalData._status = -1;
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            if(response.message().toLowerCase().equals("conflict"))
-                            {
-                                personalData._status = 0;
-                            }
-                            else if(response.message().toLowerCase().equals("bad request"))
-                            {
-                                personalData._status = -1;
-                            }
-                            else {
-                                personalData._status = 1;
-                            }
-
-
-                        }
-                    });
-                }
                 personalData.setPersonalData();
             }
 

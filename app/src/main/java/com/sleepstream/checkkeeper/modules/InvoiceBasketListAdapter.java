@@ -7,7 +7,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import java.util.Calendar;
-import android.os.Handler;
+
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
@@ -372,7 +372,7 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                         else if(item.getItemId() == 102)
                         {
                             LinkedListData linkedListData = new LinkedListData();
-                            linkedListData.setFk_name(invoice.getTableName());
+                            linkedListData.setFk_name(invoice.getTableNameInvoice());
                             linkedListData.setFk_id(invoice.invoices.get(position).getId());
                             linkedListClass.addLinkedObject(linkedListData);
                         }

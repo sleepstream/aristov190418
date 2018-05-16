@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
@@ -43,6 +42,7 @@ public class CropActivity extends AppCompatActivity {
 
     private static final int REQUEST_CODE_PERMISSION = 100;
     private String place_id;
+    private Integer store_id;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,10 +124,11 @@ public class CropActivity extends AppCompatActivity {
         }
         progressBar.setVisibility(View.GONE);
         InvoiceData.Store store = new InvoiceData.Store();
-        store.photoreference = this.photoreference;
+        store.photo_reference = this.photoreference;
         store.place_id =place_id;
         InvoiceData invoiceData = new InvoiceData();
         invoiceData.store = store;
+        invoiceData.store.id = store_id;
         invoiceData.store.update = true;
         MainActivity.invoice.setStoreData(invoiceData);
         finish();
@@ -135,16 +136,17 @@ public class CropActivity extends AppCompatActivity {
 
     private void loadAlbums() {
         Intent intent = getIntent();
-        photoreference= intent.getStringExtra("photoreference");
+        photoreference= intent.getStringExtra("photo_reference");
         place_id = intent.getStringExtra("place_id");
         String key = intent.getStringExtra("key");
+        store_id = intent.getIntExtra("store_id", 0);
         loadImage(photoreference, key);
     }
 
     public  void loadImage(String photo_reference, String key)
     {
         if(key == null) {
-            String urlGet = "https://maps.googleapis.com/maps/api/place/photo?maxheight=5000&photoreference=" + photo_reference + "&key=" + getString(R.string.google_maps_key);
+            String urlGet = "https://maps.googleapis.com/maps/api/place/photo?maxheight=5000&photo_reference=" + photo_reference + "&key=" + getString(R.string.google_maps_key);
             final OkHttpClient okHttpClient = new OkHttpClient.Builder().retryOnConnectionFailure(true).build();
             final okhttp3.Request request = new okhttp3.Request.Builder()
                     .url(urlGet)

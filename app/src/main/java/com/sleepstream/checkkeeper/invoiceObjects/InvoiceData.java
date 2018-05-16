@@ -23,6 +23,7 @@ public class InvoiceData implements Cloneable
     public Double longitudeAdd;
     public Double latitudeAdd;
     public Integer repeatCount;
+    public boolean fromFNS = false;
 
     public Integer isIn_basket() {
         return in_basket;
@@ -185,7 +186,7 @@ public class InvoiceData implements Cloneable
     {
         public Integer id;
         public String name;
-        public String adress;
+        public String address;
         public Double latitude;
         public Double longitude;
         public Long inn;
@@ -196,7 +197,7 @@ public class InvoiceData implements Cloneable
         public String iconName;
         public Integer _status;
         public boolean update;
-        public String photoreference;
+        public String photo_reference;
         public Integer date_add;
     }
     public static class KktRegId

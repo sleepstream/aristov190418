@@ -118,7 +118,7 @@ public class GetFnsData {
 
         return client.newCall(request).execute();
     }
-    public void resetPussword(Callback callback) {
+    public void resetPassword(Callback callback) {
 
         setHeaders(1);
         JsonObject json = new JsonObject();
@@ -137,6 +137,27 @@ public class GetFnsData {
         requestStr = request.headers().toString();
 
         client.newCall(request).enqueue(callback);
+    }
+
+    public Response resetPassword() throws IOException {
+
+        setHeaders(1);
+        JsonObject json = new JsonObject();
+        json.addProperty("phone", MainActivity.user.telephone_number);
+        String jsonStr = json.toString();
+
+        bodyRec = RequestBody.create(JSON, jsonStr);
+
+
+        Headers geaderBuild=Headers.of(headerRestorePsw);
+        okhttp3.Request request = new Request.Builder()
+                .url(urlRestorePsw)
+                .post(bodyRec)
+                .headers(geaderBuild)
+                .build();
+        requestStr = request.headers().toString();
+
+        return client.newCall(request).execute();
     }
 
     public void registerNewUser(Callback callback) {
@@ -160,6 +181,29 @@ public class GetFnsData {
         requestStr = request.headers().toString();
 
         client.newCall(request).enqueue(callback);
+    }
+
+    public Response registerNewUser() throws IOException {
+
+        setHeaders(2);
+        JsonObject json = new JsonObject();
+        json.addProperty("phone", MainActivity.user.telephone_number);
+        json.addProperty("email", MainActivity.user.e_mail);
+        json.addProperty("name", MainActivity.user.name);
+        String jsonStr = json.toString();
+
+        bodyRec = RequestBody.create(JSON, jsonStr);
+
+
+        Headers geaderBuild=Headers.of(headerRegistorUser);
+        okhttp3.Request request = new Request.Builder()
+                .url(urlRegisterUser)
+                .post(bodyRec)
+                .headers(geaderBuild)
+                .build();
+        requestStr = request.headers().toString();
+
+        return client.newCall(request).execute();
     }
 
     public void bodyJsonParse()

@@ -48,14 +48,9 @@ import android.view.*;
 import android.widget.*;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.location.places.Place;
-import com.google.android.gms.location.places.PlaceLikelihood;
-import com.google.android.gms.location.places.PlaceLikelihoodBuffer;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
@@ -71,8 +66,8 @@ import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
 import com.sleepstream.checkkeeper.qrmanager.QRManager;
 import com.sleepstream.checkkeeper.smsListener.SmsListener;
 import com.sleepstream.checkkeeper.smsListener.SmsReceiver;
+import com.sleepstream.checkkeeper.userModule.PersonalData;
 import com.sleepstream.checkkeeper.userModule.UserDataActivity;
-import com.sleepstream.checkkeeper.userModule.personalData;
 import com.takusemba.cropme.CropView;
 import okhttp3.*;
 import org.ghost4j.document.PDFDocument;
@@ -81,7 +76,6 @@ import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.logging.FileHandler;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -124,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private static final String MapPerm = Manifest.permission.ACCESS_FINE_LOCATION;
     String[] permisions = new String[]{smsPerm, cameraPerm, sdPerm, MapPerm};
     private String resultQR;
-    public static personalData user;
+    public static PersonalData user;
     private boolean permChecked = false;
 
     private final int cameraRequest = 1000;
@@ -370,7 +364,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 if (m.matches()) {
                     user._status = 1;
                     user.generateAuth(messageText);
-                    Toast.makeText(context, user.password, Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordUpdated), Toast.LENGTH_LONG).show();
 
                 }
             }
@@ -381,7 +375,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
 
         //initiolisation userData
-        user = new personalData(context);
+        user = new PersonalData(context);
         //if new user
         if ((user.id == null && permChecked) || (user._status!= null && user._status == -1)) {
             AlertDialog.Builder adb = new AlertDialog.Builder(context);
@@ -410,15 +404,41 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setMessage(getString(R.string.getNewPswFNS))
                     .setCancelable(false)
-                    .setNegativeButton("Cansel", new DialogInterface.OnClickListener() {
+                    .setNegativeButton(context.getString(R.string.btnManual), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
+                            android.support.v7.app.AlertDialog.Builder alertDialog = new android.support.v7.app.AlertDialog.Builder(context);
+                            alertDialog.setTitle(context.getString(R.string.Settings_PasswField));
+                            alertDialog.setMessage(R.string.Settings_PasswField_message);
+                            final EditText input = new EditText(context);
+                            input.setGravity(Gravity.CENTER);
+                            input.setInputType(InputType.TYPE_CLASS_TEXT);
+                            alertDialog.setView(input);
+                            alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    String passw = input.getText().toString();
+                                    Pattern p = Pattern.compile("[0-9]{6,10}");
+                                    Matcher m = p.matcher(passw);
+                                    if (m.matches()) {
+                                        user._status = 1;
+                                        user.generateAuth(passw);
+                                        Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
+                                    }
+                                }
+                            });
+                            alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                }
+                            });
+                            alertDialog.show();
 
                         }
                     })
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    .setPositiveButton(context.getString(R.string.btnReset), new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                            getFnsData.resetPussword(new Callback() {
+                            getFnsData.resetPassword(new Callback() {
                                 @Override
                                 public void onFailure(Call call, final IOException e) {
                                     runOnUiThread(new Runnable() {
@@ -1048,7 +1068,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 //Toast.makeText(this.getApplicationContext(), "phone " + greetings, Toast.LENGTH_LONG).show();
                 //getFnsData.setPhoneNumber(greetings);
                 /*
-                getFnsData.resetPussword(new Callback(){
+                getFnsData.resetPassword(new Callback(){
                     @Override
                     public void onFailure(Call call, final IOException e) {
                         runOnUiThread(new Runnable() {
@@ -1109,7 +1129,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                                 })
                                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
-                                        getFnsData.resetPussword(new Callback() {
+                                        getFnsData.resetPassword(new Callback() {
                                             @Override
                                             public void onFailure(Call call, IOException e) {
                                                 log.info(LOG_TAG + "\n" + e.getMessage() + "\nerror\n" + getFnsData.requestStr);
@@ -1161,7 +1181,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     return;
                 }
                 Place place = PlacePicker.getPlace(this, data);
-                log.info(LOG_TAG + "\n" + "you finde store " + place.getName() + " adress " + place.getAddress());
+                log.info(LOG_TAG + "\n" + "you finde store " + place.getName() + " address " + place.getAddress());
                 InvoiceData invoiceData = currentInvoice;
                 if (invoiceData.store == null)
                     invoiceData.store = new InvoiceData.Store();
@@ -1169,7 +1189,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
                 if (!Pattern.matches(".*[-]?\\d{1,2}.\\d{1,2}.\\d{1,2}[.,]{1}\\d{1,2}.\\w.*", place.getName().toString()))
                     invoiceData.store.name = place.getName().toString();
-                invoiceData.store.adress = place.getAddress().toString();
+                invoiceData.store.address = place.getAddress().toString();
                 invoiceData.store.longitude = place.getLatLng().longitude;
                 invoiceData.store.latitude = place.getLatLng().latitude;
                 invoiceData.store.place_id = place.getId();
@@ -1178,7 +1198,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 invoiceData.store.store_type = place.getPlaceTypes().toString();
                 if (invoiceData.kktRegId != null)
                     invoiceData.kktRegId._status = 1;
-                invoice.updateInvoice(invoiceData);
+                invoice.setStoreDataFull(invoiceData);
                 invoice.reLoadInvoice();
                 InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
                 if (invoiceData.store.place_id != null) {
@@ -1193,9 +1213,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 saveImages(bitmap, null, null, currentInvoice.store.place_id);
                 String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/IMG_"+currentInvoice.store.place_id + ".png";
                 Intent intent = new Intent(context, CropActivity.class);
-                intent.putExtra("photoreference", filepath);
+                intent.putExtra("photo_reference", filepath);
                 intent.putExtra("place_id", currentInvoice.store.place_id);
                 intent.putExtra("key", "1");
+                intent.putExtra("store_id", currentInvoice.store.id);
                 blurPlotter.setVisibility(View.GONE);
                 progressBar.setVisibility(View.GONE);
                 addMyPhotoContainer.setVisibility(View.GONE);
@@ -1256,7 +1277,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         invoice.addJsonData(getFnsData.body, finalInvoiceData.getId());
         getFnsData.bodyJsonParse();
 
-        //get GPS from adress and full adress
+        //get GPS from address and full address
 
 
         if (getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress == null &&
@@ -1272,7 +1293,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 addresses = geocoder.getFromLocationName(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress, 1);
                 if (addresses.size() > 0) {
                     finalInvoiceData.store = new InvoiceData.Store();
-                    finalInvoiceData.store.adress = addresses.get(0).getAddressLine(0);
+                    finalInvoiceData.store.address = addresses.get(0).getAddressLine(0);
                     finalInvoiceData.store.latitude = addresses.get(0).getLatitude();
                     finalInvoiceData.store.longitude = addresses.get(0).getLongitude();
 
@@ -1288,10 +1309,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
         finalInvoiceData.set_status(2);
         //invoice.updateInvoice(finalInvoiceData);
-        //check is adress in
+        //check is address in
         final int count = invoice.fillReceiptData(getFnsData.dataFromReceipt.document.receipt, finalInvoiceData);
 
-        //run activity with map to confirm adress
+        //run activity with map to confirm address
     }
 
 
@@ -1696,7 +1717,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 iconImage = getBitmapFromUrl(googlePlace.icon);
                 invoiceData.store.iconName = googlePlace.icon.substring(googlePlace.icon.lastIndexOf("/")+1);
                 invoiceData.store.update = true;
-                invoice.updateInvoice(invoiceData);
+                invoice.setStoreData(invoiceData);
                 invoice.reLoadInvoice();
                 runOnUiThread(new Runnable() {
                     @Override

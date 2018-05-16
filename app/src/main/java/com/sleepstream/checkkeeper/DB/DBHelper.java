@@ -30,7 +30,7 @@ public class DBHelper extends SQLiteOpenHelper{
 
     private static String DB_NAME = "priceCeeper.db";
     private final Context myContext;
-    private final String DATABASE_CREATE_personalData="CREATE TABLE \"personalData\" ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `surname` TEXT, `e_mail` TEXT NOT NULL, `telephone_number` TEXT NOT NULL, `password` TEXT )";
+    private final String DATABASE_CREATE_personalData="CREATE TABLE \"PersonalData\" ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT, `surname` TEXT, `e_mail` TEXT NOT NULL, `telephone_number` TEXT NOT NULL, `password` TEXT )";
 
     public DBHelper(Context context) {
             // конструктор суперкласса
@@ -224,7 +224,7 @@ public class DBHelper extends SQLiteOpenHelper{
         //remoove finish ,
         columns = columns.substring(0, columns.length()-1);
         values=values.substring(0, values.length()-1);
-        final String Insert_Data="INSERT INTO personalData ("+columns+") VALUES("+values+")";
+        final String Insert_Data="INSERT INTO PersonalData ("+columns+") VALUES("+values+")";
         myDataBase.execSQL(Insert_Data);
 
     }

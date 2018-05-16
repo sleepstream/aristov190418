@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.icu.util.Calendar;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.design.widget.Snackbar;
@@ -400,14 +399,14 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                 public void onClick(View view) {
                     if(item.getPinId()== null) {
                         LinkedListData linkedListData = new LinkedListData();
-                        linkedListData.setFk_name(invoice.getTableName());
+                        linkedListData.setFk_name(invoice.getTableNameInvoice());
                         linkedListData.setFk_id(invoice.invoices.get(position).getId());
                         linkedListClass.addLinkedObject(linkedListData);
                         itemViewHolder.fixImage.setImageResource(R.drawable.ic_star_black_24dp);
                     }
                     else
                     {
-                        linkedListClass.deleteLinkedObject(item.getId(), invoice.getTableName());
+                        linkedListClass.deleteLinkedObject(item.getId(), invoice.getTableNameInvoice());
                         itemViewHolder.fixImage.setImageResource(R.drawable.ic_star_border_black_24dp);
                     }
                 }
@@ -600,7 +599,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                         else if(item.getItemId() == 102)
                         {
                             LinkedListData linkedListData = new LinkedListData();
-                            linkedListData.setFk_name(invoice.getTableName());
+                            linkedListData.setFk_name(invoice.getTableNameInvoice());
                             linkedListData.setFk_id(invoice.invoices.get(position).getId());
                             linkedListClass.addLinkedObject(linkedListData);
                         }

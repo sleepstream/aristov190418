@@ -86,7 +86,7 @@ public class LinkedListClass {
                                     if(fk_cur.moveToFirst())
                                     {
                                         InvoiceData.Store store = new InvoiceData.Store();
-                                        store.adress = fk_cur.getString(fk_cur.getColumnIndex("adress"));
+                                        store.address = fk_cur.getString(fk_cur.getColumnIndex("address"));
                                         store.id = fk_cur.getInt(fk_cur.getColumnIndex("id"));
                                         store.name = fk_cur.getString(fk_cur.getColumnIndex("name"));
 

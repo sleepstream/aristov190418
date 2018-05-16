@@ -109,7 +109,7 @@ public class PurchasesList {
                                 fk_cur = dbHelper.query(tableName_fk[i], null, "id=?", new String[]{fk + ""}, null, null, null, null);
                                 if(fk_cur.moveToFirst()) {
                                     PurchasesListData.Store store = new PurchasesListData.Store();
-                                    store.adress = fk_cur.getString(fk_cur.getColumnIndex("adress"));
+                                    store.adress = fk_cur.getString(fk_cur.getColumnIndex("address"));
                                     store.id = fk_cur.getInt(fk_cur.getColumnIndex("id"));
                                     store.name = fk_cur.getString(fk_cur.getColumnIndex("name"));
                                     purchasesListData.store = store;

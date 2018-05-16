@@ -14,7 +14,7 @@
     </string>
     <string name="titleGreetingMessage">Вимание!</string>
     <string name="ButtonOK">OK</string>
-    <string name="getNewPswFNS">Необходимо повторно получить пароль от ФНС</string>
+    <string name="getNewPswFNS">Необходимо обновить пароль ФНС</string>
     <string name="errorUserAlreadyRegistered">Возможно вы уже зарегистрированы, необходимо сбросить пароль</string>
     <string name="showPersonalData">Учетные данные</string>
 
@@ -120,5 +120,17 @@
     <string name="settings_input_data_incorrect">Неверный ввод</string>
     <string name="restoreFromBackupTitle">Восстановить</string>
     <string name="QRData_Error">Отсканирован некорректный QR-код</string>
+    <string name="personal_data_request_AlreadyRegister">Ваша учетная запись была создана ранее, необходимо обновить
+        пароль
+    </string>
+    <string name="personal_data_request_BadRequest">Ошибка, проверьте введеные данные и повторите еще раз</string>
+    <string name="personal_data_request_UserRegistered">Удачная регистрация</string>
+    <string name="personal_data_request_PasswordRequested">Запрос на сброс пароля успешно отправлен</string>
+    <string name="personal_data_request_PasswordUpdated">Пароль успешно обновлен</string>
+    <string name="Settings_PasswField">Пароль</string>
+    <string name="Settings_PasswField_message">Введите полученный ранее пароль</string>
+    <string name="personal_data_request_PasswordSaved">Пароль успешно сохранен</string>
+    <string name="btnReset">Сбросить</string>
+    <string name="btnManual">Ввести</string>
 
 </resources>

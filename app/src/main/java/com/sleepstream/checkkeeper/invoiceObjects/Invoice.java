@@ -2,8 +2,8 @@ package com.sleepstream.checkkeeper.invoiceObjects;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.util.ArrayMap;
 import android.util.Log;
-import com.google.android.gms.maps.model.LatLng;
 import com.sleepstream.checkkeeper.GetFnsData;
 import com.sleepstream.checkkeeper.Navigation;
 
@@ -12,9 +12,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static com.sleepstream.checkkeeper.MainActivity.currentInvoice;
-import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
-import static com.sleepstream.checkkeeper.MainActivity.log;
+import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class Invoice {
 
@@ -23,13 +21,17 @@ public class Invoice {
     public List<InvoiceData> invoices = new ArrayList<>();
     public List<InvoiceData> pinnedItems = new ArrayList<>();
 
-    public String getTableName() {
-        return tableName;
+
+
+    public String getTableNameInvoice() {
+        return tableNameInvoice;
     }
 
-    private String tableName="invoice";
+    private String tableNameInvoice ="invoice";
     private String tablenameStores ="stores";
     private String tableJsonData ="collectedData";
+    private String tableNameKktRegId = "kktRegId";
+    private String tableNamePurchases = "purchases";
     public int lastIDCollection;
     public ArrayList<Date> filterDates;
 
@@ -110,7 +112,7 @@ public class Invoice {
     public Invoice(Navigation navigation) {
         this.navigation = navigation;
 
-        /*Cursor cur = dbHelper.query(tableName, null, null, null, null, null, "date_day DESC, _order ASC", null);
+        /*Cursor cur = dbHelper.query(tableNameInvoice, null, null, null, null, null, "date_day DESC, _order ASC", null);
         invoices.clear();
         invoices.addAll(loadData(cur));
         if(invoices.size()>0)
@@ -186,13 +188,13 @@ public class Invoice {
         {
             selection = selection.substring(0, selection.length()-5);
             Log.d(LOG_TAG, "Reload selection !" + selection+"!  " + tmp);
-            cur = dbHelper.query(tableName, null, selection, args, null, null, "date_day DESC, _order ASC", null);
+            cur = dbHelper.query(tableNameInvoice, null, selection, args, null, null, "date_day DESC, _order ASC", null);
         }
         else {
-            cur = dbHelper.query(tableName, null, null, null, null, null, "date_day DESC, _order ASC", null);
+            cur = dbHelper.query(tableNameInvoice, null, null, null, null, null, "date_day DESC, _order ASC", null);
         }
 
-        //Cursor cur = MainActivity.dbHelper.query(tableName, null, selection, args, null, null, "_order", null);
+        //Cursor cur = MainActivity.dbHelper.query(tableNameInvoice, null, selection, args, null, null, "_order", null);
         //this.invoices.clear();
         List<InvoiceData> invoiceDataTMP = new ArrayList<>();
         invoiceDataTMP = loadData(cur);
@@ -266,7 +268,7 @@ public class Invoice {
                     if(cur_stores.moveToFirst())
                     {
                         InvoiceData.Store store = new InvoiceData.Store();
-                        store.adress = cur_stores.getString(cur_stores.getColumnIndex("adress"));
+                        store.address = cur_stores.getString(cur_stores.getColumnIndex("address"));
                         store.id = cur_stores.getInt(cur_stores.getColumnIndex("id"));
                         store.name = cur_stores.getString(cur_stores.getColumnIndex("name"));
                         store.name_from_fns = cur_stores.getString(cur_stores.getColumnIndex("name_from_fns"));
@@ -284,7 +286,7 @@ public class Invoice {
                     }
                 }
 
-                Cursor cur_linked_objects = dbHelper.query("linked_objects", null, "fk_name = ? and fk_id = ?", new String[]{tableName, invoiceData.getId().toString()}, null, null, null, null);
+                Cursor cur_linked_objects = dbHelper.query("linked_objects", null, "fk_name = ? and fk_id = ?", new String[]{tableNameInvoice, invoiceData.getId().toString()}, null, null, null, null);
                 if(cur_linked_objects.moveToFirst())
                     invoiceData.setPinId(cur_linked_objects.getInt(cur_linked_objects.getColumnIndex("id")));
                 invoiceDataTMP.add(invoiceData);
@@ -344,7 +346,7 @@ public class Invoice {
         if(position != null)
         {
             id = invoiceData.getId();
-            cur = dbHelper.query(tableName, null, "id=?",
+            cur = dbHelper.query(tableNameInvoice, null, "id=?",
                     new String[]{id+""}, null, null, null, null);
 
             if(this.invoices.contains(position)) {
@@ -359,7 +361,7 @@ public class Invoice {
                 {
                     ContentValues data = new ContentValues();
                     data.put("in_basket", 0);
-                    dbHelper.update(tableName, data, "id=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))});
+                    dbHelper.update(tableNameInvoice, data, "id=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))});
                 }
                 this.invoices.add(position, invoiceData);
                 cur.close();
@@ -369,7 +371,7 @@ public class Invoice {
         else
         {
             Log.d(LOG_TAG, "Try to find invoice");
-            cur = dbHelper.query(tableName, null, "FP=? and FD=? and FN=?",
+            cur = dbHelper.query(tableNameInvoice, null, "FP=? and FD=? and FN=?",
             new String[]{FP, FD, FN}, null, null, null, null);
 
             if(cur.moveToFirst())
@@ -378,7 +380,7 @@ public class Invoice {
                 {
                     ContentValues data = new ContentValues();
                     data.put("in_basket", 0);
-                    dbHelper.update(tableName, data, "id=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))});
+                    dbHelper.update(tableNameInvoice, data, "id=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))});
 
                 }
                 cur.close();
@@ -434,7 +436,7 @@ public class Invoice {
             data.put("_order", invoiceData.getOrder().toString());
         }
 
-        id = dbHelper.insert(tableName, null, data);
+        id = dbHelper.insert(tableNameInvoice, null, data);
         if(id>-1)
         {
             //invoiceData = new InvoiceData();
@@ -462,161 +464,136 @@ public class Invoice {
         return "";
     }
 
-    //update 10.02.18
-    //update for table kktRegId
     public void setStoreDataFull(InvoiceData finalInvoiceData)
     {
-        InvoiceData.KktRegId kktRegId = finalInvoiceData.kktRegId;
-        InvoiceData.Store store = finalInvoiceData.store;
+        if(finalInvoiceData.fromFNS)
+        {
+            InvoiceData.KktRegId kktRegId = finalInvoiceData.kktRegId;
+            Cursor cur_kktRegId= null;
 
-        Cursor cur_kktRegId= null;
-        Integer _status = null;
-        Integer currentId = null;
-        Integer storeIdKkt = null;
-
-        if(kktRegId.id == null && kktRegId.kktRegId != null) {
-            //если магазин добавляем, ищем кассовый аппарат
-            cur_kktRegId = dbHelper.query("kktRegId", null, "kktRegId=?", new String[]{kktRegId.kktRegId.toString()}, null, null, null, null);
-            if (cur_kktRegId.moveToFirst()) {
-                //проверка что кассовый аппарат добавлен один раз - иначе ошибка
-                if (cur_kktRegId.getCount() == 1) {
-                    //узнаем статус по кассе, подтвержден ли пользователем?
-                    _status = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("_status"));
-                    storeIdKkt = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
-                    currentId = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
-                    if(store.id!= null)
+            cur_kktRegId=dbHelper.query(tableNameKktRegId, null, "kktRegId=?", new String[]{kktRegId.kktRegId.toString()}, null, null, null, null);
+            if(cur_kktRegId.moveToFirst())
+            {
+                Integer id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
+                cur_kktRegId.close();
+                Map<String, String> args = new ArrayMap<String, String>();
+                args.put("id", id.toString());
+                List<InvoiceData.Store> stores = loadDataFromStore(args);
+                if(stores.size()>0)
+                {
+                    InvoiceData.Store store = stores.get(0);
+                    if(finalInvoiceData.store.id!= null && (finalInvoiceData.store.id != store.id))
                     {
-                        if(_status == 1 && store._status != null && store._status!= 1)
-                        {
-                            //необходимо обновить информацию о магазине!
-                            //доверяем магазину из кассы
-                            finalInvoiceData.setfk_invoice_stores(storeIdKkt);
-                            finalInvoiceData.setfk_invoice_kktRegId(currentId);
-                        }
-                        else if(_status != 1 && store._status != null && store._status == 1)
-                        {
-                            //доверяем магазину уже добавленному пользователем
-                            //проверить, что магазин привязанный к кассе не привязан больше никуда, удалить в таком случае, изменить статус кассы и магазина на неподтвержденный
-                            //если магазин есть еще в нескольких чеках, то нужно ссылаться на него
-                            //если чеков с текущим магазином больше чем с магазином в кассе то ссылаться на текущий магазин
-                            kktRegId.fk_kktRegId_stores = store.id;
-                            finalInvoiceData.setfk_invoice_stores(store.id);
-                        }
-                        else if(_status == 1 && store._status != null && store._status == 1)
-                        {
-                            if(!Objects.equals(storeIdKkt, store.id)) {
-                                Cursor checkStoreInInvoiceCur = dbHelper.query("kktRegId", null, "fk_kktRegId_stores=?", new String[]{storeIdKkt.toString()}, null, null, null, null);
-                                Cursor checkStoreInInvoiceCur1 = dbHelper.query("kktRegId", null, "fk_kktRegId_stores=?", new String[]{store.id.toString()}, null, null, null, null);
-                                if (checkStoreInInvoiceCur.getCount() > checkStoreInInvoiceCur1.getCount())
-                                {
-                                    //доверяем магазину из кассы
-                                    //изменяем ссылку в других чеках на магазин из кассы
-                                    ContentValues data=new ContentValues();
-                                    data.put("fk_kktRegId_stores", storeIdKkt);
-                                    dbHelper.update("kktRegId", data, "fk_kktRegId_stores=?", new String[]{store.id.toString()});
-                                    data.clear();
-                                    data.put("fk_invoice_stores", store.id);
-                                    dbHelper.update(tableName, data, "fk_invoice_stores=?", new String[]{store.id.toString()});
+                        // first update values in tables where link to store is
+                        ContentValues contentValues = new ContentValues();
+                        contentValues.put("fk_invoice_stores",store.id);
+                        dbHelper.update(tableNameInvoice, contentValues, "id=?", new String[]{finalInvoiceData.getId().toString()});
+                        contentValues =  new ContentValues();
+                        contentValues.put("fk_purchases_stores", store.id);
+                        dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
 
-                                    kktRegId._status =0;
-                                    _status = 0;
-                                    store._status=0;
-                                    finalInvoiceData.setfk_invoice_stores(storeIdKkt);
-                                    finalInvoiceData.setfk_invoice_kktRegId(currentId);
-                                }
-                                else
-                                {
-                                    ContentValues data=new ContentValues();
-                                    data.put("fk_kktRegId_stores", store.id);
-                                    dbHelper.update("kktRegId", data, "fk_kktRegId_stores=?", new String[]{storeIdKkt.toString()});
-                                    data.clear();
-                                    data.put("fk_invoice_stores", store.id);
-                                    dbHelper.update(tableName, data, "fk_invoice_stores=?", new String[]{storeIdKkt.toString()});
-                                    //доверяем магазину добавленному пользователем
-                                    //изменяем ссылку в
-                                    kktRegId.fk_kktRegId_stores = store.id;
-                                    kktRegId._status =0;
-                                    _status = 0;
-                                    store._status=0;
-                                    store.update = true;
-                                    finalInvoiceData.setfk_invoice_stores(store.id);
-                                }
-                            }
-                        }
+                        //try to delete old store
+                        deleteStoreLink(finalInvoiceData.store.id);
+
+                        finalInvoiceData.store = store;
+
                     }
+                }
 
-                    //if status in BD 1 - user confirmed adress
-                    //but if we send status 1 to set - mean user want to update data
-                    if(_status == 1 && kktRegId._status != null && kktRegId._status!= 1)
-                        return;// cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
-
-                    //запоминаем id касы чтобы обновить в ней данные
-
+            }
+            else
+            {
+                if(finalInvoiceData.store.id!= null && finalInvoiceData.store.id != 0)
+                {
+                    finalInvoiceData.kktRegId.fk_kktRegId_stores = finalInvoiceData.store.id;
+                    setStoreData(finalInvoiceData);
+                    saveKktRegId(finalInvoiceData.kktRegId);
+                    finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
                 }
                 else
-                    //необходимо отправлять к разработкчкиу при данной ошибке
-                    return;// -1;
-            }
-            cur_kktRegId.close();
-        }
-        else if(kktRegId.kktRegId != null)
-        {
-            //обновлем информацию о магазине и кассовом аппарате
-            //изменение данных пользователем
-            cur_kktRegId = dbHelper.query("kktRegId", null, "kktRegId=?", new String[]{kktRegId.kktRegId.toString()}, null, null, null, null);
-            if (cur_kktRegId.moveToFirst()) {
-                if (cur_kktRegId.getCount() == 1) {
-                    currentId = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
+                {
+                    finalInvoiceData.store._status = 0;
+                    finalInvoiceData.store.update = false;
+                    setStoreData(finalInvoiceData);
+                    if(finalInvoiceData.store.id >0) {
+                        finalInvoiceData.kktRegId.fk_kktRegId_stores = finalInvoiceData.store.id;
+                        saveKktRegId(finalInvoiceData.kktRegId);
+                        finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
+                    }
+                    updateInvoice(finalInvoiceData);
                 }
             }
-            cur_kktRegId.close();
-        }
-        //InvoiceData invoiceData = new InvoiceData();
-        //invoiceData.store = store;
-        //invoiceData.kktRegId = kktRegId;
-        if((store.id == null  && storeIdKkt == null)|| (store.id != null && store.update)) {
-            setStoreData(finalInvoiceData);
+
         }
         else
         {
-            if(storeIdKkt != null)
-                store.id = storeIdKkt;
-        }
-        /*if(store.id.equals(finalInvoiceData.kktRegId.fk_kktRegId_stores))
-        {
-            setStoreData(finalInvoiceData);
-        }*/
-        InvoiceData.KktRegId tmp = new InvoiceData.KktRegId();
-        if(store.id != null && kktRegId.kktRegId != null) {
-            // set status - if  store not added (error) set status 0 to force user set adress again
-            // if we pre-set status we should to write in table correct status but in another way we should force adress check by user
-            if(_status != null)
-                tmp._status = _status;
-            else
-                tmp._status=kktRegId._status;
-            if(currentId != null)
-                tmp.id = currentId;
-            tmp.fk_kktRegId_stores = store.id;
-            tmp.kktRegId = kktRegId.kktRegId;
+            if(finalInvoiceData.store.place_id!= null && finalInvoiceData.store.place_id.length()>0)
+            {
+                Cursor cur_store = dbHelper.query(tablenameStores, null, "place_id=?", new String[]{finalInvoiceData.store.place_id}, null, null, null, null);
+                if(cur_store. moveToFirst())
+                {
+                    Integer id = cur_store.getInt(cur_store.getColumnIndex("id"));
+                    Map<String, String> args = new ArrayMap<String, String>();
+                    args.put("id", id.toString());
+                    List<InvoiceData.Store> stores = loadDataFromStore(args);
 
-            kktRegId.id = saveKktRegId(tmp);
+                    if(finalInvoiceData.store.id!= null && finalInvoiceData.store.id >0)
+                    {
+                        if(finalInvoiceData.store.id == id)
+                        {
+                            finalInvoiceData.store._status = 1;
+                            finalInvoiceData.store.update = true;
+                            setStoreData(finalInvoiceData);
+                        }
+                        else
+                        {
+                            ContentValues contentValues = new ContentValues();
+                            contentValues.put("fk_invoice_stores",id);
+                            dbHelper.update(tableNameInvoice, contentValues, "id=?", new String[]{finalInvoiceData.getId().toString()});
+                            contentValues =  new ContentValues();
+                            contentValues.put("fk_purchases_stores", id);
+                            dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
+                            contentValues =  new ContentValues();
+                            contentValues.put("fk_kktRegId_stores", id);
+                            dbHelper.update(tableNameKktRegId, contentValues, "fk_kktRegId_stores=?", new String[]{finalInvoiceData.store.id.toString()});
+
+
+                            //try to delete old store
+                            deleteStoreLink(finalInvoiceData.store.id);
+                            finalInvoiceData.store = stores.get(0);
+                        }
+                    }
+                    else
+                    {
+                        //new item in table stores
+                        finalInvoiceData.store._status = 1;
+                        setStoreData(finalInvoiceData);
+                    }
+                }
+                else
+                {
+                    finalInvoiceData.store.update = false;
+                    if(finalInvoiceData.store.id != null && finalInvoiceData.store.id >0)
+                    {
+                        finalInvoiceData.store.update = true;
+                    }
+                    finalInvoiceData.store._status = 1;
+                    setStoreData(finalInvoiceData);
+                }
+
+            }
         }
-        return;
     }
 
-
     public void setStoreData(InvoiceData invoiceData) {
+
         InvoiceData.Store store = invoiceData.store;
-        Cursor cur_stores= null;
-        Integer id_stores=null;
 
-
-        //add new store || update
         ContentValues data = new ContentValues();
         if(store.name != null)
             data.put("name", store.name.trim());
-        if(store.adress != null)
-            data.put("adress",  store.adress.trim());
+        if(store.address != null)
+            data.put("address",  store.address.trim());
         if(store.latitude != null)
             data.put("latitude", store.latitude.toString());
         if(store.longitude != null)
@@ -632,125 +609,94 @@ public class Invoice {
             data.put("store_type", store.store_type);
         if(store.iconName != null)
             data.put("iconName", store.iconName);
-        if(store.photoreference != null)
-            data.put("photo_reference", store.photoreference);
+        if(store.photo_reference != null)
+            data.put("photo_reference", store.photo_reference);
+        if(store._status != null)
+            data.put("_status", store._status);
 
         if(store.date_add == null)
             data.put("date_add", new Date().getTime());
 
-        if((store.inn!=null && store.inn>0) || store.place_id!= null) {
-            if(store.id == null || store.id <= 0) {
-                //ищем аналогичный магазин, только при первом добавление чека, обязательноп проверить, что у магазина нет метки гоогл
-                //если метки нет - значит магазин на карте не отмечен
-                //
-                //при ручном добавлении данных чека, загружается только магазин без кассы, указывается на карте, точно имеет метку google проверяем наличие магазина по ней.
-                if(store.inn!=null && store.place_id == null) {
-                    cur_stores = dbHelper.query(tablenameStores, null, "inn=? and name_from_fns=? and address_from_fns=? AND place_id=?",
-                            new String[]{store.inn.toString(),
-                                    store.name_from_fns == null ? "" : store.name_from_fns,
-                                    store.address_from_fns == null ? "" : store.address_from_fns,
-                                    ""},
-                            null, null, null, null);
-                    store._status = 0;
-                }
-                else if(store.place_id != null) {
-                    cur_stores = dbHelper.query(tablenameStores, null, "place_id=?",
-                            new String[]{store.place_id},
-                            null, null, null, null);
-                    store._status = 1;
+        if(store.update)
+        {
+            dbHelper.update(tablenameStores, data, "id=?", new String[]{store.id.toString()});
+        }
+        else
+        {
+            store.id = (int)dbHelper.insert(tablenameStores, null, data);
+        }
+    }
 
-                }
-                if(store.inn!=null && store.place_id != null)
-                {
-                    store._status = 1;
-                    invoiceData.kktRegId._status=1;
-                }
-                assert cur_stores != null;
-                if (!cur_stores.moveToFirst()) {
-                    data.put("_status", store._status);
-                    store.id = (int)dbHelper.insert(tablenameStores, null, data);
-                    /*if(kktRegId.fk_kktRegId_stores!= null) {
-                        Cursor invStoresCur = dbHelper.query("kktRegId", new String[]{"id"}, "fk_kktRegId_stores=?", new String[]{kktRegId.fk_kktRegId_stores.toString()}, null, null, null, null);
-                        if (invStoresCur.getCount() <= 0) {
-                            dbHelper.delete(tablenameStores, "id=?", new String[]{store.id.toString()});
-                        }
-                        invStoresCur.close();
-                    }*/
-                    //Log.d(LOG_TAG, "added stores " + (store.adress !=null ? store.adress : " adress not known"));
-                } else {
-                    if(store.update)
-                    {
-                        dbHelper.update(tablenameStores, data, "place_id=?", new String[]{store.place_id});
-                    }
+    private void deleteStoreLink(Integer Id)
+    {
+        Cursor cur = dbHelper.query(tableNameInvoice, null, "fk_invoice_stores=?", new String[]{Id.toString()}, null, null, null, null);
+        boolean delete = false;
+        if(!cur.moveToFirst())
+            delete = true;
+        else
+            delete = false;
+        cur = dbHelper.query(tableNamePurchases, null, "fk_purchases_invoice=?", new String[]{Id.toString()}, null, null, null, null);
+        if(!cur.moveToFirst())
+            delete = true;
+        else
+            delete = false;
 
-                    store.id = cur_stores.getInt(cur_stores.getColumnIndex("id"));
-                    store.inn = (long) cur_stores.getInt(cur_stores.getColumnIndex("inn"));
-                }
-                cur_stores.close();
-            }
-            else if (store.id > 0)
-            {
-                if(store.place_id!= null)
-                {
-                    store._status = 1;
+        cur = dbHelper.query(tableNameKktRegId, null, "fk_kktRegId_stores=?", new String[]{Id.toString()}, null, null, null, null);
+        if(!cur.moveToFirst())
+            delete = true;
+        else
+            delete = false;
 
-                    data.put("_status", store._status);
-                    if(invoiceData.kktRegId == null)
-                        invoiceData.kktRegId = new InvoiceData.KktRegId();
-                    invoiceData.kktRegId._status=1;
-                }
-                else
-                {
-                    store._status = 0;
-                    data.put("_status", store._status);
-                    if(invoiceData.kktRegId == null)
-                        invoiceData.kktRegId = new InvoiceData.KktRegId();
-                    invoiceData.kktRegId._status=0;
-                }
+        cur.close();
+        if(delete)
+        {
+            dbHelper.delete(tablenameStores, "id=?", new String[]{Id.toString()});
+        }
+    }
 
-                //проверка что магазин уже был добавлен
-                //здесь нужно обновить информацию о магазине
-                //если ID магазина найдено, но в нем неверная инфа?
-                cur_stores = dbHelper.query(tablenameStores, null, "id=? AND place_id=?",
-                        new String[]{store.id.toString(),
-                                store.place_id != null ? store.place_id : ""},
-                        null, null, null, null);
 
-                if(cur_stores.moveToFirst())
-                {
-                    dbHelper.update(tablenameStores, data, "id=?", new String[]{store.id.toString()});
-                }
-                else
-                {
-                    id_stores = (int) dbHelper.insert(tablenameStores, null, data);
-                    if(id_stores>0) {
-                        //добавляем правильную версию магазина и, проверив что нет касс и чеков, ссылающихся на этот магазин, удаляем запись о магазине
-                        // исключаем текущий чек(и его кассу если есть) из проверки, информация в нем обновится на новый магазин
-                        Cursor test;
-                        Cursor test1;
-                        if(invoiceData.kktRegId != null) {
-                            test = dbHelper.query("kktRegId", null, "fk_kktRegId_stores=? AND id<>?", new String[]{store.id.toString(), invoiceData.kktRegId.id != null ? invoiceData.kktRegId.id.toString() : "0"}, null, null, null, null);
-                        }
-                        else
-                        {
-                            test = dbHelper.query("kktRegId", null, "fk_kktRegId_stores=?", new String[]{store.id.toString()}, null, null, null, null);
-                        }
-                        test1 = dbHelper.query(tableName, null, "fk_invoice_stores=? AND id<>?", new String[]{store.id.toString(), invoiceData.getId().toString()}, null, null, null, null);
-                        if (test.getCount() <= 0 && test1.getCount() <=0) {
-                            dbHelper.delete(tablenameStores, "id=?", new String[]{store.id.toString()});
-                        }
-                        test.close();
-                        test1.close();
-                        store.id = id_stores;
-                    }
-                }
-                cur_stores.close();
-            }
-            store.update = false;
+    private List<InvoiceData.Store> loadDataFromStore(Map<String, String> keyFields)
+    {
+        List<InvoiceData.Store> listStore = new ArrayList<>();
 
+
+        String selection="";
+        List<String> listArgs = new ArrayList<>();
+        for(Map.Entry<String, String> entry : keyFields.entrySet())
+        {
+            selection+= entry.getKey()+"=? AND ";
+            listArgs.add(entry.getValue());
         }
 
+        selection=selection.substring(0, selection.length() - 5);
+        String[] args = listArgs.toArray(new String[listArgs.size()]);
+        Cursor cur_Store = dbHelper.query(tablenameStores, null, selection, args, null, null, null, null);
+        if(cur_Store.moveToFirst())
+        {
+            do{
+                InvoiceData.Store store = new InvoiceData.Store();
+                store.address_from_fns = cur_Store.getString(cur_Store.getColumnIndex("address_from_fns"));
+                store.name_from_fns = cur_Store.getString(cur_Store.getColumnIndex("name_from_fns"));
+                store.latitude = cur_Store.getDouble(cur_Store.getColumnIndex("latitude"));
+                store.longitude = cur_Store.getDouble(cur_Store.getColumnIndex("longitude"));
+                store.name = cur_Store.getString(cur_Store.getColumnIndex("name"));
+                store.address = cur_Store.getString(cur_Store.getColumnIndex("address"));
+                store.inn = (long)cur_Store.getInt(cur_Store.getColumnIndex("inn"));
+                store.place_id = cur_Store.getString(cur_Store.getColumnIndex("place_id"));
+                store.iconName = cur_Store.getString(cur_Store.getColumnIndex("iconName"));
+                store.photo_reference = cur_Store.getString(cur_Store.getColumnIndex("photo_reference"));
+                store._status = cur_Store.getInt(cur_Store.getColumnIndex("_status"));
+
+                listStore.add(store);
+            }
+            while(cur_Store. moveToNext());
+            cur_Store.close();
+        }
+
+
+        return listStore;
     }
+
     public int fillReceiptData(GetFnsData.Receipt receipt, InvoiceData finalInvoiceData)
     {
         
@@ -761,19 +707,20 @@ public class Invoice {
         InvoiceData.KktRegId kktRegId = new InvoiceData.KktRegId();
 
 
-        //add field inn for magazine and check it if there is no adress
+        //add field inn for magazine and check it if there is no address
         //check and add update fk_Stores
 
-        //!!  if no adress or name  you can check by kktRegId  -
+        //!!  if no address or name  you can check by kktRegId  -
         //
-        // find another invoices where fk_stores not null and the same kktRegId ask user to check adress!
+        // find another invoices where fk_stores not null and the same kktRegId ask user to check address!
 
         InvoiceData invoiceData = new InvoiceData();
 
         //invoiceData.setDateInvoice(receipt.);
         if(finalInvoiceData.store == null)
             finalInvoiceData.store = new InvoiceData.Store();
-        finalInvoiceData.store.name_from_fns= receipt.user;
+        if(receipt.user != null)
+            finalInvoiceData.store.name_from_fns= receipt.user;
         if(receipt.retailPlaceAddress != null)
             finalInvoiceData.store.address_from_fns = receipt.retailPlaceAddress.trim().replaceAll("\\s{2}", "");
 
@@ -781,11 +728,15 @@ public class Invoice {
             finalInvoiceData.store.update = true;
         else if(finalInvoiceData.store.inn == 0)
             finalInvoiceData.store.update = true;
-        finalInvoiceData.store.inn = Long.valueOf(receipt.userInn.trim());
+
+        if(receipt.userInn != null)
+            finalInvoiceData.store.inn = Long.valueOf(receipt.userInn.trim());
 
         if(finalInvoiceData.kktRegId == null)
             finalInvoiceData.kktRegId = new InvoiceData.KktRegId();
-        finalInvoiceData.kktRegId.kktRegId = Long.valueOf(receipt.kktRegId.trim());
+
+        if(receipt.kktRegId != null)
+            finalInvoiceData.kktRegId.kktRegId = Long.valueOf(receipt.kktRegId.trim());
 
         setStoreDataFull(finalInvoiceData);
 
@@ -821,7 +772,7 @@ public class Invoice {
         }
         updateData.put("_status", finalInvoiceData.get_status());
 
-        dbHelper.update(tableName, updateData, "id=?", new String[]{finalInvoiceData.getId().toString()});
+        dbHelper.update(tableNameInvoice, updateData, "id=?", new String[]{finalInvoiceData.getId().toString()});
         Log.d(LOG_TAG, "updated invoice id " +finalInvoiceData.getId());
 
 
@@ -935,21 +886,19 @@ public class Invoice {
         if(invoiceData.getFk_invoice_accountinglist() !=null)
             data.put("fk_invoice_accountinglist", invoiceData.getFk_invoice_accountinglist().toString());
 
-        if (invoiceData.kktRegId != null)
-        {
-            setStoreDataFull(invoiceData);
-            //data.put("fk_invoice_kktRegId", invoiceData.kktRegId.id.toString());
+        if(invoiceData.store!= null && invoiceData.store.id != null)
             data.put("fk_invoice_stores", invoiceData.store.id.toString());
-        }
-        else if(invoiceData.store != null)
-        {
-            setStoreData(invoiceData);
-            if(invoiceData.store.id != null)
-            data.put("fk_invoice_stores", invoiceData.store.id.toString());
-        }
+        if (invoiceData.kktRegId != null && invoiceData.kktRegId.id != null)
+            data.put("fk_invoice_kktRegId", invoiceData.kktRegId.id.toString());
+
+        if (invoiceData.latitudeAdd != null)
+            data.put("latitudeAdd", invoiceData.latitudeAdd);
+        if (invoiceData.longitudeAdd != null)
+            data.put("longitudeAdd", invoiceData.longitudeAdd);
+
         Integer id = invoiceData.getId();
 
-        dbHelper.update(tableName, data, "id=?", new String[]{id+""});
+        dbHelper.update(tableNameInvoice, data, "id=?", new String[]{id+""});
         
     }
 
@@ -972,9 +921,9 @@ public class Invoice {
 
 
                 
-                if(dbHelper.query(tableName, null, "FP=? and FD=? and FN=?",
+                if(dbHelper.query(tableNameInvoice, null, "FP=? and FD=? and FN=?",
                         new String[]{invoiceData.getFP(), invoiceData.getFD(), invoiceData.getFN()}, null, null, null, null).getCount() == 0) {
-                    long count = dbHelper.insert(tableName, null, data);
+                    long count = dbHelper.insert(tableNameInvoice, null, data);
                     if (count > -1) {
                         invoiceData.setId((int) count);
                         //updateInformation in collection
@@ -998,10 +947,10 @@ public class Invoice {
     public void deleteInvoiceData(Integer id)
     {
         
-        long count = dbHelper.delete(tableName, "id=?", new String[]{id.toString()});
+        long count = dbHelper.delete(tableNameInvoice, "id=?", new String[]{id.toString()});
         if(count>0) {
             count = dbHelper.delete("purchases", "fk_purchases_invoice=?", new String[]{id.toString()});
-            count = dbHelper.delete("linked_objects", "fk_name=? AND fk_id=?", new String[]{tableName, id.toString()});
+            count = dbHelper.delete("linked_objects", "fk_name=? AND fk_id=?", new String[]{tableNameInvoice, id.toString()});
             /*for (int i = 0; i < invoices.size(); i++) {
                 InvoiceData invoiceData = invoices.get(i);
                 if (invoiceData.getId() == id)
@@ -1022,7 +971,7 @@ public class Invoice {
     public int getCount(Map<String, String[]> filter) {
         Cursor cur = null;
         if(filter == null) {
-            cur = dbHelper.query(tableName, null, null, null, null, null, null, null);
+            cur = dbHelper.query(tableNameInvoice, null, null, null, null, null, null, null);
         }
         else
         {
@@ -1048,7 +997,7 @@ public class Invoice {
             }
             selection = selection.substring(0, selection.length()-5);
             String[] args = selectionArgs.toArray(new String[selectionArgs.size()]);
-            cur = dbHelper.query(tableName, null, selection, args, null, null, null, null);
+            cur = dbHelper.query(tableNameInvoice, null, selection, args, null, null, null, null);
         }
         int count = cur.getCount();
         cur.close();
@@ -1079,7 +1028,7 @@ public class Invoice {
         {
             int id = cur.getInt(cur.getColumnIndex("id"));
             do {
-                Cursor curInvoice = dbHelper.query(tableName, null, "fk_invoice_stores=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))}, null, null, null, null);
+                Cursor curInvoice = dbHelper.query(tableNameInvoice, null, "fk_invoice_stores=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))}, null, null, null, null);
                 int tmp = curInvoice.getCount();
                 if(count< tmp) {
                     count = tmp;

@@ -12,10 +12,10 @@ import java.util.Map;
 
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
 
-public class personalData {
+public class PersonalData {
 
     private Map<String, String> data;
-    private String tableName="personalData";
+    private String tableName="PersonalData";
     public String name= null;
     public String surname = null;
     public String e_mail = null;
@@ -23,11 +23,11 @@ public class personalData {
     public String password = null;
     public Integer id;
     public Integer _status;
-    final String LOG_TAG = "personalData";
+    final String LOG_TAG = "PersonalData";
     private Context context;
 
 
-    public personalData(Context context)
+    public PersonalData(Context context)
     {
         this.context = context;
         data = new HashMap();
@@ -121,7 +121,7 @@ public class personalData {
         String data = telephone_number + ":" + messageText;
         try {
             this.password = BaseEncoding.base64().encode(data.getBytes("UTF-8"));
-            updatePersonalData ();
+            updatePersonalData();
 
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
