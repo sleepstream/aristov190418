@@ -132,5 +132,7 @@
     <string name="personal_data_request_PasswordSaved">Пароль успешно сохранен</string>
     <string name="btnReset">Сбросить</string>
     <string name="btnManual">Ввести</string>
+    <string name="title_setOnMap">Указать на карте</string>
+    <string name="title_setName">Изменить название</string>
 
 </resources>

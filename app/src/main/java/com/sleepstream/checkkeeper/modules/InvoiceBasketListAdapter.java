@@ -6,8 +6,6 @@ import android.content.DialogInterface;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import java.util.Calendar;
-
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
@@ -28,6 +26,7 @@ import com.sleepstream.checkkeeper.linkedListObjects.LinkedListData;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 

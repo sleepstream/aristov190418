@@ -114,7 +114,13 @@ public class InvoicesBasketPageFragment extends Fragment {
                         if(tmp.selected)
                         {
                             invoice.deleteInvoiceData(tmp.getId());
+                            selectedCount-=1;
                         }
+                    }
+                    if(selectedCount < 0 || selectedCount == 0) {
+                        selectedCount = 0;
+                        selectAll = false;
+                        fabShowHide();
                     }
                     invoice.reLoadInvoice();
                     invoiceBasketListAdapter.itemList.clear();

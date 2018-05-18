@@ -4,7 +4,9 @@ package com.sleepstream.checkkeeper;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
-import android.content.*;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -16,7 +18,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.util.ArrayMap;
-import android.view.*;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.*;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
@@ -293,7 +298,11 @@ public class SettingsActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     fab_get_update_passw.setEnabled(false);
-                    if(personalData._status == null || (personalData._status!= null && personalData._status ==0))
+                    if(personalData._status == null)
+                    {
+                        new RegisterNewAsyncTask().execute(personalData);
+                    }
+                    else if(personalData._status ==0)
                     {
                         allertDialogShowPassw();
                     }

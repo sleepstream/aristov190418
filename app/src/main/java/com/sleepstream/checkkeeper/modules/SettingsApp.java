@@ -7,6 +7,7 @@ import android.util.Log;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
 
 public class SettingsApp {

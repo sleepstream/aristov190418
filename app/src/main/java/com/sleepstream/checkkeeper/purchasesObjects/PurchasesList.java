@@ -2,7 +2,6 @@ package com.sleepstream.checkkeeper.purchasesObjects;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import java.util.Calendar;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;

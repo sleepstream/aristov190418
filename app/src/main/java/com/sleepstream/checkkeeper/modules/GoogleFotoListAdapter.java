@@ -3,28 +3,22 @@ package com.sleepstream.checkkeeper.modules;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
-import android.os.Environment;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.R;
-
-import java.io.File;
-import android.net.Uri;
 import com.sleepstream.checkkeeper.crop.CropActivity;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.sleepstream.checkkeeper.MainActivity.*;
-import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
+import static com.sleepstream.checkkeeper.MainActivity.currentInvoice;
 
 public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAdapter.ItemViewHolder>  {
     private Context context;
@@ -59,6 +53,7 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
                 Intent intent = new Intent(context, CropActivity.class);
                 intent.putExtra("photo_reference", placePhotoMetadataList.get(position));
                 intent.putExtra("place_id", currentInvoice.store.place_id);
+                intent.putExtra("store_id", currentInvoice.store.id);
                 context.startActivity(intent);
                 /*
                 MainActivity.copyfile(imgUrl, Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/" + "IMG_" + currentInvoice.store.place_id + ".png");

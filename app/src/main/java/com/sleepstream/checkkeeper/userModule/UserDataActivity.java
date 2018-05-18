@@ -1,26 +1,11 @@
 package com.sleepstream.checkkeeper.userModule;
 
-import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.KeyEvent;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import com.sleepstream.checkkeeper.GetFnsData;
-import com.sleepstream.checkkeeper.MainActivity;
-import com.sleepstream.checkkeeper.R;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
-
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class UserDataActivity extends AppCompatActivity {
     private String request;

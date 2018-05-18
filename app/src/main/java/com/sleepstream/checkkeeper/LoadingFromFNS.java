@@ -30,6 +30,7 @@ public class LoadingFromFNS extends Service {
     private Invoice invoice;
     private Context context;
     private final Integer PauseIfError = 30000;
+    private final Integer PauseService = 10000;
 
     @Override
     public void onCreate() {
@@ -132,7 +133,7 @@ public class LoadingFromFNS extends Service {
         protected Void doInBackground(Void... params) {
             log.info(LOG_TAG+"\n"+"loadingFromFNS");
             int count = 0;
-            while (count<MAX_ITERATIONS) {
+            while (true) {
                 //status 0 - just loaded waiting for loading
                 //status 3 - loading in progress
                 //status -1 - error loading from FNS not exist
@@ -145,7 +146,13 @@ public class LoadingFromFNS extends Service {
                 invoice.reLoadInvoice();
                 log.info(LOG_TAG+"\n"+"reloaded from DB " + invoice.invoices.size());
                 if(invoice.invoices.size()<=0)
-                    return null;
+                {
+                    try {
+                        Thread.sleep(PauseService);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                }
 
 
                 for (int i = 0; i < invoice.invoices.size(); i++) {
@@ -246,14 +253,13 @@ public class LoadingFromFNS extends Service {
 
 
                 }
-                count+=1;
+                //count+=1;
                 try {
                     Thread.sleep(PauseIfError);
                 } catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
             }
-            return null;
         }
         @Override
         protected void onPostExecute(Void param) {
