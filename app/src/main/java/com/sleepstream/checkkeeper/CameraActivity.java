@@ -1,11 +1,20 @@
 package com.sleepstream.checkkeeper;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.hardware.Camera;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import com.noob.noobcameraflash.managers.NoobCameraManager;
 import github.nisrulz.qreader.QRDataListener;
 import github.nisrulz.qreader.QREader;
 
@@ -19,6 +28,8 @@ public class CameraActivity extends AppCompatActivity {
     boolean hasCameraPermission = false;
     // QREader
     private SurfaceView mySurfaceView;
+    private ImageView flash_button_image;
+    private RelativeLayout flash_button;
     private QREader qrEader;
     private static final String cameraPerm = Manifest.permission.CAMERA;
 
@@ -37,6 +48,20 @@ public class CameraActivity extends AppCompatActivity {
 
         hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
         mySurfaceView = (SurfaceView) findViewById(R.id.camera_view);
+        flash_button_image = findViewById(R.id.flash_button_image);
+        flash_button = findViewById(R.id.flash_button);
+
+        flash_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                qrEader.turnOnOffTorch();
+                if(qrEader.tourchEnable)
+                    flash_button_image.setImageResource(R.drawable.baseline_flash_off_orange_48);
+                else
+                    flash_button_image.setImageResource(R.drawable.baseline_flash_on_orange_48);
+
+            }
+        });
 
         //Rectangle box = new Rectangle(this);
         //addContentView(box, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));

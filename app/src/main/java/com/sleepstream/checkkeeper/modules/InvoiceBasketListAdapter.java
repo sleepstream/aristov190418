@@ -196,7 +196,7 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                         if (background instanceof ColorDrawable) {
                             itemViewHolder.oldColorMarker = ((ColorDrawable) background).getColor();
                         }
-                        itemViewHolder.marker.setBackgroundResource(R.color.colorAccent);
+                        itemViewHolder.marker.setBackgroundResource(R.attr.colorAccent);
 
                         MainActivity.purchasesList.clearFilter();
                         MainActivity.purchasesList.setfilter("fk_purchases_invoice", item.getId().toString());
@@ -247,11 +247,11 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                 }
             });
             if (row_index == position) {
-                itemViewHolder.marker.setBackgroundResource(R.color.colorAccent);
+                itemViewHolder.marker.setBackgroundResource(R.attr.colorAccent);
                 //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                 //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
             } else {
-                InvoiceListAdapter.colorIvoiceList(item, itemViewHolder);
+                InvoiceListAdapter.colorIvoiceList(context, item, itemViewHolder);
                 //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.textlight), PorterDuff.Mode.SRC_IN);
                 //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.textlight));
             }

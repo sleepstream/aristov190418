@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 android {
+    signingConfigs {
+        config {
+            storeFile file('C:/Users/garistov/IntelliJIDEAProjects/keystore.jks')
+            keyPassword '16431879'
+            storePassword '16431879'
+            keyAlias 'CheckKeeper'
+        }
+    }
     configurations.all {
         resolutionStrategy.force 'com.google.code.findbugs:jsr305:1.3.9'
     }
@@ -12,7 +20,7 @@ android {
         applicationId "com.sleepstream.checkkeeper"
         minSdkVersion 19
         targetSdkVersion 27
-        versionCode 6
+        versionCode 10
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
@@ -22,10 +30,11 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-
+            signingConfig signingConfigs.config
         }
-
-
+        debug {
+            signingConfig signingConfigs.config
+        }
     }
     dexOptions {
         javaMaxHeapSize "4g"
@@ -33,14 +42,10 @@ android {
     packagingOptions {
         exclude 'META-INF/LICENSE'
     }
-
-
     repositories {
         maven { url "https://maven.google.com" }
         maven { url "https://jitpack.io" }
     }
-
-
     dependencies {
         compile('org.ghost4j:ghost4j:1.0.1') {
             exclude group: 'commons-logging', module: 'commons-logging'
@@ -52,8 +57,8 @@ android {
 
         compile 'com.github.takusemba:cropme:1.0.6'
         compile "com.android.support:support-dynamic-animation:27.1.1"
-
-        compile 'com.github.nisrulz:qreader:2.1.2'
+        compile 'com.github.Abhi347:NoobCameraFlash:0.2.0'
+        compile 'com.github.sleepstream:qreader:v2.1.5'
         compile 'com.squareup.okhttp3:okhttp:3.4.1'
         compile 'com.google.code.gson:gson:2.8.2'
         compile 'com.android.support:multidex:1.0.1'
@@ -76,8 +81,4 @@ android {
 
 
     }
-}
-dependencies {
-    compile 'com.android.support:support-v4:27.+'
-    compile 'com.android.support:support-vector-drawable:27.+'
 }

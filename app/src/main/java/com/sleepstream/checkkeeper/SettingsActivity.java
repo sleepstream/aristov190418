@@ -208,6 +208,8 @@ public class SettingsActivity extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         } finally {
+                            if(personalData._status == null)
+                                personalData._status = -1;
                             personalData.setPersonalData();
                         }
                     }

@@ -19,7 +19,8 @@
             android:theme="@style/FirstTheme">
         <meta-data
                 android:name="com.google.android.geo.API_KEY"
-                android:value="@string/google_maps_key"/>
+                android:value="@string/google_maps_key"
+        />
 
         <receiver android:name=".smsListener.SmsReceiver">
             <intent-filter android:priority="100">

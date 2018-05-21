@@ -18,11 +18,12 @@
     <color name="colorPrimaryDark">#15444e</color>
     <color name="colorSecondary">#316671</color>
     <color name="colorAccent">#14acae</color>
+    <color name="colorNewAccent">#14acae</color>
 
     <color name="colorPrimaryOrange">#FF9800</color>
     <color name="colorPrimaryDarkOrange">#F57C00</color>
     <color name="colorSecondaryOrange">#FFF3E0</color>
-    <color name="colorAccentOrange">#FFCC80</color>
+    <color name="colorAccentOrange">#FF9100</color>
     <color name="colorBackgroundOrange">#E65100</color>
 
 
@@ -34,10 +35,13 @@
     <color name="textlight">#546e7a</color>
     <color name="textlight30">#4d6b8d9c</color>
     <color name="border">#e7e7e7</color>
-    <color name="noData">#f9ada1</color>
-    <color name="loaded">#e9ed8b</color>
+    <color name="noDataAppTheme">#E64A19</color>
+    <color name="noDataAppTheme_Orange">#F57C00</color>
+    <color name="loadedAppTheme">#64FFDA</color>
+    <color name="loadedAppTheme_Orange">#FFD180</color>
     <color name="drag">#88b8d4</color>
-    <color name="loadedConfirmed">#9ef999</color>
+    <color name="loadedConfirmedAppTheme">#00BFA5</color>
+    <color name="loadedConfirmedAppTheme_Orange">#FF6D00</color>
 
 
     <color name="black_87">#DE000000</color>

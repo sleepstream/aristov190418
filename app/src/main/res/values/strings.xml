@@ -134,5 +134,6 @@
     <string name="btnManual">Ввести</string>
     <string name="title_setOnMap">Указать на карте</string>
     <string name="title_setName">Изменить название</string>
+    <string name="sight_camera_on_qr_code">Наведите камеру на QR-код\nПосле фокусировки штрихкод автоматически распознается</string>
 
 </resources>

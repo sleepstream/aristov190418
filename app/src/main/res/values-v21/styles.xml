@@ -1,0 +1,94 @@
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+
+    </style>
+
+    <style name="AppTheme_Orange" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimaryOrange</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkOrange</item>
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="colorSecondary">@color/colorSecondaryOrange</item>
+    </style>
+
+
+
+
+    <style name="AppCompatAlertDialogStyle" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="android:textColorPrimary">@color/colorPrimaryOrange</item>
+        <item name="android:background">@color/white50</item>
+    </style>
+    <style name="AppCompatAlertDialogStyleSecond" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="android:textColorPrimary">@color/colorPrimaryOrange</item>
+        <item name="android:background">@color/white50</item>
+    </style>
+    <style name="AppCompatAlertDialogStyleFirst" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColorPrimary">@color/colorPrimary</item>
+        <item name="android:background">@color/white50</item>
+    </style>
+
+    <style name="TextAppeareance">
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColorHint">@color/textlight30</item>
+    </style>
+
+    <style name="TextAppeareance_small">
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColorHint">@color/textlight30</item>
+    </style>
+
+    <style name="TextAppeareance_onDark" parent="TextAppeareance">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+
+
+
+    <style name="FirstTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorNewAccent">@color/colorAccent</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="TextAppeareance">@style/TextAppeareance</item>
+        <item name="TextAppeareance_small">@style/TextAppeareance_small</item>
+        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyleFirst</item>
+        <item name="colorBackground">@color/colorSecondary</item>
+        <item name="circle_background">@drawable/circle_first_theme</item>
+        <item name="TextAppeareance_onDark">@style/TextAppeareance_onDark</item>
+        <item name="colorNoData">@color/noDataAppTheme</item>
+        <item name="colorLoaded">@color/loadedAppTheme</item>
+        <item name="colorLoadedConfirmed">@color/loadedConfirmedAppTheme</item>
+    </style>
+    <style name="SecondTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimaryOrange</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkOrange</item>
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="colorNewAccent">@color/colorAccentOrange</item>
+        <item name="colorSecondary">@color/colorSecondaryOrange</item>
+        <item name="TextAppeareance">@style/TextAppeareance</item>
+        <item name="TextAppeareance_small">@style/TextAppeareance_small</item>
+        <item name="AppCompatAlertDialogStyle">@style/AppCompatAlertDialogStyleSecond</item>
+        <item name="colorBackground">@color/colorBackgroundOrange</item>
+        <item name="circle_background">@drawable/circle_second_theme</item>
+        <item name="TextAppeareance_onDark">@style/TextAppeareance_onDark</item>
+        <item name="colorNoData">@color/noDataAppTheme_Orange</item>
+        <item name="colorLoaded">@color/loadedAppTheme_Orange</item>
+        <item name="colorLoadedConfirmed">@color/loadedConfirmedAppTheme_Orange</item>
+    </style>
+</resources>

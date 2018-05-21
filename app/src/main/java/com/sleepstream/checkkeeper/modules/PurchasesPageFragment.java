@@ -52,7 +52,6 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private Navigation navigation;
 
     private Integer pageNumber;
-    private int backColor;
     public static GoogleFotoListAdapter googleFotoListAdapter;
 
     private RecyclerView recyclerViewPurList;
@@ -64,7 +63,6 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private TextView store_name;
     private TextView strore_adress ;
     public static ImageView placeImage;
-    private RelativeLayout settingsMenu;
     private RelativeLayout storeData;
 
     public static PurchasesListAdapter purchasesListAdapter;
@@ -110,8 +108,33 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             pageNumber = null;
         }
 
-        Random rnd = new Random();
-        backColor = Color.argb(40, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+        if ((currentInvoice.store != null && currentInvoice.store._status == 0) || (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
+            final AlertDialog builder = new AlertDialog.Builder(context).create();
+            builder.setTitle(context.getString(R.string.finde_store_on_map));
+            builder.setButton(AlertDialog.BUTTON_NEGATIVE, context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    builder.cancel();
+                }
+            });
+            builder.setButton(AlertDialog.BUTTON_POSITIVE,context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    PlacePicker.IntentBuilder builderMap = placeBuilder();
+                    //Context context = getApplicationContext();
+                    try {
+                        getActivity().startActivityForResult(builderMap.build(getActivity()), PLACE_PICKER_REQUEST);
+                    } catch (Exception e) {
+                        log.info(LOG_TAG + "\n"+ e.getMessage() + "\nError starting map");
+                        e.printStackTrace();
+                    }
+                }
+            });
+            builder.setCancelable(false);
+            builder.setCanceledOnTouchOutside(false);
+            builder.show();
+
+        }
 
     }
     private void setPageData()
@@ -154,31 +177,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         try {
             purchasesList.reloadPurchasesList();
             purchasesListAdapter.notifyDataSetChanged();
-            if ((currentInvoice.store != null && currentInvoice.store._status == 0) || (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                builder.setTitle(context.getString(R.string.finde_store_on_map));
-                builder.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
 
-                    }
-                });
-                builder.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        PlacePicker.IntentBuilder builder = placeBuilder();
-                        //Context context = getApplicationContext();
-                        try {
-                            getActivity().startActivityForResult(builder.build(getActivity()), PLACE_PICKER_REQUEST);
-                        } catch (Exception e) {
-                            log.info(LOG_TAG + "\n"+ e.getMessage() + "\nError starting map");
-                            e.printStackTrace();
-                        }
-                    }
-                });
-                builder.show();
-
-            }
 
             MainActivity.currentNumber.setText(String.valueOf(purchasesList.purchasesListData.size()));
             strore_adress.setText("");
@@ -219,6 +218,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         }
         catch (Exception ex)
         {
+            log.info(LOG_TAG + "\n"+ ex.getMessage() + "\nError on resume");
             ex.printStackTrace();
         }
     }

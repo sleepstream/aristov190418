@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import static com.sleepstream.checkkeeper.MainActivity.getThemeColor;
 import static com.sleepstream.checkkeeper.MainActivity.linkedListClass;
 
 
@@ -336,7 +337,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                         if (background instanceof ColorDrawable) {
                             itemViewHolder.oldColorMarker = ((ColorDrawable) background).getColor();
                         }
-                        itemViewHolder.marker.setBackgroundResource(R.color.colorAccent);
+                        itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNewAccent));
                         //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                         //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
 
@@ -363,7 +364,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                     if (background instanceof ColorDrawable) {
                         itemViewHolder.oldColorMarker = ((ColorDrawable) background).getColor();
                     }
-                    itemViewHolder.marker.setBackgroundResource(R.color.colorAccent);
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNewAccent));
                     //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                     //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
 
@@ -435,11 +436,11 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
         });
 */
             if (row_index == position) {
-                itemViewHolder.marker.setBackgroundResource(R.color.colorAccent);
+                itemViewHolder.marker.setBackgroundColor(getThemeColor(context,R.attr.colorNewAccent));
                 //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                 //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
             } else {
-                colorIvoiceList(item, itemViewHolder);
+                colorIvoiceList(context, item, itemViewHolder);
                 itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.textlight), PorterDuff.Mode.SRC_IN);
                 itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.textlight));
             }
@@ -453,34 +454,34 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
     }
 
 
-    public static void colorIvoiceList(InvoiceData item, ItemViewHolderInvoices itemViewHolder)
+    public static void colorIvoiceList(Context context, InvoiceData item, ItemViewHolderInvoices itemViewHolder)
     {
         if(item.kktRegId != null) {
         Integer status = item.kktRegId._status;
         if (status != null) {
             switch (status) {
                 case -2:
-                    itemViewHolder.marker.setBackgroundResource(R.color.noData);
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNoData));
                     break;
                 case -1:
-                    itemViewHolder.marker.setBackgroundResource(R.color.noData);
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNoData));
                     break;
                 case 0:
-                    itemViewHolder.marker.setBackgroundResource(R.color.loaded);
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorLoaded));
                     break;
                 case 1:
-                    itemViewHolder.marker.setBackgroundResource(R.color.loadedConfirmed);
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorLoadedConfirmed));
                     break;
                 default:
-                    itemViewHolder.marker.setBackgroundResource(R.color.white);
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.color.white));
                     break;
             }
         } else
-            itemViewHolder.marker.setBackgroundResource(R.color.noData);
+            itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNoData));
         }
         else
         {
-            itemViewHolder.marker.setBackgroundResource(R.color.noData);
+            itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNoData));
         }
     }
 
@@ -659,6 +660,8 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
         }
         return  -1;
     }
+
+
 
 
 }

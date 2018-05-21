@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <attr name="colorSecondary" format="color"/>
-    <attr name="colorTouch" format="color"/>
+    <attr name="colorSecondary" format="reference"/>
+    <attr name="colorNoData" format="reference"/>
+    <attr name="colorLoaded" format="reference"/>
+    <attr name="colorNewAccent" format="reference"/>
+    <attr name="colorLoadedConfirmed" format="reference"/>
     <attr name="TextAppeareance" format="reference"/>
     <attr name="TextAppeareance_small" format="reference"/>
     <attr name="AppCompatAlertDialogStyle" format="reference"/>
@@ -9,4 +12,6 @@
     <attr name="AppTheme_Orange" format="reference"/>
     <attr name="circle_background" format="reference"/>
     <attr name="TextAppeareance_onDark" format="reference"/>
+    <attr name="TextAppeareance_onWhite" format="reference"/>
+
 </resources>
