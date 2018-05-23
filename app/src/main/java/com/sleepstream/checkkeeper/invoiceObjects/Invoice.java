@@ -480,17 +480,19 @@ public class Invoice {
                 cur_kktRegId.close();
                 Map<String, String> args = new ArrayMap<String, String>();
                 args.put("id", fk_kktRegId_stores.toString());
-                List<InvoiceData.Store> stores = loadDataFromStore(args);
+                List<InvoiceData.Store> stores = loadDataFromStore(args);//store should be one for kkt number
                 if(stores.size()>0)
                 {
                     InvoiceData.Store store = stores.get(0);
                     if(finalInvoiceData.store.id!= null && finalInvoiceData.store.id != store.id)
                     {
                         // first update values in tables where link to store is
-                        finalInvoiceData.setfk_invoice_stores(store.id);
+                        finalInvoiceData.kktRegId.id = kktRegId_id;
                         ContentValues contentValues = new ContentValues();
                         contentValues.put("fk_invoice_stores",store.id);
+                        contentValues.put("fk_invoice_kktRegId",kktRegId_id);
                         dbHelper.update(tableNameInvoice, contentValues, "id=?", new String[]{finalInvoiceData.getId().toString()});
+
                         contentValues =  new ContentValues();
                         contentValues.put("fk_purchases_stores", store.id);
                         dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
@@ -504,10 +506,11 @@ public class Invoice {
                     else if(finalInvoiceData.store.id== null)
                     {
                         finalInvoiceData.store.id = store.id;
+                        finalInvoiceData.kktRegId.id = kktRegId_id;
                         finalInvoiceData.set_status(1);
-                        finalInvoiceData.setfk_invoice_stores(store.id);
-                        finalInvoiceData.setfk_invoice_kktRegId(kktRegId_id);
-                        updateInvoice(finalInvoiceData);
+                       // finalInvoiceData.setfk_invoice_stores(store.id);
+                        //finalInvoiceData.setfk_invoice_kktRegId(kktRegId_id);
+                        //updateInvoice(finalInvoiceData);
                     }
 
                 }
@@ -519,8 +522,14 @@ public class Invoice {
                 {
                     finalInvoiceData.kktRegId.fk_kktRegId_stores = finalInvoiceData.store.id;
                     setStoreData(finalInvoiceData);
-                    finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
-                    finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
+                    try {
+                        finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
+                    } catch (Exception e) {
+                        log.info(e.getMessage()+ Arrays.toString(e.getStackTrace()));
+                        e.printStackTrace();
+                        finalInvoiceData.kktRegId.id = 0;
+                    }
+                    //finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
                 }
                 else
                 {
@@ -529,12 +538,18 @@ public class Invoice {
                     setStoreData(finalInvoiceData);
                     if(finalInvoiceData.store.id >0) {
                         finalInvoiceData.kktRegId.fk_kktRegId_stores = finalInvoiceData.store.id;
-                        finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
-                        finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
+                        try {
+                            finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
+                        } catch (Exception e) {
+                            log.info(e.getMessage()+ Arrays.toString(e.getStackTrace()));
+                            e.printStackTrace();
+                            finalInvoiceData.kktRegId.id = 0;
+                        }
+                        //finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
                     }
 
                 }
-                updateInvoice(finalInvoiceData);
+                //updateInvoice(finalInvoiceData);
             }
 
         }
@@ -592,6 +607,9 @@ public class Invoice {
                     }
                     finalInvoiceData.store._status = 1;
                     setStoreData(finalInvoiceData);
+                    //finalInvoiceData.setfk_invoice_stores(finalInvoiceData.store.id);
+                    //updateInvoice(finalInvoiceData);
+
                 }
 
             }
@@ -599,9 +617,15 @@ public class Invoice {
         if(finalInvoiceData.store._status == 1 && finalInvoiceData.kktRegId!= null && finalInvoiceData.kktRegId.kktRegId>0)
         {
             finalInvoiceData.set_status(1);
-            updateInvoice(finalInvoiceData);
+            //updateInvoice(finalInvoiceData);
             finalInvoiceData.kktRegId._status = 1;
-            saveKktRegId(finalInvoiceData.kktRegId);
+            try {
+                finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
+            } catch (Exception e) {
+                log.info(e.getMessage()+ Arrays.toString(e.getStackTrace()));
+                e.printStackTrace();
+                finalInvoiceData.kktRegId.id = 0;
+            }
         }
     }
 
@@ -618,7 +642,8 @@ public class Invoice {
             data.put("latitude", store.latitude.toString());
         if(store.longitude != null)
             data.put("longitude",  store.longitude.toString());
-        data.put("inn", store.inn);
+        if(store.inn != null)
+            data.put("inn", store.inn);
         if(store.name_from_fns != null)
             data.put("name_from_fns", store.name_from_fns. trim());
         if(store.address_from_fns != null)
@@ -861,7 +886,7 @@ public class Invoice {
         return countPurchases;
     }
 
-    private Integer saveKktRegId(InvoiceData.KktRegId kktRegId) {
+    private Integer saveKktRegId(InvoiceData.KktRegId kktRegId) throws Exception {
         //check kkt exist in base
 
         Log.d(LOG_TAG, "saveKktRegId "+kktRegId.kktRegId);
@@ -869,8 +894,12 @@ public class Invoice {
         int id;
 
         ContentValues data = new ContentValues();
-        data.put("fk_kktRegId_stores", kktRegId.fk_kktRegId_stores != null ? kktRegId.fk_kktRegId_stores.toString() : null);
-        data.put("kktRegId", kktRegId.kktRegId.toString());
+        if(kktRegId.fk_kktRegId_stores != null)
+            data.put("fk_kktRegId_stores",kktRegId.fk_kktRegId_stores.toString());
+        if(kktRegId.kktRegId != null)
+            data.put("kktRegId", kktRegId.kktRegId.toString());
+        else
+            throw new Exception("Error kktRegId is null");
         data.put("_status", kktRegId._status != null ? kktRegId._status : 0);
         data.put("date_add", new Date().getTime());
         if(kktRegId.id != null) {

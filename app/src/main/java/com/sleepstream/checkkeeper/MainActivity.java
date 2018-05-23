@@ -1185,8 +1185,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 Place place = PlacePicker.getPlace(this, data);
                 log.info(LOG_TAG + "\n" + "you finde store " + place.getName() + " address " + place.getAddress());
                 InvoiceData invoiceData = currentInvoice;
-                if (invoiceData.store == null)
+                if (invoiceData.store == null) {
                     invoiceData.store = new InvoiceData.Store();
+                }
                 //if(place.getName().toString().contains(place.getLatLng().))
 
                 if (!Pattern.matches(".*[-]?\\d{1,2}.\\d{1,2}.\\d{1,2}[.,]{1}\\d{1,2}.\\w.*", place.getName().toString()))
@@ -1196,11 +1197,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 invoiceData.store.latitude = place.getLatLng().latitude;
                 invoiceData.store.place_id = place.getId();
                 invoiceData.store._status = 1;
-                invoiceData.store.update = true;
                 invoiceData.store.store_type = place.getPlaceTypes().toString();
                 if (invoiceData.kktRegId != null)
                     invoiceData.kktRegId._status = 1;
                 invoice.setStoreDataFull(invoiceData);
+                invoice.updateInvoice(invoiceData);
                 invoice.reLoadInvoice();
                 InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
                 if (invoiceData.store.place_id != null) {

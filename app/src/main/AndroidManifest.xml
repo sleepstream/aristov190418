@@ -65,13 +65,17 @@
         <service
                 android:name=".LoadingFromFNS"
                 android:enabled="true"
-                android:exported="true">
+                android:exported="false">
         </service>
 
         <activity
                 android:name=".SettingsActivity"
                 android:label="@string/title_activity_settings">
         </activity>
+        <activity
+                android:name="com.yalantis.ucrop.UCropActivity"
+                android:screenOrientation="portrait"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
     </application>
 
 </manifest>

@@ -14,11 +14,11 @@
     <color name="main_fab_press_background">#123098</color>
 
 
-    <color name="colorPrimary">#1b5562</color>
-    <color name="colorPrimaryDark">#15444e</color>
-    <color name="colorSecondary">#316671</color>
-    <color name="colorAccent">#14acae</color>
-    <color name="colorNewAccent">#14acae</color>
+    <color name="colorPrimary">#B2DFDB</color>
+    <color name="colorPrimaryDark">#00796B</color>
+    <color name="colorSecondary">#4DB6AC</color>
+    <color name="colorAccent">#00695C</color>
+    <color name="colorNewAccent">#00695C</color>
 
     <color name="colorPrimaryOrange">#FF9800</color>
     <color name="colorPrimaryDarkOrange">#F57C00</color>
@@ -35,7 +35,7 @@
     <color name="textlight">#546e7a</color>
     <color name="textlight30">#4d6b8d9c</color>
     <color name="border">#e7e7e7</color>
-    <color name="noDataAppTheme">#E64A19</color>
+    <color name="noDataAppTheme">#E0F2F1</color>
     <color name="noDataAppTheme_Orange">#F57C00</color>
     <color name="loadedAppTheme">#64FFDA</color>
     <color name="loadedAppTheme_Orange">#FFD180</color>

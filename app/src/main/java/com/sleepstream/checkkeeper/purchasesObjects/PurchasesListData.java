@@ -1,9 +1,11 @@
 package com.sleepstream.checkkeeper.purchasesObjects;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class PurchasesListData {
+
     public Map<String,Integer> fk =new HashMap<>();
     public Float quantity;
     public Float prise_for_item;
@@ -43,5 +45,13 @@ public class PurchasesListData {
         public String correctName;
         public String nameFromBill;
         public Integer barcode;
+        public List<Category> categories;
+    }
+    public static class Category
+    {
+        public Integer id;
+        public String category;
+        public String icon_name;
+        public Integer count;
     }
 }

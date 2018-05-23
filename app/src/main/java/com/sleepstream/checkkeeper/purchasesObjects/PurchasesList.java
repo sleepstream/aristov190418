@@ -3,6 +3,7 @@ package com.sleepstream.checkkeeper.purchasesObjects;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.util.Log;
+import com.sleepstream.checkkeeper.R;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -46,6 +47,7 @@ public class PurchasesList {
         
         
         this.purchasesListData.clear();
+        purchasesListData = new ArrayList<>();
         String selection ="";
         List<String> selectionArgs=new ArrayList<>();
 
@@ -124,6 +126,36 @@ public class PurchasesList {
                                     product.nameFromBill = fk_cur.getString(fk_cur.getColumnIndex("nameFromBill"));
                                     product.barcode = fk_cur.getInt(fk_cur.getColumnIndex("barcode"));
                                     purchasesListData.product = product;
+
+                                    Cursor cur_product_category = dbHelper.query("product_category", null, "fk_product_category_products=?", new String[]{product.id.toString()},
+                                            null, null, null, null);
+                                    List<PurchasesListData.Category> categories = new ArrayList<>();
+                                    if(cur_product_category.moveToFirst())
+                                    {
+
+                                        do{
+                                            PurchasesListData.Category category = new PurchasesListData.Category();
+                                            category.id = cur_product_category.getInt(cur_product_category.getColumnIndex("id"));
+                                            category.category = cur_product_category.getString(cur_product_category.getColumnIndex("category"));
+                                            category.icon_name = cur_product_category.getString(cur_product_category.getColumnIndex("icon_name"));
+                                            categories.add(category);
+                                        }
+                                        while(cur_product_category.moveToNext());
+                                        if(categories.size()>0)
+                                        {
+
+                                        }
+                                    }
+                                    else
+                                    {
+                                        PurchasesListData.Category category = new PurchasesListData.Category();
+                                        category.count=0;
+                                        category.icon_name= "ic_product_category_default";//R.string.default_icon_name_product_category;
+                                        category.category = "default";
+                                        categories.add(category);
+
+                                    }
+                                    purchasesListData.product.categories = categories;
                                 }
                                 fk_cur.close();
                                 break;
@@ -132,6 +164,7 @@ public class PurchasesList {
                     catch (Exception ex)
                     {
                         purchasesListData.fk.put(tableName_fk[i], null);
+                        ex.printStackTrace();
                     }
                 }
                 purchasesListData.id = cur.getInt(cur.getColumnIndex("id"));

@@ -252,4 +252,21 @@ public class AccountingList {
     }
 
 
+    public AccountingListData getAccByFk(Integer fk)
+    {
+
+        if(fk != null)
+        {
+            AccountingListData accountingListData = new AccountingListData();
+            for(AccountingListData listData : this.accountingListData)
+            {
+                if(listData.getId() == fk) {
+                    accountingListData = listData;
+                    return  accountingListData;
+                }
+            }
+        }
+        return  null;
+    }
+
 }

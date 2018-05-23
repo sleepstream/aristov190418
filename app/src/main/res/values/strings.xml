@@ -40,7 +40,6 @@
     <string name="accountingListTitle">Списки затрат</string>
     <string name="invoicesListTitle">Все чеки</string>
     <string name="addBtn">Добавить</string>
-    <string name="purchasesListTitle">Покупки в чеке</string>
     <string name="purchasListTitle">Покупка</string>
     <string name="title_activity_maps">Map</string>
     <string name="finde_store_on_map">Укажите магазин на карте</string>
@@ -73,7 +72,7 @@
     <string name="invoice_load_from_image_error">Не удалось загрузить чек</string>
     <string name="navigation_drawer_open">Open</string>
     <string name="navigation_drawer_close">Close</string>
-    <string name="purchasesPageTitle">Покупки в чеке</string>
+    <string name="purchasesPageTitle">Информация по чеку</string>
     <string name="invoicesLoadingListTitle">Загрузка</string>
     <string name="loadingInvoicesTitle">Загрузка</string>
     <string name="sumOfInvoice">Сумма покупки</string>
@@ -135,5 +134,11 @@
     <string name="title_setOnMap">Указать на карте</string>
     <string name="title_setName">Изменить название</string>
     <string name="sight_camera_on_qr_code">Наведите камеру на QR-код\nПосле фокусировки штрихкод автоматически распознается</string>
+    <string name="invoice_date_name_text">Дата покупки:</string>
+    <string name="invoice_count_name_text">Количество товаров в чеке:</string>
+    <string name="invoice_sum_name_text">Итого по чеку:</string>
+    <string name="default_icon_name_product_category">ic_product_category_default</string>
+    <string name="accountingList_default">Общие расходы</string>
+    <string name="title_category_products">Категории товаров</string>
 
 </resources>

@@ -6,10 +6,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -31,6 +31,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
+import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import okhttp3.OkHttpClient;
@@ -40,7 +41,6 @@ import okhttp3.Response;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Random;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
 
@@ -55,15 +55,29 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public static GoogleFotoListAdapter googleFotoListAdapter;
 
     private RecyclerView recyclerViewPurList;
+    private RecyclerView products_category_list;
 
     private ItemTouchHelper mItemTouchHelperPurList;
+    private ItemTouchHelper mItemTouchHelperAccList;
+
     private TextView currentName;
     private TextView currentNumber;
     private TextView currentDate ;
     private TextView store_name;
     private TextView strore_adress ;
+    private TextView invoice_date_text;
+    private TextView invoice_count_text;
+    private TextView invoice_sum_text;
+    private TextView account_name;
+
+
+
+
     public static ImageView placeImage;
+    private ImageView account_logo_image;
+
     private RelativeLayout storeData;
+
 
     public static PurchasesListAdapter purchasesListAdapter;
     private final int PLACE_PICKER_REQUEST = 3000;
@@ -72,6 +86,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private Context context;
     private Double map_offset= 0.02;
     public static PhotoTask photoTask;
+
 
     public PurchasesPageFragment(){}
 
@@ -108,7 +123,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             pageNumber = null;
         }
 
-        if ((currentInvoice.store != null && currentInvoice.store._status == 0) || (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
+        if ((currentInvoice.store != null && currentInvoice.store._status != 1) || currentInvoice.store == null){ //|| (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
             final AlertDialog builder = new AlertDialog.Builder(context).create();
             builder.setTitle(context.getString(R.string.finde_store_on_map));
             builder.setButton(AlertDialog.BUTTON_NEGATIVE, context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
@@ -162,6 +177,25 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                 //PhotoTaskSaver photoTask = new PhotoTaskSaver(500, 500);
                 //photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
             }
+            String[] date = currentInvoice.getDateInvoice(null).split(" ");
+            invoice_date_text.setText(date[0]+"\n"+date[1]);
+            invoice_count_text.setText(currentInvoice.quantity.toString());
+            invoice_sum_text.setText(currentInvoice.getFullPrice().toString());
+
+
+            if(accountingList!= null) {
+                AccountingListData data = accountingList.getAccByFk(currentInvoice.getFk_invoice_accountinglist());
+                if (data != null)
+                    account_name.setText(data.getName());
+                else
+                {
+                    account_name.setText(context.getString(R.string.accountingList_default));
+
+                }
+            }
+
+
+
             //currentNumber.setText(String.valueOf(currentInvoice.quantity == null? "0" : currentInvoice.quantity));
         }
         else {
@@ -175,8 +209,6 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public void onResume() {
         super.onResume();
         try {
-            purchasesList.reloadPurchasesList();
-            purchasesListAdapter.notifyDataSetChanged();
 
 
             MainActivity.currentNumber.setText(String.valueOf(purchasesList.purchasesListData.size()));
@@ -270,16 +302,22 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             }
         });
 
+        account_name = view.findViewById(R.id.account_name);
+        account_logo_image = view.findViewById(R.id.account_logo_image);
+        invoice_date_text = view.findViewById(R.id.invoice_date_text);
+        invoice_count_text = view.findViewById(R.id.invoice_count_text);
+        invoice_sum_text = view.findViewById(R.id.invoice_sum_text);
+
         setPageData();
 
 
         recyclerViewPurList =  view.findViewById(R.id.cardList);
-        assert recyclerViewPurList != null;
-        recyclerViewPurList.setHasFixedSize(true);
-        final LinearLayoutManager llm = new LinearLayoutManager(context);
-        llm.setOrientation(LinearLayoutManager.VERTICAL);
-        recyclerViewPurList.setLayoutManager(llm);
+        products_category_list = view.findViewById(R.id.products_category_list);
 
+        recyclerViewPurList.setHasFixedSize(true);
+        final LinearLayoutManager purchasesListLLM = new LinearLayoutManager(context);
+        purchasesListLLM.setOrientation(LinearLayoutManager.VERTICAL);
+        recyclerViewPurList.setLayoutManager(purchasesListLLM);
 
         purchasesListAdapter = new PurchasesListAdapter(context, this, currentNumber, purchasesList, view);
         recyclerViewPurList.setAdapter(purchasesListAdapter);
@@ -288,6 +326,44 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         mItemTouchHelperPurList.attachToRecyclerView(recyclerViewPurList);
         //currentName.setText(purchasesList.title);
         purchasesListAdapter.notifyDataSetChanged();
+
+
+
+        products_category_list.setHasFixedSize(true);
+
+
+
+
+        Products_category_adapter products_category_adapter = new Products_category_adapter(context, purchasesList, currentInvoice, view);
+        final GridLayoutManager products_category_adapterLLM;
+        if(products_category_adapter.categories.size()>3)
+        {
+            products_category_adapterLLM = new GridLayoutManager(context,3);
+
+        }
+        else if(products_category_adapter.categories.size()>2)
+        {
+            products_category_adapterLLM = new GridLayoutManager(context,3);
+        }
+        else if(products_category_adapter.categories.size()>1)
+        {
+            products_category_adapterLLM = new GridLayoutManager(context,2);
+        }
+        else
+        {
+            products_category_adapterLLM = new GridLayoutManager(context,1);
+        }
+
+
+        products_category_adapterLLM.setOrientation(LinearLayoutManager.VERTICAL);
+        products_category_list.setLayoutManager(products_category_adapterLLM);
+
+        products_category_list.setAdapter(products_category_adapter);
+        ItemTouchHelper.Callback callbackAccList = new SimpleItemTouchHelperCallback(purchasesListAdapter, context);
+        mItemTouchHelperAccList = new ItemTouchHelper(callbackAccList);
+        mItemTouchHelperAccList.attachToRecyclerView(products_category_list);
+
+
 
         //if(MainActivity.pageNow == "purchasesList")
         //fab.hide();
@@ -609,7 +685,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             }
 
             final String placeId = params[0];
-            GooglePlace googlePlace = new GooglePlace(placeId, getContext());
+            GooglePlace googlePlace = new GooglePlace(placeId, context);
                 Bitmap image = null;
                 if (googlePlace.photos != null) {
                     for (int count = 0; count < googlePlace.photos.size(); count++) {

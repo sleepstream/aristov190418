@@ -28,6 +28,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import static com.sleepstream.checkkeeper.MainActivity.settings;
+
 public class CropActivity extends AppCompatActivity {
 
 
@@ -46,6 +48,11 @@ public class CropActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if(settings!= null && settings.settings.containsKey("theme"))
+        {
+            int theme = Integer.valueOf(settings.settings.get("theme"));
+            setTheme(theme);
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_crop);
         findViewsByIds();
