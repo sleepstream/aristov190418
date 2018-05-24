@@ -53,5 +53,8 @@ public class PurchasesListData {
         public String category;
         public String icon_name;
         public Integer count;
+        public Integer fk_product_category_data;
+        public Integer fk_product_category_products;
+        public String category_id;
     }
 }

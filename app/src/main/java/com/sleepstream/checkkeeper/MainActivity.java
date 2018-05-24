@@ -28,6 +28,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
@@ -1894,33 +1895,35 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     @Override
     public void onBackPressed() {
-        if(blurPlotter.getVisibility() == View.VISIBLE)
-        {
-            blurPlotter.setVisibility(View.GONE);
-            progressBar.setVisibility(View.GONE);
-        }
-        else
-        {
-            if (navigation.pageBackList.size() > 0) {
-                navigation.backPress();
+        boolean mainBackPress = false;
+        if(navigation.purchasesPageFragment != null)
+            mainBackPress = navigation.purchasesPageFragment.onBackPressed();
+        if (!mainBackPress) {
+            if (blurPlotter.getVisibility() == View.VISIBLE) {
+                blurPlotter.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+            } else {
+                if (navigation.pageBackList.size() > 0) {
+                    navigation.backPress();
 
-                closeDrawer();
-            } else if (backCount == 0) {
-                backCount += 1;
-                Toast.makeText(context, context.getString(R.string.press_back_to_exit), Toast.LENGTH_LONG).show();
+                    closeDrawer();
+                } else if (backCount == 0) {
+                    backCount += 1;
+                    Toast.makeText(context, context.getString(R.string.press_back_to_exit), Toast.LENGTH_LONG).show();
 
-                //reset if no press for interval
-                Runnable runnableUndo = new Runnable() {
+                    //reset if no press for interval
+                    Runnable runnableUndo = new Runnable() {
 
-                    @Override
-                    public void run() {
-                        backCount = 0;
-                    }
-                };
-                Handler handlerUndo=new Handler();
-                handlerUndo.postDelayed(runnableUndo,2500);
-            } else
-                finish();
+                        @Override
+                        public void run() {
+                            backCount = 0;
+                        }
+                    };
+                    Handler handlerUndo = new Handler();
+                    handlerUndo.postDelayed(runnableUndo, 2500);
+                } else
+                    finish();
+            }
         }
     }
 

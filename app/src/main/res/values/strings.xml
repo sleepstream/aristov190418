@@ -140,5 +140,7 @@
     <string name="default_icon_name_product_category">ic_product_category_default</string>
     <string name="accountingList_default">Общие расходы</string>
     <string name="title_category_products">Категории товаров</string>
+    <string name="alcho_icon_name_product_category">ic_product_category_alcho</string>
+    <string name="button_select_category">Выбрать категории</string>
 
 </resources>

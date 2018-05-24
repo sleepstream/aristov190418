@@ -20,7 +20,9 @@ import com.sleepstream.checkkeeper.helper.ItemTouchHelperViewHolder;
 import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
 import com.sleepstream.checkkeeper.purchasesObjects.PurchasesListData;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static com.sleepstream.checkkeeper.MainActivity.fromHtml;
 
@@ -40,6 +42,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
     public Integer row_index = -1;
     private boolean moovement = false;
     private View parrentView;
+    private List<Integer> selectedItems = new ArrayList<>();
 
     public PurchasesListAdapter(Context context, OnStartDragListener dragStartListener, TextView invsNumber, PurchasesList purchasesList, View view) {
         this.invsNumber = invsNumber;
@@ -176,15 +179,23 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
             }
         });
 */
-        /*itemViewHolder.container.setOnLongClickListener(new View.OnLongClickListener() {
+        itemViewHolder.container.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                row_index = position;
+                if(selectedItems.contains(position))
+                    selectedItems.remove(selectedItems.indexOf(position));
+                else
+                    selectedItems.add(position);
+
+                if(selectedItems.size()>0)
+                    PurchasesPageFragment.button_select_category.setVisibility(View.VISIBLE);
+                else
+                    PurchasesPageFragment.button_select_category.setVisibility(View.GONE);
                 notifyDataSetChanged();
-                showPopupMenuAccountingList(view, position);
+                //showPopupMenuAccountingList(view, position);
                 return false;
             }
-        });*/
+        });
         itemViewHolder.relativeReorder.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -206,7 +217,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
             }
         });
 
-        if(row_index == position)
+        if(selectedItems.contains(position))
         {
             itemViewHolder.container.setBackgroundColor(ContextCompat.getColor(context, R.color.colorAccent));
             itemViewHolder.itemName.setTextColor(ContextCompat.getColor(context, R.color.white));

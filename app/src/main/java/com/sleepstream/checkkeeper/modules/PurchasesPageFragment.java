@@ -18,6 +18,9 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.Animation.AnimationListener;
+import android.view.animation.AnimationUtils;
 import android.widget.*;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
@@ -28,6 +31,7 @@ import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.sleepstream.checkkeeper.IOnBackPressed;
 import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
@@ -44,7 +48,7 @@ import java.io.IOException;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
 
-public class PurchasesPageFragment extends Fragment implements PurchasesListAdapter.OnStartDragListener{
+public class PurchasesPageFragment extends Fragment implements PurchasesListAdapter.OnStartDragListener, IOnBackPressed, AnimationListener {
 
     private static final String ARGUMENT_PAGE_NUMBER = "arg_page_number";
     private static final String LOG_TAG = "PageFragment";
@@ -54,11 +58,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private Integer pageNumber;
     public static GoogleFotoListAdapter googleFotoListAdapter;
 
-    private RecyclerView recyclerViewPurList;
+    public static RecyclerView recyclerViewPurList;
     private RecyclerView products_category_list;
+    private RecyclerView category_chooser_list;
 
     private ItemTouchHelper mItemTouchHelperPurList;
     private ItemTouchHelper mItemTouchHelperAccList;
+    private ItemTouchHelper mItemTouchHelperCatList;
 
     private TextView currentName;
     private TextView currentNumber;
@@ -77,7 +83,9 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private ImageView account_logo_image;
 
     private RelativeLayout storeData;
-
+    public static RelativeLayout mainView;
+    public static RelativeLayout button_select_category;
+    private RelativeLayout categories_choose;
 
     public static PurchasesListAdapter purchasesListAdapter;
     private final int PLACE_PICKER_REQUEST = 3000;
@@ -86,6 +94,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private Context context;
     private Double map_offset= 0.02;
     public static PhotoTask photoTask;
+
 
 
     public PurchasesPageFragment(){}
@@ -307,12 +316,52 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         invoice_date_text = view.findViewById(R.id.invoice_date_text);
         invoice_count_text = view.findViewById(R.id.invoice_count_text);
         invoice_sum_text = view.findViewById(R.id.invoice_sum_text);
+        mainView = view.findViewById(R.id.mainView);
+        button_select_category = view.findViewById(R.id.button_select_category);
+        categories_choose = view.findViewById(R.id.categories_choose);
+
+        button_select_category.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Animation animation = AnimationUtils.loadAnimation(context,  R.anim.translate);
+                categories_choose.startAnimation(animation);
+                animation.setAnimationListener(new AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+                        categories_choose.setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+                        categories_choose.setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+                        categories_choose.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        });
 
         setPageData();
 
 
         recyclerViewPurList =  view.findViewById(R.id.cardList);
         products_category_list = view.findViewById(R.id.products_category_list);
+        category_chooser_list = view.findViewById(R.id.category_chooser_list);
+
+
+        category_chooser_list.setHasFixedSize(true);
+        Products_category_adapter category_chooser_list_adapter = new Products_category_adapter(context, purchasesList, currentInvoice, view, true);
+        final GridLayoutManager category_chooser_list_adapterGLM = new GridLayoutManager(context,4);
+        category_chooser_list_adapterGLM.setOrientation(LinearLayoutManager.VERTICAL);
+        category_chooser_list.setLayoutManager(category_chooser_list_adapterGLM);
+        category_chooser_list.setAdapter(category_chooser_list_adapter);
+        ItemTouchHelper.Callback callbackCatList = new SimpleItemTouchHelperCallback(purchasesListAdapter, context);
+        mItemTouchHelperCatList = new ItemTouchHelper(callbackCatList);
+        mItemTouchHelperCatList.attachToRecyclerView(category_chooser_list);
+
 
         recyclerViewPurList.setHasFixedSize(true);
         final LinearLayoutManager purchasesListLLM = new LinearLayoutManager(context);
@@ -330,22 +379,18 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
 
         products_category_list.setHasFixedSize(true);
-
-
-
-
         Products_category_adapter products_category_adapter = new Products_category_adapter(context, purchasesList, currentInvoice, view);
         final GridLayoutManager products_category_adapterLLM;
-        if(products_category_adapter.categories.size()>3)
+        if(products_category_adapter.categoriesSelected.size()>3)
         {
             products_category_adapterLLM = new GridLayoutManager(context,3);
 
         }
-        else if(products_category_adapter.categories.size()>2)
+        else if(products_category_adapter.categoriesSelected.size()>2)
         {
             products_category_adapterLLM = new GridLayoutManager(context,3);
         }
-        else if(products_category_adapter.categories.size()>1)
+        else if(products_category_adapter.categoriesSelected.size()>1)
         {
             products_category_adapterLLM = new GridLayoutManager(context,2);
         }
@@ -381,6 +426,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         return view;
     }
 
+
     @Override
     public void onDestroyView() {
 
@@ -395,7 +441,29 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             mItemTouchHelperPurList.startDrag(viewHolder);
     }
 
+    @Override
+    public boolean onBackPressed() {
+        if(mainView.getVisibility() == View.VISIBLE) {
+            mainView.setVisibility(View.GONE);
+            return true;
+        }
+        return false;
+    }
 
+    @Override
+    public void onAnimationStart(Animation animation) {
+
+    }
+
+    @Override
+    public void onAnimationEnd(Animation animation) {
+
+    }
+
+    @Override
+    public void onAnimationRepeat(Animation animation) {
+
+    }
 
 
     class PhotoTaskSaver extends AsyncTask<String, Void, PhotoTaskSaver.AttributedPhoto> {

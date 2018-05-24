@@ -346,7 +346,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
 
                         MainActivity.purchasesList.clearFilter();
                         MainActivity.purchasesList.setfilter("fk_purchases_invoice", item.getId().toString());
-                        MainActivity.purchasesList.reloadPurchasesList();
+                        MainActivity.purchasesList.reloadPurchasesList(null);
                         MainActivity.currentInvoice = item;
                         MainActivity.Page page =new MainActivity.Page("", 4);
                         page.positionInList = position;

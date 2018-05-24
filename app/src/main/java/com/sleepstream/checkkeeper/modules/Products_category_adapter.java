@@ -1,18 +1,13 @@
 package com.sleepstream.checkkeeper.modules;
 
-import android.app.Activity;
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import com.andremion.counterfab.CounterFab;
 import com.sleepstream.checkkeeper.R;
-import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
-import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
 import com.sleepstream.checkkeeper.purchasesObjects.PurchasesListData;
@@ -22,23 +17,49 @@ import java.util.List;
 
 public class Products_category_adapter extends RecyclerView.Adapter<Products_category_adapter.ItemViewHolder>  {
     PurchasesList purchasesLists;
-Context context;
+    Context context;
+    private boolean chooser = false;
+    private List<PurchasesListData.Category> categoriesAll = new ArrayList<>();
 
 
-    public List<PurchasesListData.Category> categories = new ArrayList<>();
+    public List<PurchasesListData.Category> categoriesSelected = new ArrayList<>();
 
     public Products_category_adapter(Context context, PurchasesList purchasesList, InvoiceData currentInvoice, View view) {
         this.context = context;
+        this.purchasesLists = purchasesList;
         for(PurchasesListData purchasesListData : purchasesList.purchasesListData)
         {
             if(purchasesListData.product.categories != null) {
                 for (PurchasesListData.Category category : purchasesListData.product.categories) {
 
-                    if (findeCategory(categories, category)==-1) {
+                    if (findeCategory(categoriesSelected, category)==-1) {
                         category.count = 1;
-                        categories.add(category);
+                        categoriesSelected.add(category);
                     } else {
-                        categories.get(findeCategory(categories, category)).count += 1;
+                        categoriesSelected.get(findeCategory(categoriesSelected, category)).count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    public Products_category_adapter(Context context, PurchasesList purchasesList, InvoiceData currentInvoice, View view, boolean chooser) {
+        this.chooser = chooser;
+        this.context = context;
+        this.purchasesLists = purchasesList;
+        categoriesAll = purchasesList.loadProductCategories();
+
+
+        for(PurchasesListData purchasesListData : purchasesList.purchasesListData)
+        {
+            if(purchasesListData.product.categories != null) {
+                for (PurchasesListData.Category category : purchasesListData.product.categories) {
+
+                    if (findeCategory(categoriesSelected, category)==-1) {
+                        category.count = 1;
+                        categoriesSelected.add(category);
+                    } else {
+                        categoriesSelected.get(findeCategory(categoriesSelected, category)).count += 1;
                     }
                 }
             }
@@ -66,18 +87,32 @@ Context context;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ItemViewHolder itemViewHolder, int i) {
-        itemViewHolder.fab_cart.setCount(categories.get(i).count);
-        if(categories.get(i).icon_name.equals(context.getString(R.string.default_icon_name_product_category)))
+    public void onBindViewHolder(@NonNull ItemViewHolder itemViewHolder, final int i) {
+        itemViewHolder.fab_cart.setCount(categoriesSelected.get(i).count);
+        if(categoriesSelected.get(i).icon_name.equals(context.getString(R.string.default_icon_name_product_category)))
             itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
+        else if(categoriesSelected.get(i).icon_name.equals(context.getString(R.string.alcho_icon_name_product_category)))
+            itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_alcho_48);
+
+        itemViewHolder.fab_cart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                purchasesLists.reloadPurchasesList(categoriesSelected.get(i).category_id == null? null : categoriesSelected.get(i).category_id);
+                PurchasesPageFragment.purchasesListAdapter.notifyDataSetChanged();
+                PurchasesPageFragment.mainView.setVisibility(View.VISIBLE);
+            }
+        });
 
     }
 
 
     @Override
     public int getItemCount() {
-        return categories.size();
+        return categoriesSelected.size();
     }
+
+
 
 
     public class ItemViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener

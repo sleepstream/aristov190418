@@ -4,12 +4,28 @@
                 xmlns:tools="http://schemas.android.com/tools"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="center"
-                >
+                android:layout_gravity="center">
+    <RelativeLayout
+            android:id="@+id/fab_name_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/E_mailAdress"/>
+    </RelativeLayout>
+    <RelativeLayout
+            android:id="@+id/fab_cart_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/fab_name_layout"
+            android:gravity="center">
         <com.andremion.counterfab.CounterFab
                 android:id="@+id/fab_cart"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:srcCompat="@drawable/ic_camera_alt_black_48dp"
                 app:backgroundTint="@color/colorPrimaryDark" />
+    </RelativeLayout>
 </RelativeLayout>

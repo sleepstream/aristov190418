@@ -38,7 +38,6 @@ public class DBHelper extends SQLiteOpenHelper{
             this.myContext= context;
         DB_PATH= myContext.getDatabasePath(DB_NAME).getAbsolutePath();
         backUpDataBase(false);
-
     }
 
     public void createDataBase() throws IOException {
@@ -235,6 +234,12 @@ public class DBHelper extends SQLiteOpenHelper{
         if(!myDataBase.isOpen())
             this.openDataBase();
         Cursor cur = myDataBase.query(tableName, columns, selection, selectionArgs, groupBy, having, orderBy, limit);
+        return cur;
+    }
+
+    public Cursor rawQuery(String sql, String[] args)
+    {
+        Cursor cur = myDataBase.rawQuery(sql, args);
         return cur;
     }
 
