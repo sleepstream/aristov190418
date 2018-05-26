@@ -42,7 +42,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
     public Integer row_index = -1;
     private boolean moovement = false;
     private View parrentView;
-    private List<Integer> selectedItems = new ArrayList<>();
+    public List<Integer> selectedItems = new ArrayList<>();
 
     public PurchasesListAdapter(Context context, OnStartDragListener dragStartListener, TextView invsNumber, PurchasesList purchasesList, View view) {
         this.invsNumber = invsNumber;

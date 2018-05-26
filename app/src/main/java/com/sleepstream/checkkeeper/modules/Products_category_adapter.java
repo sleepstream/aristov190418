@@ -1,12 +1,14 @@
 package com.sleepstream.checkkeeper.modules;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import com.andremion.counterfab.CounterFab;
+import android.widget.TextView;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
@@ -15,30 +17,33 @@ import com.sleepstream.checkkeeper.purchasesObjects.PurchasesListData;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.sleepstream.checkkeeper.MainActivity.getThemeColor;
+
 public class Products_category_adapter extends RecyclerView.Adapter<Products_category_adapter.ItemViewHolder>  {
     PurchasesList purchasesLists;
     Context context;
     private boolean chooser = false;
-    private List<PurchasesListData.Category> categoriesAll = new ArrayList<>();
+    public Integer category_selected =0;
+    public List<PurchasesListData.Category> categoriesAll = new ArrayList<>();
 
 
     public List<PurchasesListData.Category> categoriesSelected = new ArrayList<>();
+    private final String LOG_TAG="Products_category_adap";
 
     public Products_category_adapter(Context context, PurchasesList purchasesList, InvoiceData currentInvoice, View view) {
         this.context = context;
         this.purchasesLists = purchasesList;
+        Log.d(LOG_TAG, "Products_category_adapter  construct\n");
         for(PurchasesListData purchasesListData : purchasesList.purchasesListData)
         {
-            if(purchasesListData.product.categories != null) {
-                for (PurchasesListData.Category category : purchasesListData.product.categories) {
-
-                    if (findeCategory(categoriesSelected, category)==-1) {
-                        category.count = 1;
-                        categoriesSelected.add(category);
+            Log.d(LOG_TAG, "purchasesListData\n"+purchasesListData.product.nameFromBill);
+            if(purchasesListData.product.category != null) {
+                    if (findeCategory(categoriesSelected, purchasesListData.product.category)==-1) {
+                        purchasesListData.product.category.count = 1;
+                        categoriesSelected.add(purchasesListData.product.category);
                     } else {
-                        categoriesSelected.get(findeCategory(categoriesSelected, category)).count += 1;
+                        categoriesSelected.get(findeCategory(categoriesSelected, purchasesListData.product.category)).count += 1;
                     }
-                }
             }
         }
     }
@@ -50,18 +55,24 @@ public class Products_category_adapter extends RecyclerView.Adapter<Products_cat
         categoriesAll = purchasesList.loadProductCategories();
 
 
+        Log.d(LOG_TAG, "Products_category_adapter with chooser construct\n");
         for(PurchasesListData purchasesListData : purchasesList.purchasesListData)
         {
-            if(purchasesListData.product.categories != null) {
-                for (PurchasesListData.Category category : purchasesListData.product.categories) {
-
-                    if (findeCategory(categoriesSelected, category)==-1) {
-                        category.count = 1;
-                        categoriesSelected.add(category);
+            Log.d(LOG_TAG, "purchasesListData\n"+purchasesListData.product.nameFromBill);
+            if(purchasesListData.product.category != null) {
+                if (findeCategory(categoriesSelected, purchasesListData.product.category)==-1) {
+                        purchasesListData.product.category.count = 1;
+                        categoriesSelected.add(purchasesListData.product.category);
                     } else {
-                        categoriesSelected.get(findeCategory(categoriesSelected, category)).count += 1;
+                        categoriesSelected.get(findeCategory(categoriesSelected, purchasesListData.product.category)).count += 1;
                     }
-                }
+                    for(PurchasesListData.Category categoryAll: categoriesAll)
+                    {
+                        if(categoryAll.id == purchasesListData.product.category.id) {
+                            categoryAll.selected = true;
+                            break;
+                        }
+                    }
             }
         }
     }
@@ -87,23 +98,66 @@ public class Products_category_adapter extends RecyclerView.Adapter<Products_cat
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ItemViewHolder itemViewHolder, final int i) {
-        itemViewHolder.fab_cart.setCount(categoriesSelected.get(i).count);
-        if(categoriesSelected.get(i).icon_name.equals(context.getString(R.string.default_icon_name_product_category)))
-            itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
-        else if(categoriesSelected.get(i).icon_name.equals(context.getString(R.string.alcho_icon_name_product_category)))
-            itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_alcho_48);
+    public void onBindViewHolder(@NonNull final ItemViewHolder itemViewHolder, final int i) {
+        Log.d(LOG_TAG, "onBindViewHolder\n");
 
-        itemViewHolder.fab_cart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
 
-                purchasesLists.reloadPurchasesList(categoriesSelected.get(i).category_id == null? null : categoriesSelected.get(i).category_id);
-                PurchasesPageFragment.purchasesListAdapter.notifyDataSetChanged();
-                PurchasesPageFragment.mainView.setVisibility(View.VISIBLE);
+
+        if(!chooser && PurchasesPageFragment.mainView.getVisibility() != View.VISIBLE ) {
+            itemViewHolder.fab_cart.setCount(categoriesSelected.get(i).count);
+            if (categoriesSelected.get(i).icon_name.equals(context.getString(R.string.default_icon_name_product_category)))
+                itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
+            else if (categoriesSelected.get(i).icon_name.equals(context.getString(R.string.alcho_icon_name_product_category)))
+                itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_alcho_48);
+            itemViewHolder.fab_cart.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    purchasesLists.reloadPurchasesList(categoriesSelected.get(i).category_id == null ? null : categoriesSelected.get(i).category_id);
+                    //PurchasesPageFragment.purchasesListAdapter.notifyDataSetChanged();
+                    PurchasesPageFragment.mainView.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+        else if(PurchasesPageFragment.categories_choose.getVisibility() == View.VISIBLE)
+        {
+            itemViewHolder.fab_name_title.setText(categoriesAll.get(i).category);
+            if (categoriesAll.get(i).icon_name.equals(context.getString(R.string.default_icon_name_product_category)))
+                itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
+            else if (categoriesAll.get(i).icon_name.equals(context.getString(R.string.alcho_icon_name_product_category)))
+                itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_alcho_48);
+
+            category_selected = 0;
+            /*
+            if(categoriesAll.get(i).selected)
+            {
+                itemViewHolder.fab_cart.setBackgroundTintList(ColorStateList.valueOf(getThemeColor(context, R.attr.colorBackground)));
+                itemViewHolder.fab_cart.selectedChange();
             }
-        });
+            else
+            {
+                itemViewHolder.fab_cart.setBackgroundTintList(ColorStateList.valueOf(getThemeColor(context, R.attr.colorNewAccentLink)));
+            }
+            */
+            itemViewHolder.fab_cart.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
 
+                    if(categoriesAll.get(i).category_id == category_selected )
+                    {
+                        category_selected = 0;
+                        itemViewHolder.fab_cart.setBackgroundTintList(ColorStateList.valueOf(getThemeColor(context, R.attr.colorNewAccentLink)));
+                        itemViewHolder.fab_cart.selectedChange();
+                    }
+                    else
+                    {
+                        category_selected = categoriesAll.get(i).category_id;
+                        itemViewHolder.fab_cart.setBackgroundTintList(ColorStateList.valueOf(getThemeColor(context, R.attr.colorBackground)));
+                        itemViewHolder.fab_cart.selectedChange();
+                    }
+                }
+            });
+        }
     }
 
 
@@ -117,10 +171,12 @@ public class Products_category_adapter extends RecyclerView.Adapter<Products_cat
 
     public class ItemViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener
     {
-        public CounterFab fab_cart;
+        public CounterCheckedFab fab_cart;
+        public TextView fab_name_title;
         public ItemViewHolder(View itemView) {
             super(itemView);
             fab_cart = itemView.findViewById(R.id.fab_cart);
+            fab_name_title  = itemView.findViewById(R.id.fab_name_title);
         }
 
         @Override

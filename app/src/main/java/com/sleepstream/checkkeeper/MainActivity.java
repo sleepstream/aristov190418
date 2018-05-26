@@ -7,6 +7,7 @@ import android.app.AlertDialog;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.graphics.Bitmap;
@@ -614,7 +615,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         //все чеки
         invoiceCount.setGravity(Gravity.CENTER_VERTICAL);
         invoiceCount.setTypeface(null, Typeface.BOLD);
-        invoiceCount.setTextColor(getThemeColor(context, R.attr.colorNewAccent));
+        invoiceCount.setTextColor(getThemeColor(context, R.attr.colorNewAccentLink));
         filter.clear();
         filter.put("in_basket", new String[]{"0"});
         if (navigation.filterDates != null && navigation.filterDates.size() > 0) {
@@ -625,18 +626,18 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         //список покупок
         accountingListCount.setGravity(Gravity.CENTER_VERTICAL);
         accountingListCount.setTypeface(null, Typeface.BOLD);
-        accountingListCount.setTextColor(getThemeColor(context, R.attr.colorNewAccent));
+        accountingListCount.setTextColor(getThemeColor(context, R.attr.colorNewAccentLink));
         accountingListCount.setText(String.valueOf(accountingList.getCount()));
 
         //закрепленные
         linkedListCount.setGravity(Gravity.CENTER_VERTICAL);
         linkedListCount.setTypeface(null, Typeface.BOLD);
-        linkedListCount.setTextColor(getThemeColor(context, R.attr.colorNewAccent));
+        linkedListCount.setTextColor(getThemeColor(context, R.attr.colorNewAccentLink));
         linkedListCount.setText(String.valueOf(linkedListClass.getCount()));
         //Загрузка
         invoicesLoadingPage.setGravity(Gravity.CENTER_VERTICAL);
         invoicesLoadingPage.setTypeface(null, Typeface.BOLD);
-        invoicesLoadingPage.setTextColor(getThemeColor(context, R.attr.colorNewAccent));
+        invoicesLoadingPage.setTextColor(getThemeColor(context, R.attr.colorNewAccentLink));
         filter.clear();
         filter.put("_status", statusInvoices.get("loading"));
         filter.put("in_basket", new String[]{"0"});
@@ -1960,10 +1961,23 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
     }
 
-    public static int getThemeColor (final Context context, final int colorAttr) {
-        final TypedValue value = new TypedValue ();
-        context.getTheme ().resolveAttribute (colorAttr, value, true);
-        return value.data;
+  /*  public static int getThemeColor (final Context context, final int colorAttr) {
+        final TypedValue value = new TypedValue();
+        boolean found = context.getTheme().resolveAttribute(colorAttr, value, true);
+        if(found)
+            return value.resourceId;
+        else
+            return R.color.background;
+
+    }*/
+
+    public static int getThemeColor(Context context, int attr) {
+        TypedValue typedValue = new TypedValue();
+        context.getTheme().resolveAttribute(attr, typedValue, true);
+        TypedArray ta = context.obtainStyledAttributes(typedValue.resourceId, new int[]{attr});
+        int color = ta.getColor(0, 0);
+        ta.recycle();
+        return color;
     }
 
 }

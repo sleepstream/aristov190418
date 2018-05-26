@@ -43,7 +43,7 @@ public class PurchasesList {
 
 
 
-    public void reloadPurchasesList(String categoryId)
+    public void reloadPurchasesList(Integer categoryId)
     {
         
         
@@ -53,7 +53,7 @@ public class PurchasesList {
         List<String> selectionArgs=new ArrayList<>();
         if(categoryId != null)
         {
-            selectionArgs.add(categoryId);
+            selectionArgs.add(categoryId.toString());
         }
 
         for(Map.Entry<String, String> entry : filterParam.entrySet()) {
@@ -79,9 +79,10 @@ public class PurchasesList {
         }
         else
         {
-            cur = dbHelper.rawQuery("Select * from "+tableName+" where fk_purchases_products in " +
+            String selectionQuery  ="Select * from "+tableName+" where fk_purchases_products in " +
                     "(Select id from Products where id in " +
-                    "(Select fk_product_category_products from product_category where fk_product_category_data = ?))"+selection != ""? selection : "", args);
+                    "(Select fk_product_category_products from product_category where fk_product_category_data = ?)) "+(selection != ""? " AND "+selection.substring(0, selection.length() - 5) : "");
+            cur = dbHelper.rawQuery(selectionQuery, args);
         }
 
         if(cur.moveToFirst())
@@ -140,12 +141,12 @@ public class PurchasesList {
 
                                     Cursor cur_product_category = dbHelper.query("product_category", null, "fk_product_category_products=?", new String[]{product.id.toString()},
                                             null, null, null, null);
-                                    List<PurchasesListData.Category> categories = new ArrayList<>();
+                                    PurchasesListData.Category category = new PurchasesListData.Category();
                                     if(cur_product_category.moveToFirst())
                                     {
 
                                         do{
-                                            PurchasesListData.Category category = new PurchasesListData.Category();
+
                                             category.id = cur_product_category.getInt(cur_product_category.getColumnIndex("id"));
                                             category.fk_product_category_data = cur_product_category.getInt(cur_product_category.getColumnIndex("fk_product_category_data"));
                                             category.fk_product_category_products = cur_product_category.getInt(cur_product_category.getColumnIndex("fk_product_category_products"));
@@ -154,30 +155,23 @@ public class PurchasesList {
                                                     null, null, null, null);
                                             if(cur_product_category_name.moveToFirst())
                                             {
-                                                category.category = cur_product_category_name.getString(cur_product_category.getColumnIndex("category"));
-                                                category.icon_name = cur_product_category_name.getString(cur_product_category.getColumnIndex("icon_name"));
-                                                category.category_id = cur_product_category_name.getString(cur_product_category.getColumnIndex("id"));
+                                                category.category = cur_product_category_name.getString(cur_product_category_name.getColumnIndex("category"));
+                                                category.icon_name = cur_product_category_name.getString(cur_product_category_name.getColumnIndex("icon_name"));
+                                                category.category_id = cur_product_category_name.getInt(cur_product_category_name.getColumnIndex("id"));
                                                 cur_product_category_name.close();
-                                                categories.add(category);
                                             }
                                         }
                                         while(cur_product_category.moveToNext());
                                         cur_product_category.close();
-                                        if(categories.size()>0)
-                                        {
-
-                                        }
                                     }
                                     else
                                     {
-                                        PurchasesListData.Category category = new PurchasesListData.Category();
                                         category.count=0;
                                         category.icon_name= "ic_product_category_default";//R.string.default_icon_name_product_category;
                                         category.category = "default";
-                                        categories.add(category);
 
                                     }
-                                    purchasesListData.product.categories = categories;
+                                    purchasesListData.product.category = category;
                                 }
                                 fk_cur.close();
                                 break;
@@ -196,15 +190,10 @@ public class PurchasesList {
                 this.purchasesListData.add(purchasesListData);
             }
             while(cur.moveToNext());
-
-
             Log.d(LOG_TAG, "Loaded from DB records " + purchasesListData.size());
         }
         cur.close();
         Log.d(LOG_TAG, "No records in DB");
-        
-
-
     }
 
 
@@ -257,6 +246,18 @@ public class PurchasesList {
 
     public List<PurchasesListData.Category> loadProductCategories() {
         List<PurchasesListData.Category> categories = new ArrayList<>();
+        Cursor cur = dbHelper.query("product_category_data", null, null, null, null, null, null, null);
+        if(cur.moveToFirst()) {
+            do {
+                PurchasesListData.Category category = new PurchasesListData.Category();
+                category.icon_name = cur.getString(cur.getColumnIndex("icon_name"));
+                category.category = cur.getString(cur.getColumnIndex("category"));
+                category.category_id = cur.getInt(cur.getColumnIndex("id"));
+                categories.add(category);
+            }
+            while (cur.moveToNext());
+        }
+        cur.close();
         return categories;
     }
 }

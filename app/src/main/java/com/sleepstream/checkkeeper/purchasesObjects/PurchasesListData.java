@@ -45,7 +45,7 @@ public class PurchasesListData {
         public String correctName;
         public String nameFromBill;
         public Integer barcode;
-        public List<Category> categories;
+        public Category category;
     }
     public static class Category
     {
@@ -55,6 +55,7 @@ public class PurchasesListData {
         public Integer count;
         public Integer fk_product_category_data;
         public Integer fk_product_category_products;
-        public String category_id;
+        public Integer category_id;
+        public boolean selected;
     }
 }

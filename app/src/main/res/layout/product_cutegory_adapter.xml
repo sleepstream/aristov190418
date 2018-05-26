@@ -11,9 +11,11 @@
             android:layout_height="wrap_content"
             android:gravity="center">
         <TextView
+                android:id="@+id/fab_name_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/E_mailAdress"/>
+                style="?TextAppeareance_onDark"
+                android:textSize="18sp"/>
     </RelativeLayout>
     <RelativeLayout
             android:id="@+id/fab_cart_layout"
@@ -21,11 +23,9 @@
             android:layout_height="wrap_content"
             android:layout_below="@+id/fab_name_layout"
             android:gravity="center">
-        <com.andremion.counterfab.CounterFab
+        <com.sleepstream.checkkeeper.modules.CounterCheckedFab
                 android:id="@+id/fab_cart"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:srcCompat="@drawable/ic_camera_alt_black_48dp"
-                app:backgroundTint="@color/colorPrimaryDark" />
+                android:layout_height="wrap_content"/>
     </RelativeLayout>
 </RelativeLayout>

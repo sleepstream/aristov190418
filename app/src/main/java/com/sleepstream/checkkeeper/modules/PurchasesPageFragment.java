@@ -2,6 +2,7 @@ package com.sleepstream.checkkeeper.modules;
 
 import android.app.AlertDialog;
 import android.app.Fragment;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
@@ -38,6 +39,7 @@ import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
+import com.sleepstream.checkkeeper.purchasesObjects.PurchasesListData;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -48,7 +50,7 @@ import java.io.IOException;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
 
-public class PurchasesPageFragment extends Fragment implements PurchasesListAdapter.OnStartDragListener, IOnBackPressed, AnimationListener {
+public class PurchasesPageFragment extends Fragment implements PurchasesListAdapter.OnStartDragListener, IOnBackPressed {
 
     private static final String ARGUMENT_PAGE_NUMBER = "arg_page_number";
     private static final String LOG_TAG = "PageFragment";
@@ -85,7 +87,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private RelativeLayout storeData;
     public static RelativeLayout mainView;
     public static RelativeLayout button_select_category;
-    private RelativeLayout categories_choose;
+    public static RelativeLayout categories_choose;
 
     public static PurchasesListAdapter purchasesListAdapter;
     private final int PLACE_PICKER_REQUEST = 3000;
@@ -94,7 +96,8 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private Context context;
     private Double map_offset= 0.02;
     public static PhotoTask photoTask;
-
+    private RelativeLayout cardList_view;
+    private RelativeLayout categories_choose_button;
 
 
     public PurchasesPageFragment(){}
@@ -320,6 +323,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         button_select_category = view.findViewById(R.id.button_select_category);
         categories_choose = view.findViewById(R.id.categories_choose);
 
+
         button_select_category.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -333,7 +337,9 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
                     @Override
                     public void onAnimationEnd(Animation animation) {
+
                         categories_choose.setVisibility(View.VISIBLE);
+                        cardList_view.setVisibility(View.GONE);
                     }
 
                     @Override
@@ -344,16 +350,19 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             }
         });
 
+        categories_choose_button = view.findViewById(R.id.categories_choose_button);
+
         setPageData();
 
 
         recyclerViewPurList =  view.findViewById(R.id.cardList);
+        cardList_view = view.findViewById(R.id.cardList_view);;
         products_category_list = view.findViewById(R.id.products_category_list);
         category_chooser_list = view.findViewById(R.id.category_chooser_list);
 
 
         category_chooser_list.setHasFixedSize(true);
-        Products_category_adapter category_chooser_list_adapter = new Products_category_adapter(context, purchasesList, currentInvoice, view, true);
+        final Products_category_adapter category_chooser_list_adapter = new Products_category_adapter(context, purchasesList, currentInvoice, view, true);
         final GridLayoutManager category_chooser_list_adapterGLM = new GridLayoutManager(context,4);
         category_chooser_list_adapterGLM.setOrientation(LinearLayoutManager.VERTICAL);
         category_chooser_list.setLayoutManager(category_chooser_list_adapterGLM);
@@ -398,20 +407,12 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         {
             products_category_adapterLLM = new GridLayoutManager(context,1);
         }
-
-
         products_category_adapterLLM.setOrientation(LinearLayoutManager.VERTICAL);
         products_category_list.setLayoutManager(products_category_adapterLLM);
-
         products_category_list.setAdapter(products_category_adapter);
-        ItemTouchHelper.Callback callbackAccList = new SimpleItemTouchHelperCallback(purchasesListAdapter, context);
+        final ItemTouchHelper.Callback callbackAccList = new SimpleItemTouchHelperCallback(purchasesListAdapter, context);
         mItemTouchHelperAccList = new ItemTouchHelper(callbackAccList);
         mItemTouchHelperAccList.attachToRecyclerView(products_category_list);
-
-
-
-        //if(MainActivity.pageNow == "purchasesList")
-        //fab.hide();
 
 
         assert recyclerViewFotoList != null;
@@ -422,6 +423,31 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         googleFotoListAdapter = new GoogleFotoListAdapter(context);
         recyclerViewFotoList.setAdapter(googleFotoListAdapter);
 
+
+        categories_choose_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(category_chooser_list_adapter!= null)
+                {
+                    if(category_chooser_list_adapter.categoriesAll.size()>0)
+                    {
+                        for(Integer position : purchasesListAdapter.selectedItems)
+                        {
+                            PurchasesListData purchasesListData = purchasesList.purchasesListData.get(position);
+                            ContentValues contentValues = new ContentValues();
+                            contentValues.put("fk_product_category_data", category_chooser_list_adapter.category_selected);
+                            contentValues.put("fk_product_category_products", purchasesListData.product.id);
+                            Integer count = dbHelper.update("product_category", contentValues, "fk_product_category_products=?", new String[]{purchasesListData.product.id.toString()});
+                            if(count < 1)
+                            {
+                                dbHelper.insert("product_category", null, contentValues);
+                            }
+                            Toast.makeText(context, "new category for "+  purchasesListData.product.id, Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+            }
+        });
 
         return view;
     }
@@ -443,26 +469,34 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
     @Override
     public boolean onBackPressed() {
-        if(mainView.getVisibility() == View.VISIBLE) {
+        if(mainView.getVisibility() == View.VISIBLE && categories_choose.getVisibility() != View.VISIBLE) {
             mainView.setVisibility(View.GONE);
             return true;
         }
+        else if(categories_choose.getVisibility() == View.VISIBLE)
+        {
+            Animation animation = AnimationUtils.loadAnimation(context,  R.anim.translate);
+            categories_choose.startAnimation(animation);
+            animation.setAnimationListener(new AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+                    cardList_view.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    categories_choose.setVisibility(View.INVISIBLE);
+                    cardList_view.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+                    categories_choose.setVisibility(View.VISIBLE);
+                }
+            });
+            return true;
+        }
         return false;
-    }
-
-    @Override
-    public void onAnimationStart(Animation animation) {
-
-    }
-
-    @Override
-    public void onAnimationEnd(Animation animation) {
-
-    }
-
-    @Override
-    public void onAnimationRepeat(Animation animation) {
-
     }
 
 

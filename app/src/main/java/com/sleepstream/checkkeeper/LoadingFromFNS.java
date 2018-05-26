@@ -8,6 +8,7 @@ import android.location.Geocoder;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.util.Log;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.modules.InvoicesPageFragment;
@@ -15,6 +16,7 @@ import com.sleepstream.checkkeeper.qrmanager.QRManager;
 import okhttp3.Response;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -133,7 +135,8 @@ public class LoadingFromFNS extends Service {
         protected Void doInBackground(Void... params) {
             log.info(LOG_TAG+"\n"+"loadingFromFNS");
             int count = 0;
-            while (true) {
+            boolean loop = true;
+            while (loop) {
                 //status 0 - just loaded waiting for loading
                 //status 3 - loading in progress
                 //status -1 - error loading from FNS not exist
@@ -229,10 +232,20 @@ public class LoadingFromFNS extends Service {
                                 invoiceData.set_status(-1);
                                 invoice.updateInvoice(invoiceData);
                             }
-                        } catch (IOException e) {
+                        }
+                        catch(SocketTimeoutException ex)
+                        {
+                            log.info(LOG_TAG+"\n"+ Arrays.toString(ex.getStackTrace()) + "\nerror\n" + getFnsData.requestStr);
+                            invoiceData.set_status(-1);
+                            invoice.updateInvoice(invoiceData);
+                            Log.d(LOG_TAG, "SocketTimeoutException  line 252 \n");
+                            ex.printStackTrace();
+                        }
+                        catch (IOException e) {
                             log.info(LOG_TAG+"\n"+ Arrays.toString(e.getStackTrace()) + "\nerror\n" + getFnsData.requestStr);
                             invoiceData.set_status(-1);
                             invoice.updateInvoice(invoiceData);
+                            Log.d(LOG_TAG, "IOException line 259\n");
                             e.printStackTrace();
                         }
                         finally {
@@ -260,6 +273,7 @@ public class LoadingFromFNS extends Service {
                     e1.printStackTrace();
                 }
             }
+            return null;
         }
         @Override
         protected void onPostExecute(Void param) {

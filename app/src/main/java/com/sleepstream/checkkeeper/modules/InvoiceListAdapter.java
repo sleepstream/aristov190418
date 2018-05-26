@@ -238,10 +238,10 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
 
         try {
             itemViewHolder.imageIcon.setImageBitmap(null);
-            if (itemList.get(position).store!= null && itemList.get(position).store.iconName != "") {
+            if (itemList.get(position).store!= null && itemList.get(position).store.iconName != null && itemList.get(position).store.iconName != "") {
                 String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/icons/";
                 File imageFile = new File(filepath,itemList.get(position).store.iconName);
-                if (imageFile.exists()) {
+                if ( imageFile.exists()) {
                     Log.d(LOG_TAG, "onBindViewHolder set icon  " + itemList.get(position).store.iconName);
                     itemViewHolder.imageIcon.setImageBitmap(BitmapFactory.decodeFile(imageFile.getPath()));
                 }
@@ -337,7 +337,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                         if (background instanceof ColorDrawable) {
                             itemViewHolder.oldColorMarker = ((ColorDrawable) background).getColor();
                         }
-                        itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNewAccent));
+                        itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNewAccentLink));
                         //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                         //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
 
@@ -365,7 +365,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                     if (background instanceof ColorDrawable) {
                         itemViewHolder.oldColorMarker = ((ColorDrawable) background).getColor();
                     }
-                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNewAccent));
+                    itemViewHolder.marker.setBackgroundColor(getThemeColor(context, R.attr.colorNewAccentLink));
                     //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                     //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
 
@@ -437,7 +437,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
         });
 */
             if (row_index == position) {
-                itemViewHolder.marker.setBackgroundColor(getThemeColor(context,R.attr.colorNewAccent));
+                itemViewHolder.marker.setBackgroundColor(getThemeColor(context,R.attr.colorNewAccentLink));
                 //itemViewHolder.storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
                 //itemViewHolder.ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
             } else {
