@@ -470,7 +470,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         invoice = new Invoice(navigation);
         invoice.reLoadInvoice();
         accountingList = new AccountingList();
-        purchasesList = new PurchasesList();
+        purchasesList = new PurchasesList(context);
         linkedListClass = new LinkedListClass();
 
         initializeCountDrawer();
@@ -1978,6 +1978,18 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         int color = ta.getColor(0, 0);
         ta.recycle();
         return color;
+    }
+
+    public static Integer getDrawable(Context context, String name)
+    {
+        Resources resources = context.getResources();
+        final int resourceId = resources.getIdentifier(name, "drawable",
+                context.getPackageName());
+        if(resourceId == 0 )
+            return R.drawable.ic_product_category_default_48;
+        else
+            return resourceId;
+
     }
 
 }

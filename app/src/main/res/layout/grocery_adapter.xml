@@ -8,107 +8,125 @@
     android:clipToPadding="false">
 
     <RelativeLayout
-        tools:targetApi="LOLLIPOP"
-        android:elevation="3dp"
         android:id="@+id/container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:minHeight="90dp"
         android:layout_marginTop="0dp"
         android:background="@color/white"
         android:layout_marginLeft="0dp"
         android:layout_marginRight="0dp">
-
-        <View
-           android:layout_alignParentBottom="true"
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="@drawable/line"/>
-
-             <LinearLayout
-                android:id="@+id/name"
-                 android:layout_alignParentStart="true"
+        <RelativeLayout
+                android:id="@+id/icon_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_alignParentTop="true"
-                android:layout_marginTop="20dp"
-                android:orientation="horizontal"
+                android:layout_alignBottom="@+id/body_layout"
+                android:layout_alignParentStart="true">
+            <ImageView
+                    android:id="@+id/product_category_icon"
+                    android:layout_centerInParent="true"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+        </RelativeLayout>
+
+        <RelativeLayout
+                android:id="@+id/body_layout"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="match_parent"
+                android:layout_toEndOf="@+id/icon_layout">
+            <View
+                    android:layout_alignParentBottom="true"
+                    android:layout_width="match_parent"
+                    android:layout_height="0.5dp"
+                    android:background="@drawable/line"/>
+
+            <LinearLayout
+                    android:id="@+id/name"
+                    android:layout_alignParentStart="true"
+                    android:layout_alignParentTop="true"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
 
                 <TextView
-                    android:id="@+id/invoiceName"
-                    android:background="@android:color/transparent"
-                    android:layout_gravity="start|center_vertical"
+                        android:id="@+id/invoiceName"
+                        android:background="@android:color/transparent"
+                        android:layout_gravity="start|center_vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="20dp"
+                        android:layout_marginEnd="60dp"
+                        style="?TextAppeareance"
+                        android:textSize="@dimen/list_text_name" />
+
+            </LinearLayout>
+            <LinearLayout
+                    android:id="@+id/data"
+                    android:layout_alignParentStart="true"
+                    android:layout_below="@+id/name"
+                    android:layout_toStartOf="@+id/relativeReorder"
+                    android:orientation="horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="20dp"
-                    android:layout_marginEnd="60dp"
-                    style="?TextAppeareance"
-                    android:textSize="@dimen/list_text_name" />
-
-             </LinearLayout>
-        <LinearLayout
-                android:id="@+id/data"
-                android:layout_alignParentStart="true"
-                android:layout_below="@+id/name"
-                android:layout_toStartOf="@+id/relativeReorder"
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/textlight"
-                android:gravity="center_vertical"
-                android:fontFamily="sans-serif">
-
-            <TextView
-                    android:id="@+id/quantity"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
+                    android:textColor="@color/textlight"
                     android:gravity="center_vertical"
-                    style="?TextAppeareance"
-                    android:textSize="@dimen/list_text_count" />
-            <TextView
-                    android:id="@+id/sign"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="30sp"
-                    android:gravity="top"
-            />
-            <TextView
-                    android:id="@+id/priceForItem"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
-                    android:gravity="center_vertical"
-                    style="?TextAppeareance"
-                    android:textSize="@dimen/list_text_priceForItem"/>
-            <TextView
-                    android:id="@+id/sumPerPosition"
-                    android:gravity="end"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
-                    style="?TextAppeareance"
-                    android:textSize="@dimen/list_text_sumPerPosition"/>
-        </LinearLayout>
+                    android:fontFamily="sans-serif">
+
+                <TextView
+                        android:id="@+id/quantity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:gravity="center_vertical"
+                        style="?TextAppeareance"
+                        android:textSize="@dimen/list_text_count" />
+                <TextView
+                        android:id="@+id/sign"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="30sp"
+                        android:gravity="top"
+                />
+                <TextView
+                        android:id="@+id/priceForItem"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:gravity="center_vertical"
+                        style="?TextAppeareance"
+                        android:textSize="@dimen/list_text_priceForItem"/>
+                <TextView
+                        android:id="@+id/sumPerPosition"
+                        android:gravity="end"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        style="?TextAppeareance"
+                        android:textSize="@dimen/list_text_sumPerPosition"/>
+            </LinearLayout>
 
             <RelativeLayout
-                 android:layout_width="56dp"
-                android:layout_alignParentEnd="true"
-                 android:layout_centerVertical="true"
-                 android:id="@+id/relativeReorder"
-                 android:layout_height="wrap_content">
+                    android:layout_width="56dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:id="@+id/relativeReorder"
+                    android:layout_height="wrap_content">
 
-                   <ImageView
-                      android:id="@+id/ivReorder"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      android:layout_centerInParent="true"
-                      android:tint="@color/textlight"
-                       android:contentDescription="@null"
-                      android:src="@drawable/ic_dehaze_white_24dp"/>
+                <ImageView
+                        android:id="@+id/ivReorder"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:tint="@color/textlight"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_dehaze_white_24dp"/>
             </RelativeLayout>
-      </RelativeLayout>
+        </RelativeLayout>
+
+    </RelativeLayout>
 </RelativeLayout>

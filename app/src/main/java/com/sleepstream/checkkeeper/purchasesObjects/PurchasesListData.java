@@ -57,5 +57,6 @@ public class PurchasesListData {
         public Integer fk_product_category_products;
         public Integer category_id;
         public boolean selected;
+        public Integer icon_id;
     }
 }

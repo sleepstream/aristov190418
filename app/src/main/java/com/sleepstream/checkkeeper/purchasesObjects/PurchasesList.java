@@ -1,6 +1,7 @@
 package com.sleepstream.checkkeeper.purchasesObjects;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.util.Log;
 
@@ -8,16 +9,18 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
+import static com.sleepstream.checkkeeper.MainActivity.getDrawable;
 
 public class PurchasesList {
 
 
     final String LOG_TAG = "PurchasesList";
+    private Context context;
     public List<PurchasesListData> purchasesListData = new ArrayList<>();
     private String tableName="purchases";
     private String[] tableName_fk = new String[]{"accountinglist", "invoice", "stores", "products", "currency"};
     public int lastIDCollection;
-
+    public Integer lastShowedCategory;
 
     private Map<String, String> filterParam = new HashMap<>();
     public String title;
@@ -37,7 +40,8 @@ public class PurchasesList {
         filterParam.clear();
     }
 
-    public PurchasesList() {
+    public PurchasesList(Context context) {
+        this.context = context;
     }
 
 
@@ -45,13 +49,14 @@ public class PurchasesList {
 
     public void reloadPurchasesList(Integer categoryId)
     {
-        
+        if(categoryId != null)
+            lastShowedCategory = categoryId;
         
         this.purchasesListData.clear();
         purchasesListData = new ArrayList<>();
         String selection ="";
         List<String> selectionArgs=new ArrayList<>();
-        if(categoryId != null)
+        if(categoryId != null && categoryId != -1)
         {
             selectionArgs.add(categoryId.toString());
         }
@@ -68,7 +73,9 @@ public class PurchasesList {
         String[] args = selectionArgs.toArray(new String[selectionArgs.size()]);
         //Log.d(LOG_TAG, "Reload selection args!" + args[0]+"!");
         Cursor cur;
-        if(categoryId == null) {
+
+        if(categoryId == null)
+        {
             if (selection != "") {
                 selection = selection.substring(0, selection.length() - 5);
                 Log.d(LOG_TAG, "Reload selection !" + selection + "!");
@@ -76,6 +83,13 @@ public class PurchasesList {
             } else {
                 cur = dbHelper.query(tableName, null, null, null, null, null, "_order", null);
             }
+        }
+        else if(categoryId == -1)
+        {
+            String selectionQuery  ="Select * from "+tableName+" where fk_purchases_products not in " +
+                    "(Select id from Products where id in " +
+                    "(Select fk_product_category_products from product_category)) "+(selection != ""? " AND "+selection.substring(0, selection.length() - 5) : "");
+            cur = dbHelper.rawQuery(selectionQuery,args.length>0 ? args : null);
         }
         else
         {
@@ -158,6 +172,15 @@ public class PurchasesList {
                                                 category.category = cur_product_category_name.getString(cur_product_category_name.getColumnIndex("category"));
                                                 category.icon_name = cur_product_category_name.getString(cur_product_category_name.getColumnIndex("icon_name"));
                                                 category.category_id = cur_product_category_name.getInt(cur_product_category_name.getColumnIndex("id"));
+                                                category.icon_id = cur_product_category_name.getInt(cur_product_category_name.getColumnIndex("icon_id"));
+
+                                                if(category.icon_id == 0 && category.icon_name!= "")
+                                                {
+                                                    category.icon_id = getDrawable(context, category.icon_name);
+                                                    ContentValues contentValues = new ContentValues();
+                                                    contentValues.put("icon_id", category.icon_id);
+                                                    dbHelper.update("product_category_data", contentValues, "id=?", new String[]{category.category_id.toString()});
+                                                }
                                                 cur_product_category_name.close();
                                             }
                                         }
@@ -169,6 +192,7 @@ public class PurchasesList {
                                         category.count=0;
                                         category.icon_name= "ic_product_category_default";//R.string.default_icon_name_product_category;
                                         category.category = "default";
+                                        category.category_id = -1;
 
                                     }
                                     purchasesListData.product.category = category;
@@ -253,6 +277,7 @@ public class PurchasesList {
                 category.icon_name = cur.getString(cur.getColumnIndex("icon_name"));
                 category.category = cur.getString(cur.getColumnIndex("category"));
                 category.category_id = cur.getInt(cur.getColumnIndex("id"));
+                category.icon_id = cur.getInt(cur.getColumnIndex("icon_id"));
                 categories.add(category);
             }
             while (cur.moveToNext());

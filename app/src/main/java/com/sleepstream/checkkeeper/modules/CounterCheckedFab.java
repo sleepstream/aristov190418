@@ -7,7 +7,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.IntRange;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
 import android.util.Property;
@@ -148,11 +147,13 @@ public class CounterCheckedFab extends FloatingActionButton {
         setCount(mCount > 0 ? mCount - 1 : 0);
     }
 
-    public void selectedChange()
+    public void selectedChange(boolean key)
     {
-        selected = !selected;
-        if (ViewCompat.isLaidOut(this)) {
-            startAnimationChecked();
+        if(key != selected) {
+            selected = !selected;
+            if (ViewCompat.isLaidOut(this)) {
+                startAnimationChecked();
+            }
         }
     }
 

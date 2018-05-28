@@ -42,6 +42,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
     public Integer row_index = -1;
     private boolean moovement = false;
     private View parrentView;
+
     public List<Integer> selectedItems = new ArrayList<>();
 
     public PurchasesListAdapter(Context context, OnStartDragListener dragStartListener, TextView invsNumber, PurchasesList purchasesList, View view) {
@@ -157,6 +158,10 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
         itemViewHolder.priceForItem.setText(item.prise_for_item.toString());
         itemViewHolder.quantity.setText(item.quantity.toString());
         itemViewHolder.sumPerPosition.setText(item.sum.toString());
+        if(item.product.category != null && item.product.category.icon_id!= null)
+            itemViewHolder.product_cutegory_icon.setImageResource(item.product.category.icon_id);
+        else
+            itemViewHolder.product_cutegory_icon.setImageResource(android.R.color.transparent);
         /*itemViewHolder.container.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -233,6 +238,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
 
 
 
+
     }
 
     @Override
@@ -260,6 +266,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
         protected  TextView priceForItem;
         protected  TextView sumPerPosition;
         public Integer oldColorContainer;
+        public ImageView product_cutegory_icon;
 
 
         protected TextView sign;
@@ -277,6 +284,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
             priceForItem = (TextView) v.findViewById(R.id.priceForItem);
             sumPerPosition = (TextView) v.findViewById(R.id.sumPerPosition);
             sign.setText(fromHtml("&#xd7"));
+            product_cutegory_icon = v.findViewById(R.id.product_category_icon);
 
         }
 

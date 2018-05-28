@@ -215,7 +215,8 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="center_horizontal|top"
                     android:layout_alignParentTop="true"
-                    android:layout_alignParentStart="true"/>
+                    android:layout_alignParentStart="true"
+                    android:fillViewport="true"/>
             <RelativeLayout
                     android:id="@+id/button_select_category"
                     android:layout_width="wrap_content"
@@ -242,7 +243,7 @@
                 android:id="@+id/categories_choose"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:visibility="invisible"
+                android:visibility="gone"
                 android:background="@color/black_87">
             <RelativeLayout
                     android:id="@+id/tile_category_chooser"
