@@ -445,6 +445,24 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                         purchasesListAdapter.notifyDataSetChanged();
                         onBackPressed();
                     }
+                    else
+                    {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                        builder.setMessage(R.string.error_select_category);
+                        builder.setPositiveButton(R.string.btnOk, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                            }
+                        });
+                        builder.setNegativeButton(R.string.btnCancel, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                onBackPressed();
+                            }
+                        });
+                        builder.show();
+
+                    }
                 }
             }
         });
@@ -490,6 +508,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public boolean onBackPressed() {
         if(mainView.getVisibility() == View.VISIBLE && categories_choose.getVisibility() != View.VISIBLE) {
             purchasesListAdapter.selectedItems.clear();
+            button_select_category.setVisibility(View.GONE);
             mainView.setVisibility(View.GONE);
             products_category_adapterLLM.setSpanCount(getColumnsCount(product_category_viewer_adapter.categoriesSelected.size()));
             return true;

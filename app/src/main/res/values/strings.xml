@@ -143,5 +143,6 @@
     <string name="alcho_icon_name_product_category">ic_product_category_alcho_48</string>
     <string name="button_select_category">Выберите категорию</string>
     <string name="categories_category_chooser_button_title">Присвоить категорию</string>
+    <string name="error_select_category">Выберите категорию</string>
 
 </resources>
