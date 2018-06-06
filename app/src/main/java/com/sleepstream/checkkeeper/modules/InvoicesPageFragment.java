@@ -122,7 +122,7 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
 
                 if(newState == RecyclerView.SCROLL_STATE_IDLE  && llm.findLastVisibleItemPosition()- llm.findFirstVisibleItemPosition() == invoiceListAdapter.getItemCount()-1)
-                    fab.show();
+                    unHideFABMenu();
                 super.onScrollStateChanged(recyclerView, newState );
             }
 
@@ -132,12 +132,12 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
                 if((llm.findLastVisibleItemPosition() - llm.findFirstVisibleItemPosition()) < (invoiceListAdapter.getItemCount()-1)) {
 
                     if (llm.findLastVisibleItemPosition() == invoiceListAdapter.getItemCount() - 1)
-                        fab.hide();
+                        hideFABMenu();
                     else
-                        fab.show();
+                        unHideFABMenu();
                 }
                 else
-                {fab.show();}
+                {unHideFABMenu();}
                 super.onScrolled(recyclerView, dx, dy);
             }
         });
@@ -160,7 +160,7 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
     public void onResume() {
         super.onResume();
         Log.d(LOG_TAG, invoiceListAdapter.row_index+"");
-        fab.show();
+        unHideFABMenu();
         /*if(invoice.lastIDCollection > 0) {
             llm.smoothScrollToPosition(recyclerViewInvList, null, invoice.lastIDCollection);
         }*/

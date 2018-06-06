@@ -22,8 +22,7 @@ import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 
 import java.util.Random;
 
-import static com.sleepstream.checkkeeper.MainActivity.accountingList;
-import static com.sleepstream.checkkeeper.MainActivity.fab;
+import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class AccountingListPageFragment extends Fragment implements AccountingListAdapter.OnStartDragListener {
 
@@ -119,7 +118,7 @@ public class AccountingListPageFragment extends Fragment implements AccountingLi
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
 
                 if(newState == RecyclerView.SCROLL_STATE_IDLE  && llmAccList.findLastVisibleItemPosition()- llmAccList.findFirstVisibleItemPosition() == accountingListAdapter.getItemCount()-1)
-                    fab.show();
+                    unHideFABMenu();
                 super.onScrollStateChanged(recyclerView, newState );
             }
 
@@ -128,9 +127,9 @@ public class AccountingListPageFragment extends Fragment implements AccountingLi
                 if((llmAccList.findLastVisibleItemPosition() - llmAccList.findFirstVisibleItemPosition()) < (accountingListAdapter.getItemCount()-1)) {
 
                     if (llmAccList.findLastVisibleItemPosition() == accountingListAdapter.getItemCount() - 1)
-                        fab.hide();
+                        hideFABMenu();
                     else
-                        fab.show();
+                        unHideFABMenu();
                 }
                 super.onScrolled(recyclerView, dx, dy);
             }

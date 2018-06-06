@@ -188,7 +188,7 @@ public class SettingsActivity extends AppCompatActivity {
             if (params[0] != null) {
                 personalData = params[0];
 
-                if (personalData.name != null && personalData.surname != null && personalData.telephone_number != null && personalData.e_mail != null) {
+                if (personalData.name != null  && personalData.telephone_number != null && personalData.e_mail != null) {
                     if (personalData.id == null || personalData._status == -1) {
                         GetFnsData getFnsData = new GetFnsData(Settings.Secure.getString(context.getContentResolver(),
                                 Settings.Secure.ANDROID_ID));
@@ -354,58 +354,6 @@ public class SettingsActivity extends AppCompatActivity {
                                     NameField_status.setImageResource(R.drawable.ic_error_black_24dp);
                                     name_summary.setText(context.getString(R.string.settings_input_data_incorrect));
                                     name_summary.setTextColor(Color.RED);
-                                }
-
-                            }
-
-                        }
-                    });
-                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    });
-
-                    alertDialog.show();
-                }
-            });
-            surname.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View view) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-                    alertDialog.setTitle(context.getString(R.string.SurnameField));
-                    alertDialog.setMessage(R.string.Settings_SurnameField_message);
-                    final EditText input = new EditText(context);
-                    input.setGravity(Gravity.CENTER);
-                    input.setInputType(InputType.TYPE_CLASS_TEXT);
-                    if(personalData.surname!= null)
-                        input.setText(personalData.surname);
-                    alertDialog.setView(input);
-                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString().trim();
-                            if(name.length()==0)
-                                Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
-                            else
-                            {
-                                Matcher MSurnmae = PnameSurnmae.matcher(name);
-                                RelativeLayout SurnameField_status_layout = view.findViewById(R.id.SurnameField_status_layout);
-                                ImageView SurnameField_status = view.findViewById(R.id.SurnameField_status);
-                                if(MSurnmae.matches())
-                                {
-                                    SurnameField_status_layout.setVisibility(View.VISIBLE);
-                                    SurnameField_status.setImageResource(R.drawable.ic_done_black_24dp);
-                                    personalData.surname = name;
-                                    onResume();
-                                }
-                                else
-                                {
-                                    SurnameField_status_layout.setVisibility(View.VISIBLE);
-                                    SurnameField_status.setImageResource(R.drawable.ic_error_black_24dp);
-                                    surname_summary.setText(context.getString(R.string.settings_input_data_incorrect));
-                                    surname_summary.setTextColor(Color.RED);
                                 }
 
                             }
@@ -619,10 +567,6 @@ public class SettingsActivity extends AppCompatActivity {
             {
                 name_summary.setText(personalData.name);
             }
-            if(personalData.surname!= null)
-            {
-                surname_summary.setText(personalData.surname);
-            }
             if(personalData.telephone_number!= null)
             {
                 phone_summary.setText(personalData.telephone_number);
@@ -637,7 +581,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         @Override
         public void onDestroy() {
-            if(personalData.name != null && personalData.surname != null && personalData.telephone_number!= null && personalData.e_mail!= null) {
+            if(personalData.name != null && personalData.telephone_number!= null && personalData.e_mail!= null) {
                 personalData.setPersonalData();
             }
 

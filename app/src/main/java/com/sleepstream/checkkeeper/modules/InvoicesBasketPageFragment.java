@@ -20,8 +20,7 @@ import com.squareup.timessquare.CalendarPickerView;
 
 import java.util.Random;
 
-import static com.sleepstream.checkkeeper.MainActivity.fab;
-import static com.sleepstream.checkkeeper.MainActivity.invoice;
+import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class InvoicesBasketPageFragment extends Fragment {
 
@@ -78,7 +77,7 @@ public class InvoicesBasketPageFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.content_invoices_basket_page, null);
         final Context context = view.getContext();
-        fab.hide();
+        hideFABMenu();
         fabDelete = view.findViewById(R.id.fabDelete);
         fabSelectAll = view.findViewById(R.id.fabSelectAll);
         fabRestore = view.findViewById(R.id.fabRestore);

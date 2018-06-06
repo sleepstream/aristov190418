@@ -172,15 +172,6 @@ public class PurchasesList {
                                                 category.category = cur_product_category_name.getString(cur_product_category_name.getColumnIndex("category"));
                                                 category.icon_name = cur_product_category_name.getString(cur_product_category_name.getColumnIndex("icon_name"));
                                                 category.category_id = cur_product_category_name.getInt(cur_product_category_name.getColumnIndex("id"));
-                                                category.icon_id = cur_product_category_name.getInt(cur_product_category_name.getColumnIndex("icon_id"));
-
-                                                if(category.icon_id == 0 && category.icon_name!= "")
-                                                {
-                                                    category.icon_id = getDrawable(context, category.icon_name);
-                                                    ContentValues contentValues = new ContentValues();
-                                                    contentValues.put("icon_id", category.icon_id);
-                                                    dbHelper.update("product_category_data", contentValues, "id=?", new String[]{category.category_id.toString()});
-                                                }
                                                 cur_product_category_name.close();
                                             }
                                         }
@@ -277,7 +268,6 @@ public class PurchasesList {
                 category.icon_name = cur.getString(cur.getColumnIndex("icon_name"));
                 category.category = cur.getString(cur.getColumnIndex("category"));
                 category.category_id = cur.getInt(cur.getColumnIndex("id"));
-                category.icon_id = cur.getInt(cur.getColumnIndex("icon_id"));
                 categories.add(category);
             }
             while (cur.moveToNext());

@@ -85,10 +85,10 @@ public class Product_category_chooser_adapter extends RecyclerView.Adapter<Produ
     public void onBindViewHolder(@NonNull final ItemViewHolder itemViewHolder, final int i) {
         Log.d(LOG_TAG, "onBindViewHolder\n");
         itemViewHolder.fab_name_title.setText(categoriesAll.get(i).category);
-        if (categoriesAll.get(i).icon_id!= null)
-            itemViewHolder.fab_cart.setImageResource(categoriesAll.get(i).icon_id);
+        if (categoriesAll.get(i).icon_name!= null)
+            itemViewHolder.fab_cart.setImageResource(getDrawable(context,categoriesAll.get(i).icon_name+"_48"));
         else
-            itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
+            itemViewHolder.fab_cart.setImageResource(getDrawable(context,categoriesAll.get(i).icon_name+"_48"));
 
         category_selected = null;
         itemViewHolder.fab_cart.setBackgroundTintList(ColorStateList.valueOf(getThemeColor(context, R.attr.colorNewAccentLink)));

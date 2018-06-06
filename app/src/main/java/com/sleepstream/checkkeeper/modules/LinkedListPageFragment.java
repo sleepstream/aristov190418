@@ -18,8 +18,7 @@ import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 
 import java.util.Random;
 
-import static com.sleepstream.checkkeeper.MainActivity.fab;
-import static com.sleepstream.checkkeeper.MainActivity.linkedListClass;
+import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class LinkedListPageFragment extends Fragment implements LinkedListAdapter.OnStartDragListener{
 
@@ -92,7 +91,7 @@ public class LinkedListPageFragment extends Fragment implements LinkedListAdapte
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
 
                 if(newState == RecyclerView.SCROLL_STATE_IDLE  && linearLayoutManager.findLastVisibleItemPosition()- linearLayoutManager.findFirstVisibleItemPosition() == linkedListAdapter.getItemCount()-1)
-                    fab.show();
+                    unHideFABMenu();
                 super.onScrollStateChanged(recyclerView, newState );
             }
 
@@ -101,9 +100,9 @@ public class LinkedListPageFragment extends Fragment implements LinkedListAdapte
                 if((linearLayoutManager.findLastVisibleItemPosition() - linearLayoutManager.findFirstVisibleItemPosition()) < (linkedListAdapter.getItemCount()-1)) {
 
                     if (linearLayoutManager.findLastVisibleItemPosition() == linkedListAdapter.getItemCount() - 1)
-                        fab.hide();
+                        hideFABMenu();
                     else
-                        fab.show();
+                        unHideFABMenu();
                 }
                 super.onScrolled(recyclerView, dx, dy);
             }

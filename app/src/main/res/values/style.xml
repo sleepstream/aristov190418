@@ -40,6 +40,13 @@
         <item name="android:textColorHint">@color/textlight30</item>
     </style>
 
+    <style name="TextAppeareance_Link">
+        <item name="android:textColor">@color/colorPrimaryDark</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColorHint">@color/textlight30</item>
+    </style>
+
     <style name="TextAppeareance_small">
         <item name="android:textColor">@color/colorPrimary</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
@@ -63,6 +70,7 @@
 
 
 
+
     <style name="FirstTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
@@ -79,6 +87,8 @@
         <item name="colorLoadedConfirmed">@color/loadedConfirmedAppTheme</item>
         <item name="colorNewAccentLink">@color/colorAccent</item>
         <item name="backgroundCheckedCircle">@color/backgroundColor</item>
+        <item name="link_color_pressed">@color/colorPrimary</item>
+        <item name="text_color_error">@color/red</item>
     </style>
     <style name="SecondTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimaryOrange</item>
@@ -96,5 +106,7 @@
         <item name="colorLoaded">@color/loadedAppTheme_Orange</item>
         <item name="colorLoadedConfirmed">@color/loadedConfirmedAppTheme_Orange</item>
         <item name="backgroundCheckedCircle">@color/colorBackgroundOrange</item>
+        <item name="link_color_pressed">@color/colorPrimaryOrange</item>
+        <item name="text_color_error">@color/red</item>
     </style>
 </resources>

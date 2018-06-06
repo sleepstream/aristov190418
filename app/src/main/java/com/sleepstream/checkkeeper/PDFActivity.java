@@ -44,11 +44,17 @@ public class PDFActivity extends AppCompatActivity {
 
                     Frame frame = new Frame.Builder().setBitmap(btm).build();
                     SparseArray<Barcode> barcodes = detector.detect(frame);
-                    if(barcodes.valueAt(0)!= null) {
+                    if(barcodes.size()>0 && barcodes.valueAt(0)!= null) {
                         Barcode thisCode = barcodes.valueAt(0);
                         Intent intent = new Intent();
                         intent.putExtra("qrCode", thisCode.rawValue);
                         setResult(RESULT_OK, intent);
+                        finish();
+                    }
+                    else
+                    {
+                        Intent intent = new Intent();
+                        setResult(RESULT_CANCELED, intent);
                         finish();
                     }
 

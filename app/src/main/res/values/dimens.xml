@@ -10,4 +10,8 @@
     <dimen name="list_text_group_date">20sp</dimen>
     <dimen name="list_text_priceForItem">15sp</dimen>
     <dimen name="list_text_sumPerPosition">15sp</dimen>
+    <dimen name="standard_205">240dp</dimen>
+    <dimen name="standard_155">180dp</dimen>
+    <dimen name="standard_105">120dp</dimen>
+    <dimen name="standard_55">60dp</dimen>
 </resources>

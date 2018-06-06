@@ -29,8 +29,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -80,6 +78,7 @@ import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.FileHandler;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -162,6 +161,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private int nu = 0;
 
     public static FloatingActionButton fab;
+    public static FloatingActionButton fab_pdf;
+    public static FloatingActionButton fab_manual;
+    public static FloatingActionButton fab_file;
+    public static FloatingActionButton fab_camera;
+    public boolean isFABOpen = false;
 
     public static List<Integer> pageBack = new LinkedList<Integer>();
     private boolean isActive = false;
@@ -369,6 +373,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     user._status = 1;
                     user.generateAuth(messageText);
                     Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordUpdated), Toast.LENGTH_LONG).show();
+                    if (!isMyServiceRunning(LoadingFromFNS.class)) {
+                        startService(intentService);
+                    }
 
                 }
             }
@@ -382,6 +389,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         user = new PersonalData(context);
         //if new user
         if ((user.id == null && permChecked) || (user._status!= null && user._status == -1)) {
+            Intent intent = new Intent(context, Greetings.class);
+            startActivity(intent);
+            /*
             AlertDialog.Builder adb = new AlertDialog.Builder(context);
             adb.setTitle(getString(R.string.titleGreetingMessage));
             adb.setMessage(R.string.firstTimeEnter);
@@ -401,6 +411,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 }
             });
             adb.show();
+            */
 
         }
         //если пользователь не новый, но нужна повторная авторизация
@@ -477,10 +488,52 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
 
         fab = findViewById(R.id.fab);
-        assert fab != null;
+        fab_file = findViewById(R.id.fab_file);
+        fab_manual = findViewById(R.id.fab_manual);
+        fab_pdf = findViewById(R.id.fab_pdf);
+
+
         fab.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
-            public boolean onLongClick(View view) {
+            public boolean onLongClick(View v) {
+                if(!isFABOpen){
+                    showFABMenu();
+                }else{
+                    closeFABMenu();
+                }
+                return true;
+            }
+        });
+
+        fab_pdf.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                closeFABMenu();
+
+                Intent intent = new Intent();
+                intent.setType("*/*");
+                String[] mimetypes = { "application/pdf"};
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
+            }
+        });
+        fab_file.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                closeFABMenu();
+                Intent intent = new Intent();
+                intent.setType("*/*");
+                String[] mimetypes = {"image/*"};
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
+            }
+        });
+        fab_manual.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                closeFABMenu();
                 blurPlotter.setVisibility(View.VISIBLE);
 
                 View v = LayoutInflater.from(context).inflate(R.layout.add_invoicemanual_layout, null);
@@ -513,13 +566,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     }
                 });
                 builder.show();
-
-                return true;
             }
         });
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                closeFABMenu();
                 log.info(LOG_TAG + "\n" + "page Now +" + pageNow);
                 Intent intent = new Intent(MainActivity.this, CameraActivity.class);
                 startActivityForResult(intent, cameraRequest);
@@ -580,7 +632,36 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         navigation.openCurrentPage(new Page("", 0));
     }
 
-    
+    private void showFABMenu() {
+        isFABOpen=true;
+        fab_file.animate().translationY(-getResources().getDimension(R.dimen.standard_55));
+        fab_pdf.animate().translationY(-getResources().getDimension(R.dimen.standard_105));
+        fab_manual.animate().translationY(-getResources().getDimension(R.dimen.standard_155));
+    }
+
+    private void closeFABMenu() {
+        isFABOpen=false;
+        fab_file.animate().translationY(0);
+        fab_pdf.animate().translationY(0);
+        fab_manual.animate().translationY(0);
+    }
+
+    public static void hideFABMenu()
+    {
+        fab.hide();
+        fab_file.hide();
+        fab_pdf.hide();
+        fab_manual.hide();
+    }
+    public static void unHideFABMenu()
+    {
+        fab.show();
+        fab_file.show();
+        fab_pdf.show();
+        fab_manual.show();
+    }
+
+
     private void setNavMenuChecked() {
         uncheckNavMenu();
         switch (navigation.currentPage.position) {
@@ -923,6 +1004,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 return Environment.getExternalStorageDirectory() + "/" + split[1];
             }
 
+
         }
         // DownloadsProvider
         else if (isDownloadsDocument(uri)) {
@@ -955,6 +1037,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
             return getDataColumn(context, contentUri, selection, selectionArgs);
         }
+        else
+        {
+
+            return getDataColumn(context, uri, null, null);
+        }
         return null;
     }
 
@@ -985,46 +1072,54 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 if (data == null) {
                     return;
                 }
-                if (resultCode == RESULT_OK) {
-                    Bitmap myBitmap = null;
-                    ContentResolver cr = this.getContentResolver();
-                    String mime = cr.getType(data.getData());
-                    PDFDocument document = new PDFDocument();
+                try {
+                    if (resultCode == RESULT_OK) {
+                        Bitmap myBitmap = null;
+                        ContentResolver cr = this.getContentResolver();
+                        String mime = cr.getType(data.getData());
+                        PDFDocument document = new PDFDocument();
 
-                    if (mime.equals("application/pdf")) {
+                        if (mime.equals("application/pdf")) {
 
-                        Intent intent = new Intent(MainActivity.this, PDFActivity.class);
-                        intent.putExtra("pdfUrl", getRealPathFromURI_API19(context, data.getData()));
-                        startActivityForResult(intent, CAPTURE_FROM_PDF_QR);
-                    }
-                    try {
-                        InputStream inputStream = context.getContentResolver().openInputStream(data.getData());
-                        myBitmap = BitmapFactory.decodeStream(inputStream);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-
-                    if (myBitmap != null) {
-                        BarcodeDetector detector =
-                                new BarcodeDetector.Builder(getApplicationContext())
-                                        .setBarcodeFormats(Barcode.DATA_MATRIX | Barcode.QR_CODE)
-                                        .build();
-                        if (!detector.isOperational()) {
+                            Intent intent = new Intent(MainActivity.this, PDFActivity.class);
+                            //intent.putExtra("pdfUrl", data.toUri(Uri.CONTENTS_FILE_DESCRIPTOR).getPath());
+                            intent.putExtra("pdfUrl", getRealPathFromURI_API19(context, data.getData()));
+                            startActivityForResult(intent, CAPTURE_FROM_PDF_QR);
                             return;
                         }
-
-                        Frame frame = new Frame.Builder().setBitmap(myBitmap).build();
-                        SparseArray<Barcode> barcodes = detector.detect(frame);
-                        if (barcodes.valueAt(0) != null) {
-                            Barcode thisCode = barcodes.valueAt(0);
-                            AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
-                            asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, thisCode.rawValue, invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
-                        } else {
-                            Toast.makeText(this, R.string.invoice_load_from_image_error, Toast.LENGTH_LONG);
+                        try {
+                            InputStream inputStream = context.getContentResolver().openInputStream(data.getData());
+                            myBitmap = BitmapFactory.decodeStream(inputStream);
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
                         }
 
+                        if (myBitmap != null) {
+                            BarcodeDetector detector =
+                                    new BarcodeDetector.Builder(getApplicationContext())
+                                            .setBarcodeFormats(Barcode.DATA_MATRIX | Barcode.QR_CODE)
+                                            .build();
+                            if (!detector.isOperational()) {
+                                return;
+                            }
 
+                            Frame frame = new Frame.Builder().setBitmap(myBitmap).build();
+                            SparseArray<Barcode> barcodes = detector.detect(frame);
+                            if (barcodes.valueAt(0) != null) {
+                                Barcode thisCode = barcodes.valueAt(0);
+                                AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
+                                asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, thisCode.rawValue, invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
+                            } else {
+                                Toast.makeText(this, R.string.invoice_load_from_image_error, Toast.LENGTH_LONG);
+                            }
+
+
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
                 }
             }
             break;
@@ -1175,7 +1270,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
 
                 //data recived just make Toas
-                Toast.makeText(context, getString(R.string.UserDataEddedSuccesfuly) + " " + user.surname + " " + user.name, Toast.LENGTH_LONG).show();
+                Toast.makeText(context, getString(R.string.UserDataEddedSuccesfuly) + " " + user.name, Toast.LENGTH_LONG).show();
 
                 break;
             }

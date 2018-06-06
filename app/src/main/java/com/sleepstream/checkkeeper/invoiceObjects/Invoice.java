@@ -581,9 +581,9 @@ public class Invoice {
                             contentValues =  new ContentValues();
                             contentValues.put("fk_purchases_stores", id);
                             dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
-                            contentValues =  new ContentValues();
-                            contentValues.put("fk_kktRegId_stores", id);
-                            dbHelper.update(tableNameKktRegId, contentValues, "fk_kktRegId_stores=?", new String[]{finalInvoiceData.store.id.toString()});
+                            //contentValues =  new ContentValues();
+                            //contentValues.put("fk_kktRegId_stores", id);
+                            //dbHelper.update(tableNameKktRegId, contentValues, "fk_kktRegId_stores=?", new String[]{finalInvoiceData.store.id.toString()});
 
 
                             //try to delete old store

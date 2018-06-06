@@ -101,8 +101,9 @@
     <string name="settings_phone_number">Номер телефона</string>
     <string name="Settings_NameField_message">Введие имя</string>
     <string name="Settings_SurnameField_message">Введите фамилию</string>
-    <string name="Settings_phone_number_message">Введите номер телефона начиная с +7</string>
-    <string name="Settings_E_mailAdress_message">Введите e-mail адрес</string>
+    <string name="Settings_phone_number_message">Введите номер телефона в формате\n+7 XXX XXX XXXX</string>
+    <string name="Settings_E_mailAdress_message">Используется для отправки электронных копий чеков</string>
+    <string name="Settings_E_mailAdress_title">Введите e-mail адрес</string>
     <string name="settings_field_input_error">Ощибка ввода, повторите попытку</string>
     <string name="settings_password_FNS_text">Пароль ФНС</string>
     <string name="Settings_password_FNS_message">Введите пароль, полученый при регистрации в ФНС</string>
@@ -144,5 +145,16 @@
     <string name="button_select_category">Выберите категорию</string>
     <string name="categories_category_chooser_button_title">Присвоить категорию</string>
     <string name="error_select_category">Выберите категорию</string>
+    <string name="greetings_text">Приветствуем Вас в нашем приложении!\nДля продолжения работы необходимо пройти регистрацию
+        в официальном приложении ФНС \"Проверка кассового чека\" после чего ввести регистрационную информацию.
+    </string>
+    <string name="link_to_FNS_app_text">Перейти в приложение\n\"Проверка кассового чека\"</string>
+    <string name="auto_registration_checkbox_text">Зарегистрироваться автоматически</string>
+    <string name="button_registration_text">Сохранить</string>
+    <string name="button_save_text">Сохранить</string>
+    <string name="settings_personalData_text">Как к Вам обращаться</string>
+    <string name="requested_field_error">Обязательное поле</string>
+    <string name="error_fill_form">Необходимо заполнить все поля формы</string>
+    <string name="greetings_text_2">Так же, вы можете пройти автоматическую регистрацию.\nДля продолжения нажимте \"Ok\"</string>
 
 </resources>

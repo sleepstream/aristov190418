@@ -84,16 +84,7 @@ public class Product_category_viewer_adapter extends RecyclerView.Adapter<Produc
     public void onBindViewHolder(@NonNull final ItemViewHolder itemViewHolder, final int i) {
         Log.d(LOG_TAG, "onBindViewHolder\n");
         itemViewHolder.fab_cart.setCount(categoriesSelected.get(i).count);
-        if(categoriesSelected.get(i).icon_id!= null) {
-            if (categoriesSelected.get(i).icon_id == 0)
-                itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
-            else
-                itemViewHolder.fab_cart.setImageResource(categoriesSelected.get(i).icon_id);
-        }
-        else
-        {
-            itemViewHolder.fab_cart.setImageResource(R.drawable.ic_product_category_default_48);
-        }
+        itemViewHolder.fab_cart.setImageResource(getDrawable(context,categoriesSelected.get(i).icon_name+"_48"));
         itemViewHolder.fab_cart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

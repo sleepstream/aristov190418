@@ -23,7 +23,7 @@
         />
 
         <receiver android:name=".smsListener.SmsReceiver">
-            <intent-filter android:priority="100">
+            <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
         </receiver>
@@ -71,6 +71,10 @@
         <activity
                 android:name=".SettingsActivity"
                 android:label="@string/title_activity_settings">
+        </activity>
+        <activity
+                android:name=".Greetings"
+                android:screenOrientation="portrait">
         </activity>
         <activity
                 android:name="com.yalantis.ucrop.UCropActivity"

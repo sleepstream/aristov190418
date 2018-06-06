@@ -17,7 +17,6 @@ public class PersonalData {
     private Map<String, String> data;
     private String tableName="PersonalData";
     public String name= null;
-    public String surname = null;
     public String e_mail = null;
     public String telephone_number = null;
     public String password = null;
@@ -39,7 +38,6 @@ public class PersonalData {
             try {
                 id = cur.getInt(cur.getColumnIndex("id"));
                 name = cur.getString(cur.getColumnIndex("name"));
-                surname = cur.getString(cur.getColumnIndex("surname"));
                 e_mail = cur.getString(cur.getColumnIndex("e_mail"));
                 telephone_number = cur.getString(cur.getColumnIndex("telephone_number"));
                 password = cur.getString(cur.getColumnIndex("password"));
@@ -66,9 +64,9 @@ public class PersonalData {
         
         ContentValues data = new ContentValues();
         data.put("name", name);
-        data.put("surname", surname);
         data.put("telephone_number", telephone_number);
-        data.put("password", password);
+        if(password != null)
+            data.put("password", password);
         data.put("e_mail", e_mail);
         if(_status != null)
             data.put("_status", _status);
@@ -95,9 +93,9 @@ public class PersonalData {
     {
         ContentValues data = new ContentValues();
         data.put("name", name);
-        data.put("surname", surname);
         data.put("telephone_number", telephone_number);
-        data.put("password", password);
+        if(password!= null)
+            data.put("password", password);
         data.put("e_mail", e_mail);
         data.put("_status", 0);
 

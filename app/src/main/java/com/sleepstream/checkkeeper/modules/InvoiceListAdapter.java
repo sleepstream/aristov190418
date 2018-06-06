@@ -36,6 +36,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static com.sleepstream.checkkeeper.MainActivity.getThemeColor;
 import static com.sleepstream.checkkeeper.MainActivity.linkedListClass;
@@ -262,6 +263,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                 itemViewHolder.quantity.setText(String.valueOf(item.quantity));
             else
                 itemViewHolder.quantity.setText("");
+
             if (item.store != null && item.store.name != null) {
                 itemViewHolder.storeName.setText(item.store.name);
             } else if (item.store != null && item.store.name == null && item.store.name_from_fns != null) {
@@ -655,7 +657,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
         if(invoiceData.getId() != null) {
             for (int i = 0; i < itemList.size(); i++) {
                 InvoiceData tmp = itemList.get(i);
-                if (tmp.getId() == invoiceData.getId())
+                if (Objects.equals(tmp.getId(), invoiceData.getId()))
                     return i;
             }
         }

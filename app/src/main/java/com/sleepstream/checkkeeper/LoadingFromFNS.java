@@ -48,8 +48,10 @@ public class LoadingFromFNS extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         log.info(LOG_TAG+"\n"+"onStartCommand");
         //loadingFromFNS();
-        AsyncLoadDataInvoice asyncLoadDataInvoice = new AsyncLoadDataInvoice();
-        asyncLoadDataInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        if(user != null && user._status!= null && user._status == 1) {
+            AsyncLoadDataInvoice asyncLoadDataInvoice = new AsyncLoadDataInvoice();
+            asyncLoadDataInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }
         //asyncLoadDataInvoice.execute();
         return START_NOT_STICKY;
     }
@@ -136,7 +138,7 @@ public class LoadingFromFNS extends Service {
             log.info(LOG_TAG+"\n"+"loadingFromFNS");
             int count = 0;
             boolean loop = true;
-            while (loop) {
+            while (loop && user._status == 1) {
                 //status 0 - just loaded waiting for loading
                 //status 3 - loading in progress
                 //status -1 - error loading from FNS not exist

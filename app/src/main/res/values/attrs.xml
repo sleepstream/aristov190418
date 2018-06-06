@@ -14,5 +14,7 @@
     <attr name="TextAppeareance_onDark" format="reference"/>
     <attr name="TextAppeareance_onWhite" format="reference"/>
     <attr name="backgroundCheckedCircle" format="reference"/>
+    <attr name="link_color_pressed"  format="reference"/>
+    <attr name="text_color_error" format="reference"/>
 
 </resources>

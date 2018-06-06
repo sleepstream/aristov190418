@@ -194,7 +194,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             }
             String[] date = currentInvoice.getDateInvoice(null).split(" ");
             invoice_date_text.setText(date[0]+"\n"+date[1]);
-            invoice_count_text.setText(currentInvoice.quantity.toString());
+            invoice_count_text.setText(currentInvoice.quantity!= null ? currentInvoice.quantity.toString() : "?");
             invoice_sum_text.setText(currentInvoice.getFullPrice().toString());
 
 
@@ -299,7 +299,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        fab.hide();
+        hideFABMenu();
         View view = inflater.inflate(R.layout.content_purchases_page, null);
         final Context context = view.getContext();
         currentDate = view.findViewById(R.id.currentDate);

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.sleepstream.checkkeeper.MainActivity.fromHtml;
+import static com.sleepstream.checkkeeper.MainActivity.getDrawable;
 
 
 public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdapter.ItemViewHolder> implements ItemTouchHelperAdapter {
@@ -158,8 +159,8 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
         itemViewHolder.priceForItem.setText(item.prise_for_item.toString());
         itemViewHolder.quantity.setText(item.quantity.toString());
         itemViewHolder.sumPerPosition.setText(item.sum.toString());
-        if(item.product.category != null && item.product.category.icon_id!= null)
-            itemViewHolder.product_cutegory_icon.setImageResource(item.product.category.icon_id);
+        if(item.product.category != null && item.product.category.icon_name!= null)
+            itemViewHolder.product_cutegory_icon.setImageResource(getDrawable(context,item.product.category.icon_name+"_24"));
         else
             itemViewHolder.product_cutegory_icon.setImageResource(android.R.color.transparent);
         /*itemViewHolder.container.setOnClickListener(new View.OnClickListener() {
