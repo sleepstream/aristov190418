@@ -141,7 +141,7 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
                 super.onScrolled(recyclerView, dx, dy);
             }
         });
-        if(navigation.page!= null && navigation.page.positionInList != null) {
+        if(navigation!= null && navigation.page!= null && navigation.page.positionInList != null) {
             llm.scrollToPosition(navigation.page.positionInList);
             invoiceListAdapter.row_index = navigation.page.positionInList;
             navigation.page.positionInList = null;

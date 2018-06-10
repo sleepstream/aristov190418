@@ -215,7 +215,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         }
         else {
             //currentName.setText("");
-            placeImage.setImageBitmap(null);
+            placeImage.setImageResource(android.R.color.transparent);
         }
 
     }
@@ -229,7 +229,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             MainActivity.currentNumber.setText(String.valueOf(purchasesList.purchasesListData.size()));
             strore_adress.setText("");
             store_name.setText("");
-            placeImage.setImageBitmap(null);
+            placeImage.setImageResource(android.R.color.transparent);
             setPageData();
 
             if (currentInvoice != null) {
@@ -274,21 +274,18 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     {
         PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
         if(currentInvoice.store != null) {
-            if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
+            //find best location
+            Double[] latLng = invoice.findBestLocation(currentInvoice.store);
+            if(latLng != null && latLng.length==2 && latLng[0] != null && latLng[1] != null)
+            {
+                builder.setLatLngBounds(new LatLngBounds(new LatLng(latLng[0]-map_offset, latLng[1]-map_offset), new LatLng(latLng[0]+map_offset, latLng[1]+map_offset)));
+            }
+            else if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
                 builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude-map_offset,  currentInvoice.store.longitude-map_offset),
                         new LatLng(currentInvoice.store.latitude+map_offset, currentInvoice.store.longitude+map_offset)));
-            else
+            else if(currentInvoice.latitudeAdd != null && currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd != null && currentInvoice.longitudeAdd > 0)
             {
-                //find best location
-                Double[] latLng = invoice.findBestLocation(currentInvoice.store);
-                if(latLng.length==2 && latLng[0] != null && latLng[1] != null)
-                {
-                    builder.setLatLngBounds(new LatLngBounds(new LatLng(latLng[0]-map_offset, latLng[1]-map_offset), new LatLng(latLng[0]+map_offset, latLng[1]+map_offset)));
-                }
-                else if(currentInvoice.latitudeAdd != null && currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd != null && currentInvoice.longitudeAdd > 0)
-                {
-                    builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd-map_offset,currentInvoice.longitudeAdd-map_offset),new LatLng(currentInvoice.latitudeAdd+map_offset,currentInvoice.longitudeAdd+map_offset)));
-                }
+                builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd-map_offset,currentInvoice.longitudeAdd-map_offset),new LatLng(currentInvoice.latitudeAdd+map_offset,currentInvoice.longitudeAdd+map_offset)));
             }
 
 
@@ -302,7 +299,6 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         hideFABMenu();
         View view = inflater.inflate(R.layout.content_purchases_page, null);
         final Context context = view.getContext();
-        currentDate = view.findViewById(R.id.currentDate);
         //currentName = view.findViewById(R.id.currentName);
         //currentNumber =  view.findViewById(R.id.currentNumber);
         store_name =  view.findViewById(R.id.strore_name);
@@ -671,6 +667,9 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                         switch(item.getItemId())
                         {
                             case R.id.setPhoto: {
+                                //addMyPhotoContainer.setVisibility(View.VISIBLE);
+                                //blurPlotter.setVisibility(View.VISIBLE);
+                                //progressBar.setVisibility(View.VISIBLE);
                                 photoTask = new PhotoTask(500, 500);
                                 photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
                                 break;

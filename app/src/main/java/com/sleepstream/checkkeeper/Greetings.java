@@ -27,6 +27,8 @@ import static com.sleepstream.checkkeeper.MainActivity.user;
 
 public class Greetings extends Activity {
 
+    Integer backPressed = 0;
+
     TextView link_to_FNS_app;
     TextInputLayout password_fns_layout;
     TextInputLayout e_mail_layout;
@@ -46,6 +48,8 @@ public class Greetings extends Activity {
     Button button_registration;
     Button cancel_registration_btn;
     Button show_registration_btn;
+
+    RelativeLayout progressBar;
 
     Context context;
     @Override
@@ -69,6 +73,7 @@ public class Greetings extends Activity {
         greetings_layout = findViewById(R.id.greetings_layout);
         show_registration_btn = findViewById(R.id.show_registration_btn);
         cancel_registration_btn = findViewById(R.id.cancel_registration_btn);
+        progressBar = findViewById(R.id.progressBar);
 
         cancel_registration_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -225,7 +230,9 @@ public class Greetings extends Activity {
                         user.telephone_number = phone_number.getText().toString();
                         user.generateAuth(password_fns.getText().toString());
                         user._status = 1;
+                        user.setPersonalData();
                         Toast.makeText(context, getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
+                        finish();
                     }
                     else
                     {
@@ -268,10 +275,9 @@ public class Greetings extends Activity {
     private class RegisterNewAsyncTask extends AsyncTask<PersonalData, Void, Integer>
     {
         private PersonalData personalData=null;
-        ProgressBar progressBar;
+
         @Override
         protected void onPreExecute() {
-            progressBar = new ProgressBar(context);
             progressBar.setVisibility(View.VISIBLE);
             super.onPreExecute();
         }
@@ -285,6 +291,7 @@ public class Greetings extends Activity {
                         break;
                     case 1:
                         Toast.makeText(context, context.getString(R.string.personal_data_request_UserRegistered), Toast.LENGTH_LONG).show();
+                        user._status = 1;
                         progressBar.setVisibility(View.GONE);
                         finish();
                         break;
@@ -350,6 +357,25 @@ public class Greetings extends Activity {
 
             }
             return null;
+        }
+    }
+
+    /**
+     * Called when the activity has detected the user's press of the back
+     * key.  The default implementation simply finishes the current activity,
+     * but you can override this to do whatever you want.
+     */
+    @Override
+    public void onBackPressed() {
+        if(backPressed == 0) {
+            Toast.makeText(context, context.getString(R.string.press_back_to_exit), Toast.LENGTH_LONG).show();
+            backPressed+=1;
+        }
+        else
+        {
+            backPressed= 0;
+            finishAffinity();
+            System.exit(0);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.sleepstream.checkkeeper;
 
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.*;
@@ -71,7 +72,11 @@ import com.sleepstream.checkkeeper.smsListener.SmsReceiver;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import com.sleepstream.checkkeeper.userModule.UserDataActivity;
 import com.takusemba.cropme.CropView;
+import com.yalantis.ucrop.UCrop;
+import com.yalantis.ucrop.UCropActivity;
+import com.yalantis.ucrop.model.AspectRatio;
 import okhttp3.*;
+import org.apache.commons.io.FileUtils;
 import org.ghost4j.document.PDFDocument;
 
 import java.io.*;
@@ -197,439 +202,404 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
-        //check and create DB if nessesary
-        dbHelper = new DBHelper(this);
-        try {
-            dbHelper.createDataBase();
-        } catch (IOException ioe) {
-            throw new Error("Unable to create database");
-        }
-        try {
-            dbHelper.openDataBase();
-        } catch (SQLException sqle) {
-            log.info(LOG_TAG + "\n" + "Error opening database, Exeption");
-            //throw sqle;
-        }
-
-        if (!permChecked) {
-            try {
-                permChecked = getIntent().getExtras().getBoolean("permChecked");
-            } catch (Exception ex) {
-                permChecked = false;
-            }
-        }
-
-        settings = new SettingsApp();
-        if(settings.settings.containsKey("theme"))
-        {
-            int theme = Integer.valueOf(settings.settings.get("theme"));
-            setTheme(theme);
-        }
-
         super.onCreate(savedInstanceState);
-
-
-        //status 0 - just loaded waiting for loading
-        //status 3 - loading in progress
-        //status -1 - error loading from FNS not exist
-        //status 1 - loaded from fns
-        //status 2 - confirmed by user
-        //status -4 - Status Not Acceptable from Server
-        //-3 - Status Not Found from Server
-        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
-        statusInvoices.put("in_basket", new String[]{"1"});
-
-        setContentView(R.layout.activity_main);
-        context = this;
-        toolbar = findViewById(R.id.toolbar);
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
-            @Override
-            public void onDrawerOpened(View drawerView) {
-                super.onDrawerOpened(drawerView);
-                initializeCountDrawer();
-                setNavMenuChecked();
-            }
-        };
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-        progressBar = findViewById(R.id.progressBar);
-
-        currentNumber = findViewById(R.id.currentNumber);
-        ivFilter = findViewById(R.id.ivFilter);
-        ivFilter.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!statusDateFilter) {
-                    Intent intent = new Intent(context, CalendarPickerActivity.class);
-                    statusDateFilter = true;
-                    startActivityForResult(intent, MainActivity.CALENDAR_PICKER_REQUEST);
-                    ivFilter.setImageResource(R.drawable.ic_filter_remove_white_24dp);
-                } else {
-                    statusDateFilter = false;
-                    navigation.clearFilter("date_day");
-                    navigation.openCurrentPage(navigation.currentPage);
-                    ivFilter.setImageResource(R.drawable.ic_filter_white_24dp);
-                }
-            }
-        });
-        toolbar_title = findViewById(R.id.action_bar_title);
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        invoiceCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesPage));
-        accountingListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.accountingListPAge));
-        linkedListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.linkedListPage));
-        invoicesLoadingPage = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesLoadingPage));
-
-        navigation = new Navigation(context, toolbar_title);
-
-        try {
-            FileInputStream fis = new FileInputStream("resources.properties");
-            LogManager.getLogManager().readConfiguration(fis);
-        } catch (IOException e) {
-            System.err.println("Could not setup logger configuration: " + e.toString());
-        }
-        String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/log/";
-        File tmp = new File(filepath);
-        if (!tmp.exists())
-            tmp.mkdirs();
-        FileHandler fh = null;
-        try {
-            fh = new FileHandler(filepath + "application_log.txt");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        if (fh != null)
-            log.addHandler(fh);
-        log.info("Hello!");
-
-
-        cacheDir = context.getCacheDir().getAbsolutePath() + "/";
-
-        recyclerViewFotoList = findViewById(R.id.imagelist);
-        blurPlotter = findViewById(R.id.blurPlotter);
-        progressBar = findViewById(R.id.progressBar);
-        addMyPhoto = findViewById(R.id.addMyPhoto);
-        addMyPhotoContainer = findViewById(R.id.addMyPhotoContainer);
-
-        blurPlotter.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                blurPlotter.setVisibility(View.GONE);
-                progressBar.setVisibility(View.GONE);
-                addMyPhotoContainer.setVisibility(View.GONE);
-                if (googleFotoListAdapter != null) {
-                    googleFotoListAdapter.placePhotoMetadataList.clear();
-                    googleFotoListAdapter.notifyDataSetChanged();
-                }
-                return true;
-            }
-        });
-        addMyPhoto.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                Intent chooseImageIntent = ImagePicker.getPickImageIntent(context);
-                startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
-                return false;
-            }
-        });
-
-        mGoogleApiClient = new GoogleApiClient
-                .Builder(this)
-                .addApi(Places.GEO_DATA_API)
-                .addApi(Places.PLACE_DETECTION_API)
-                .enableAutoManage(this, this)
-                .build();
-        intentService = new Intent(context, LoadingFromFNS.class);
-        if (!isMyServiceRunning(LoadingFromFNS.class)) {
-            startService(intentService);
-        }
-
-
-        android_id = Settings.Secure.getString(this.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-
-
         hasSmsPermission = RuntimePermissionUtil.checkPermissonGranted(this, smsPerm);
         hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
         hasSDPermission = RuntimePermissionUtil.checkPermissonGranted(this, sdPerm);
         hasGPSPermission = RuntimePermissionUtil.checkPermissonGranted(this, MapPerm);
         if (!hasSmsPermission || !hasCameraPermission || !hasSDPermission || !hasGPSPermission) {
             RuntimePermissionUtil.requestPermission(MainActivity.this, permisions, 200);
-        } else
+        } else {
             permChecked = true;
-/*
-
-*/
-
-        SmsReceiver.bindListener(new SmsListener() {
-            @Override
-            public void messageReceived(String messageText) {
-                Pattern p = Pattern.compile("[0-9]{6,10}");
-                Matcher m = p.matcher(messageText);
-                if (m.matches()) {
-                    user._status = 1;
-                    user.generateAuth(messageText);
-                    Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordUpdated), Toast.LENGTH_LONG).show();
-                    if (!isMyServiceRunning(LoadingFromFNS.class)) {
-                        startService(intentService);
-                    }
-
-                }
+            context = this;
+            //check and create DB if nessesary
+            dbHelper = new DBHelper(this);
+            try {
+                dbHelper.createDataBase();
+            } catch (IOException ioe) {
+                throw new Error("Unable to create database");
             }
-        });
+            try {
+                dbHelper.openDataBase();
+            } catch (SQLException sqle) {
+                log.info(LOG_TAG + "\n" + "Error opening database, Exeption");
+                //throw sqle;
+            }
+            settings = new SettingsApp();
+            if(settings.settings.containsKey("theme"))
+            {
+                int theme = Integer.valueOf(settings.settings.get("theme"));
+                setTheme(theme);
+            }
 
-        getFnsData = new GetFnsData(android_id);
-
-
-
-        //initiolisation userData
-        user = new PersonalData(context);
-        //if new user
-        if ((user.id == null && permChecked) || (user._status!= null && user._status == -1)) {
-            Intent intent = new Intent(context, Greetings.class);
-            startActivity(intent);
-            /*
-            AlertDialog.Builder adb = new AlertDialog.Builder(context);
-            adb.setTitle(getString(R.string.titleGreetingMessage));
-            adb.setMessage(R.string.firstTimeEnter);
-            adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    //send to registration page
-                    Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                    intent.putExtra("settingsPage", "UsersDataPreferenceFragment");
-                    startActivity(intent);
-                }
-            });
-            adb.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    finish();
-                }
-            });
-            adb.show();
-            */
-
-        }
-        //если пользователь не новый, но нужна повторная авторизация
-        else if (user._status != null && user._status == 0) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setMessage(getString(R.string.getNewPswFNS))
-                    .setCancelable(false)
-                    .setNegativeButton(context.getString(R.string.btnManual), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            android.support.v7.app.AlertDialog.Builder alertDialog = new android.support.v7.app.AlertDialog.Builder(context);
-                            alertDialog.setTitle(context.getString(R.string.Settings_PasswField));
-                            alertDialog.setMessage(R.string.Settings_PasswField_message);
-                            final EditText input = new EditText(context);
-                            input.setGravity(Gravity.CENTER);
-                            input.setInputType(InputType.TYPE_CLASS_TEXT);
-                            alertDialog.setView(input);
-                            alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    String passw = input.getText().toString();
-                                    Pattern p = Pattern.compile("[0-9]{6,10}");
-                                    Matcher m = p.matcher(passw);
-                                    if (m.matches()) {
-                                        user._status = 1;
-                                        user.generateAuth(passw);
-                                        Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
-                                    }
-                                }
-                            });
-                            alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                }
-                            });
-                            alertDialog.show();
-
-                        }
-                    })
-                    .setPositiveButton(context.getString(R.string.btnReset), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            getFnsData.resetPassword(new Callback() {
-                                @Override
-                                public void onFailure(Call call, final IOException e) {
-                                    runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            log.info(LOG_TAG + "\n" + e.getMessage() + "error" + getFnsData.requestStr);
-                                            //FNS_Data.setText(e.getMessage() + "error" + getFnsData.requestStr);///приходит сюда. понять почему
+            user = new PersonalData(context);
+            //if new user
+            if ((user.id == null && permChecked) || (user._status!= null && user._status == -1)) {
+                Intent intent = new Intent(context, Greetings.class);
+                startActivity(intent);
+            }
+            //если пользователь не новый, но нужна повторная авторизация
+            else if (user._status != null && user._status == 0) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder.setMessage(getString(R.string.getNewPswFNS))
+                        .setCancelable(false)
+                        .setNegativeButton(context.getString(R.string.btnManual), new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                android.support.v7.app.AlertDialog.Builder alertDialog = new android.support.v7.app.AlertDialog.Builder(context);
+                                alertDialog.setMessage(R.string.Settings_PasswField_message);
+                                final EditText input = new EditText(context);
+                                input.setGravity(Gravity.CENTER);
+                                input.setInputType(InputType.TYPE_CLASS_TEXT);
+                                alertDialog.setView(input);
+                                alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        String passw = input.getText().toString();
+                                        Pattern p = Pattern.compile("[0-9]{6,10}");
+                                        Matcher m = p.matcher(passw);
+                                        if (m.matches()) {
+                                            user._status = 1;
+                                            user.generateAuth(passw);
+                                            Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
+                                            if (!isMyServiceRunning(LoadingFromFNS.class)) {
+                                                startService(intentService);
+                                            }
                                         }
-                                    });
-                                }
+                                    }
+                                });
+                                alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                    }
+                                });
+                                alertDialog.show();
 
-                                @Override
-                                public void onResponse(Call call, Response response) throws IOException {
-                                    //do nothing
-                                }
-                            });
+                            }
+                        })
+                        .setPositiveButton(context.getString(R.string.btnReset), new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                getFnsData.resetPassword(new Callback() {
+                                    @Override
+                                    public void onFailure(Call call, final IOException e) {
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                log.info(LOG_TAG + "\n" + e.getMessage() + "error" + getFnsData.requestStr);
+                                                //FNS_Data.setText(e.getMessage() + "error" + getFnsData.requestStr);///приходит сюда. понять почему
+                                            }
+                                        });
+                                    }
+
+                                    @Override
+                                    public void onResponse(Call call, Response response) throws IOException {
+                                        //do nothing
+                                    }
+                                });
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+
+            }
+            //status 0 - just loaded waiting for loading
+            //status 3 - loading in progress
+            //status -1 - error loading from FNS not exist
+            //status 1 - loaded from fns
+            //status 2 - confirmed by user
+            //status -4 - Status Not Acceptable from Server
+            //-3 - Status Not Found from Server
+            statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
+            statusInvoices.put("in_basket", new String[]{"1"});
+
+            setContentView(R.layout.activity_main);
+
+            toolbar = findViewById(R.id.toolbar);
+            DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                    this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
+                @Override
+                public void onDrawerOpened(View drawerView) {
+                    super.onDrawerOpened(drawerView);
+                    initializeCountDrawer();
+                    setNavMenuChecked();
+                }
+            };
+            drawer.addDrawerListener(toggle);
+            toggle.syncState();
+            progressBar = findViewById(R.id.progressBar);
+
+            currentNumber = findViewById(R.id.currentNumber);
+            ivFilter = findViewById(R.id.ivFilter);
+            ivFilter.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (!statusDateFilter) {
+                        Intent intent = new Intent(context, CalendarPickerActivity.class);
+                        statusDateFilter = true;
+                        startActivityForResult(intent, MainActivity.CALENDAR_PICKER_REQUEST);
+                        ivFilter.setImageResource(R.drawable.ic_filter_remove_white_24dp);
+                    } else {
+                        statusDateFilter = false;
+                        navigation.clearFilter("date_day");
+                        navigation.openCurrentPage(navigation.currentPage);
+                        ivFilter.setImageResource(R.drawable.ic_filter_white_24dp);
+                    }
+                }
+            });
+            toolbar_title = findViewById(R.id.action_bar_title);
+            navigationView = (NavigationView) findViewById(R.id.nav_view);
+            navigationView.setNavigationItemSelectedListener(this);
+
+            invoiceCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesPage));
+            accountingListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.accountingListPAge));
+            linkedListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.linkedListPage));
+            invoicesLoadingPage = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesLoadingPage));
+
+            navigation = new Navigation(context, toolbar_title);
+            getFnsData = new GetFnsData(android_id);
+
+            invoice = new Invoice(navigation);
+            invoice.reLoadInvoice();
+            accountingList = new AccountingList();
+            purchasesList = new PurchasesList(context);
+            linkedListClass = new LinkedListClass();
+
+            try {
+                FileInputStream fis = new FileInputStream("resources.properties");
+                LogManager.getLogManager().readConfiguration(fis);
+            } catch (IOException e) {
+                System.err.println("Could not setup logger configuration: " + e.toString());
+            }
+            String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/log/";
+            File tmp = new File(filepath);
+            if (!tmp.exists())
+                tmp.mkdirs();
+            FileHandler fh = null;
+            try {
+                fh = new FileHandler(filepath + "application_log.txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (fh != null)
+                log.addHandler(fh);
+            log.info("Hello!");
+
+
+            cacheDir = context.getCacheDir().getAbsolutePath() + "/";
+
+            recyclerViewFotoList = findViewById(R.id.imagelist);
+            blurPlotter = findViewById(R.id.blurPlotter);
+            progressBar = findViewById(R.id.progressBar);
+            addMyPhoto = findViewById(R.id.addMyPhoto);
+            addMyPhotoContainer = findViewById(R.id.addMyPhotoContainer);
+
+            blurPlotter.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View view, MotionEvent motionEvent) {
+                    blurPlotter.setVisibility(View.GONE);
+                    progressBar.setVisibility(View.GONE);
+                    addMyPhotoContainer.setVisibility(View.GONE);
+                    if (googleFotoListAdapter != null) {
+                        googleFotoListAdapter.placePhotoMetadataList.clear();
+                        googleFotoListAdapter.notifyDataSetChanged();
+                    }
+                    return true;
+                }
+            });
+            addMyPhoto.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View view, MotionEvent motionEvent) {
+                    Intent chooseImageIntent = ImagePicker.getPickImageIntent(context);
+                    //Intent chooseImageIntent = new Intent(Intent.ACTION_GET_CONTENT, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
+                    return false;
+                }
+            });
+
+            mGoogleApiClient = new GoogleApiClient
+                    .Builder(this)
+                    .addApi(Places.GEO_DATA_API)
+                    .addApi(Places.PLACE_DETECTION_API)
+                    .enableAutoManage(this, this)
+                    .build();
+            intentService = new Intent(context, LoadingFromFNS.class);
+            if (!isMyServiceRunning(LoadingFromFNS.class)) {
+                startService(intentService);
+            }
+
+
+            android_id = Settings.Secure.getString(this.getContentResolver(),
+                    Settings.Secure.ANDROID_ID);
+    /*
+
+    */
+
+            SmsReceiver.bindListener(new SmsListener() {
+                @Override
+                public void messageReceived(String messageText) {
+                    Pattern p = Pattern.compile("[0-9]{6,10}");
+                    Matcher m = p.matcher(messageText);
+                    if (m.matches()) {
+                        user._status = 1;
+                        user.generateAuth(messageText);
+                        Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordUpdated), Toast.LENGTH_LONG).show();
+                        if (!isMyServiceRunning(LoadingFromFNS.class)) {
+                            startService(intentService);
+                        }
+
+                    }
+                }
+            });
+
+
+            initializeCountDrawer();
+
+
+            fab = findViewById(R.id.fab);
+            fab_file = findViewById(R.id.fab_file);
+            fab_manual = findViewById(R.id.fab_manual);
+            fab_pdf = findViewById(R.id.fab_pdf);
+
+
+            fab.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (!isFABOpen) {
+                        showFABMenu();
+                    } else {
+                        closeFABMenu();
+                    }
+                    return true;
+                }
+            });
+
+            fab_pdf.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    closeFABMenu();
+
+                    Intent intent = new Intent();
+                    intent.setType("*/*");
+                    String[] mimetypes = {"application/pdf"};
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+                    intent.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
+                }
+            });
+            fab_file.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    closeFABMenu();
+                    Intent intent = new Intent();
+                    intent.setType("*/*");
+                    String[] mimetypes = {"image/*"};
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
+                    intent.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
+                }
+            });
+            fab_manual.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    closeFABMenu();
+                    blurPlotter.setVisibility(View.VISIBLE);
+
+                    View v = LayoutInflater.from(context).inflate(R.layout.add_invoicemanual_layout, null);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                    builder.setView(v);
+                    final EditText fP = v.findViewById(R.id.addFP);
+                    final EditText fN = v.findViewById(R.id.addFN);
+                    final EditText fD = v.findViewById(R.id.addFD);
+
+                    builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            blurPlotter.setVisibility(View.GONE);
+                            AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
+                            String qrResult = "t=T&s=&fn=" + fN.getText().toString() + "&i=" + fD.getText().toString() + "&fp=" + fP.getText().toString() + "&n=1";
+                            asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, qrResult, invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
                         }
                     });
-            AlertDialog alert = builder.create();
-            alert.show();
-
-        }
-
-
-        invoice = new Invoice(navigation);
-        invoice.reLoadInvoice();
-        accountingList = new AccountingList();
-        purchasesList = new PurchasesList(context);
-        linkedListClass = new LinkedListClass();
-
-        initializeCountDrawer();
-
-
-        fab = findViewById(R.id.fab);
-        fab_file = findViewById(R.id.fab_file);
-        fab_manual = findViewById(R.id.fab_manual);
-        fab_pdf = findViewById(R.id.fab_pdf);
-
-
-        fab.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if(!isFABOpen){
-                    showFABMenu();
-                }else{
+                    builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            blurPlotter.setVisibility(View.GONE);
+                            dialog.cancel();
+                        }
+                    });
+                    builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                        @Override
+                        public void onCancel(DialogInterface dialogInterface) {
+                            blurPlotter.setVisibility(View.GONE);
+                        }
+                    });
+                    builder.show();
+                }
+            });
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
                     closeFABMenu();
-                }
-                return true;
-            }
-        });
+                    log.info(LOG_TAG + "\n" + "page Now +" + pageNow);
+                    Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+                    startActivityForResult(intent, cameraRequest);
 
-        fab_pdf.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                closeFABMenu();
+    /*                switch(pageNow)
+                    {
+                        case "invoicesLists":
+                            Intent intent = new Intent(MainActivity.this, CameraActivity.class);
+                            startActivityForResult(intent, cameraRequest);
+                            break;
+                        case "accountingLists":
 
-                Intent intent = new Intent();
-                intent.setType("*/*");
-                String[] mimetypes = { "application/pdf"};
-                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
-            }
-        });
-        fab_file.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                closeFABMenu();
-                Intent intent = new Intent();
-                intent.setType("*/*");
-                String[] mimetypes = {"image/*"};
-                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_INVOICE_FROM_IMAGE);
-            }
-        });
-        fab_manual.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                closeFABMenu();
-                blurPlotter.setVisibility(View.VISIBLE);
+                            LayoutInflater inflater = getLayoutInflater();
+                            View dialoglayout = inflater.inflate(R.layout.add_accountinglist_layout, null);
+                            final EditText dialogHint = dialoglayout.findViewById(R.id.addList);
+                            dialogHint.setHint(R.string.title_addAccointingList);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+                            builder.setView(dialoglayout);
+                            final AlertDialog dialog = builder.create();
 
-                View v = LayoutInflater.from(context).inflate(R.layout.add_invoicemanual_layout, null);
-                AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                builder.setView(v);
-                final EditText fP = v.findViewById(R.id.addFP);
-                final EditText fN = v.findViewById(R.id.addFN);
-                final EditText fD = v.findViewById(R.id.addFD);
-
-                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        blurPlotter.setVisibility(View.GONE);
-                        AsyncFirstAddInvoice asyncFirstAddInvoice = new AsyncFirstAddInvoice();
-                        String qrResult = "t=T&s=&fn=" + fN.getText().toString() + "&i=" + fD.getText().toString() + "&fp=" + fP.getText().toString() + "&n=1";
-                        asyncFirstAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, qrResult, invoice.checkFilter("fk_invoice_accountinglist", null) ? Integer.valueOf(invoice.getFilter("fk_invoice_accountinglist")[0]).toString() : null);
-                    }
-                });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        blurPlotter.setVisibility(View.GONE);
-                        dialog.cancel();
-                    }
-                });
-                builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                    @Override
-                    public void onCancel(DialogInterface dialogInterface) {
-                        blurPlotter.setVisibility(View.GONE);
-                    }
-                });
-                builder.show();
-            }
-        });
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                closeFABMenu();
-                log.info(LOG_TAG + "\n" + "page Now +" + pageNow);
-                Intent intent = new Intent(MainActivity.this, CameraActivity.class);
-                startActivityForResult(intent, cameraRequest);
-
-/*                switch(pageNow)
-                {
-                    case "invoicesLists":
-                        Intent intent = new Intent(MainActivity.this, CameraActivity.class);
-                        startActivityForResult(intent, cameraRequest);
-                        break;
-                    case "accountingLists":
-
-                        LayoutInflater inflater = getLayoutInflater();
-                        View dialoglayout = inflater.inflate(R.layout.add_accountinglist_layout, null);
-                        final EditText dialogHint = dialoglayout.findViewById(R.id.addList);
-                        dialogHint.setHint(R.string.title_addAccointingList);
-                        AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
-                        builder.setView(dialoglayout);
-                        final AlertDialog dialog = builder.create();
-
-                        TextView btnAdd = dialoglayout.findViewById(R.id.btnAdd1);
-                        btnAdd.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                dialog.cancel();
-                                AccountingListData tmp = new AccountingListData();
-                                tmp.setName(dialogHint.getText().toString());
-                                String res = accountingList.addAccountingList(null, tmp);
-                                if(res.equals("exist"))
-                                {
-                                    Toast.makeText(context, "exist", Toast.LENGTH_LONG).show();
+                            TextView btnAdd = dialoglayout.findViewById(R.id.btnAdd1);
+                            btnAdd.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    dialog.cancel();
+                                    AccountingListData tmp = new AccountingListData();
+                                    tmp.setName(dialogHint.getText().toString());
+                                    String res = accountingList.addAccountingList(null, tmp);
+                                    if(res.equals("exist"))
+                                    {
+                                        Toast.makeText(context, "exist", Toast.LENGTH_LONG).show();
+                                    }
+                                    else if(res.equals(""))
+                                        AccountingListPageFragment.accountingListAdapter.notifyDataSetChanged();
+                                    return;
                                 }
-                                else if(res.equals(""))
-                                    AccountingListPageFragment.accountingListAdapter.notifyDataSetChanged();
-                                return;
-                            }
-                        });
+                            });
 
-                        WindowManager.LayoutParams wmlp = dialog.getWindow().getAttributes();
-                        wmlp.gravity = Gravity.TOP|Gravity.CENTER;
-                        dialog.show();
-                        dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
-                            @Override
-                            public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent keyEvent) {
-                                if (keyCode == KeyEvent.KEYCODE_BACK) {
-                                    dialogInterface.cancel();
-                                    return true;
+                            WindowManager.LayoutParams wmlp = dialog.getWindow().getAttributes();
+                            wmlp.gravity = Gravity.TOP|Gravity.CENTER;
+                            dialog.show();
+                            dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                                @Override
+                                public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent keyEvent) {
+                                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                                        dialogInterface.cancel();
+                                        return true;
+                                    }
+                                    return false;
                                 }
-                                return false;
-                            }
-                        });
-                        break;
+                            });
+                            break;
+                    }
+    */
                 }
-*/
-            }
-        });
+            });
 
-        navigation.openCurrentPage(new Page("", 0));
+            navigation.openCurrentPage(new Page("", 0));
+        }
     }
 
     private void showFABMenu() {
@@ -1309,9 +1279,59 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             //set oun image
             case PICK_IMAGE_ID: {
+
+                String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+
                 Bitmap bitmap = ImagePicker.getImageFromResult(this, resultCode, data);
-                saveImages(bitmap, null, null, currentInvoice.store.place_id);
-                String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/IMG_"+currentInvoice.store.place_id + ".png";
+                saveImages(bitmap, null, null, currentInvoice.store.place_id+"_tmp");
+                /*
+
+                File dir = new File(path);
+
+                final File[] files = dir.listFiles(new FileFilter() {
+                    @Override
+                    public boolean accept(File pathname) {
+                        return pathname.getName().matches("IMG_"+currentInvoice.store.place_id+"_[0-9]{1,}.png");
+                    }
+                });
+
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        for(File tmp : files)
+                        {
+                            tmp.delete();
+                        }
+                    }
+                });
+                thread.start();
+
+                File file = new File(path);
+                if(!file.exists())
+                {
+                    if(!file.mkdirs())
+                    {
+                        Toast.makeText(context, context.getString(R.string.error_file_not_found_call_admin), Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
+                */
+                File dest = new File(path, "IMG_" + currentInvoice.store.place_id + ".png");
+                File src = new File(path, "IMG_" + currentInvoice.store.place_id + "_tmp.png");
+
+                Uri destinationUri = Uri.parse(dest.toURI().toString());
+                Uri sourceUri = Uri.parse(src.toURI().toString());
+
+                UCrop.Options options = new UCrop.Options();
+                options.setFreeStyleCropEnabled(true);
+                options.setAllowedGestures(UCropActivity.SCALE, UCropActivity.SCALE, UCropActivity.SCALE);
+                options.setHideBottomControls(true);
+                options.setAspectRatioOptions(0, new AspectRatio("16x4", 16, 4));
+                UCrop.of(sourceUri, destinationUri)
+                        .withOptions(options)
+                        .start((Activity) context);
+
+                /*
                 Intent intent = new Intent(context, CropActivity.class);
                 intent.putExtra("photo_reference", filepath);
                 intent.putExtra("place_id", currentInvoice.store.place_id);
@@ -1325,10 +1345,31 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     googleFotoListAdapter.notifyDataSetChanged();
                 }
                 context.startActivity(intent);
-
+*/
                 break;
             }
             //set chosen image from google
+
+            case UCrop.REQUEST_CROP:
+            {
+                String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+                File tmp = new File(path, "IMG_" + currentInvoice.store.place_id + "_tmp.png");
+                if(tmp.exists())
+                {
+                    tmp.delete();
+                }
+                break;
+            }
+            case UCrop.RESULT_ERROR:
+            {
+                String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+                File tmp = new File(path, "IMG_" + currentInvoice.store.place_id + "_tmp.png");
+                if(tmp.exists())
+                {
+                    tmp.delete();
+                }
+                break;
+            }
             case SetImageFromGoogle_REQUEST: {
                 if (data != null) {
                     String imgUrl = data.getExtras().getString("url");
@@ -1634,7 +1675,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
                 QRitem = new QRManager(resultQR[0]);//место редактирования полученного кода. стоит сразу создать объект
                 //save QR data to DB
-                Pattern p = Pattern.compile("t=[0-9]{6,}[Tt]{1}[0-9]{4,}&s=[0-9.]{1,}&fn=[0-9]{16}&i=[0-9]{4,}&fp=[0-9]{9,}");
+                Pattern p = Pattern.compile("t=[0-9]*[Tt]{1}[0-9]*&s=[0-9.]*&fn=[0-9]{16,}&i=[0-9]{1,}&fp=[0-9]{8,}");
                 Matcher m = p.matcher(QRitem.resultQR);
                 if(m.find()) {
 
@@ -2017,8 +2058,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     };
                     Handler handlerUndo = new Handler();
                     handlerUndo.postDelayed(runnableUndo, 2500);
-                } else
-                    finish();
+                } else {
+                    finishAffinity();
+                    System.exit(0);
+                }
             }
         }
     }

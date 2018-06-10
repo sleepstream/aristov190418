@@ -276,16 +276,14 @@ public class SettingsActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, final ViewGroup container,
                                  Bundle savedInstanceState) {
 
-            View view = inflater.inflate(R.layout.activity_settings_main, null);
+            View view = inflater.inflate(R.layout.settings_user_data_fragment, null);
             name = view.findViewById(R.id.NameField);
-            surname = view.findViewById(R.id.SurnameField);
             phone =  view.findViewById(R.id.phone);
             e_mail = view.findViewById(R.id.e_mail);
             fab_get_update_passw = view.findViewById(R.id.fab_get_update_passw);
             //password = view.findViewById(R.id.password);
 
             name_summary = view.findViewById(R.id.NameField_summary);
-            surname_summary = view.findViewById(R.id.SurnameField_summary);
             phone_summary =  view.findViewById(R.id.phone_summary);
             e_mail_summary = view.findViewById(R.id.e_mail_summary);
             //password_summary = view.findViewById(R.id.password_summary);

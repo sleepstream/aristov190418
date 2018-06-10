@@ -92,26 +92,34 @@ public class PersonalData {
     public void insertPersonalData ()
     {
         ContentValues data = new ContentValues();
-        data.put("name", name);
-        data.put("telephone_number", telephone_number);
+        if(name != null)
+            data.put("name", name);
+        if(telephone_number!= null)
+            data.put("telephone_number", telephone_number);
         if(password!= null)
             data.put("password", password);
-        data.put("e_mail", e_mail);
+        if(e_mail != null)
+            data.put("e_mail", e_mail);
         data.put("_status", 0);
 
-        Cursor cur =dbHelper.query(tableName, null, "telephone_number=?", new String[]{telephone_number}, null, null, null, null);
-        if(cur.getCount() == 0) {
-            long count = dbHelper.insert(tableName, null, data);
-            if (count > -1)
-                this.id = (int) count;
-            Log.d(LOG_TAG, "Inserted record id: " + count);
+        if(telephone_number!= null)
+        {
+            Cursor cur =dbHelper.query(tableName, null, "telephone_number=?", new String[]{telephone_number}, null, null, null, null);
+            if (cur.getCount() == 0) {
+                long count = dbHelper.insert(tableName, null, data);
+                if (count > -1)
+                    this.id = (int) count;
+                Log.d(LOG_TAG, "Inserted record id: " + count);
+            } else {
+                Log.d(LOG_TAG, "Insert record ERROR: record with telephone_number exist:" + telephone_number + "\n call update");
+                this.updatePersonalData();
+            }
+            cur.close();
         }
         else
         {
-            Log.d(LOG_TAG, "Insert record ERROR: record with telephone_number exist:" + telephone_number +"\n call update");
-            this.updatePersonalData();
+            Log.d(LOG_TAG, "Insert record ERROR: telephone_number is null");
         }
-        cur.close();
         
     }
 

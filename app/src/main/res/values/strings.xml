@@ -14,7 +14,7 @@
     </string>
     <string name="titleGreetingMessage">Вимание!</string>
     <string name="ButtonOK">OK</string>
-    <string name="getNewPswFNS">Необходимо обновить пароль ФНС</string>
+    <string name="getNewPswFNS">Указанный Вами пароль для доступа к серверу ФНС устарел или неправильный.\nВведите новый пароль или обновите его автоматически.</string>
     <string name="errorUserAlreadyRegistered">Возможно вы уже зарегистрированы, необходимо сбросить пароль</string>
     <string name="showPersonalData">Учетные данные</string>
 
@@ -130,7 +130,7 @@
     <string name="Settings_PasswField">Пароль</string>
     <string name="Settings_PasswField_message">Введите полученный ранее пароль</string>
     <string name="personal_data_request_PasswordSaved">Пароль успешно сохранен</string>
-    <string name="btnReset">Сбросить</string>
+    <string name="btnReset">Обновить</string>
     <string name="btnManual">Ввести</string>
     <string name="title_setOnMap">Указать на карте</string>
     <string name="title_setName">Изменить название</string>
@@ -156,5 +156,6 @@
     <string name="requested_field_error">Обязательное поле</string>
     <string name="error_fill_form">Необходимо заполнить все поля формы</string>
     <string name="greetings_text_2">Так же, вы можете пройти автоматическую регистрацию.\nДля продолжения нажимте \"Ok\"</string>
+    <string name="error_file_not_found_call_admin">Ошибка создания файла, обратитесь к разработчику</string>
 
 </resources>

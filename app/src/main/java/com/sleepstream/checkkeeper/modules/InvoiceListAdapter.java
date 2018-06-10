@@ -231,6 +231,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
 
     @Override
     public int getItemCount() {
+        invsNumber.setText(String.valueOf(itemList.size()));
         return itemList.size();
     }
 

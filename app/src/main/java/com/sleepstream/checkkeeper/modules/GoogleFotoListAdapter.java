@@ -12,10 +12,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.Toast;
+import com.google.common.base.MoreObjects;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.crop.CropActivity;
 import com.yalantis.ucrop.UCrop;
+import com.yalantis.ucrop.UCropActivity;
+import com.yalantis.ucrop.model.AspectRatio;
 
+import javax.crypto.spec.OAEPParameterSpec;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -26,9 +31,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.sleepstream.checkkeeper.MainActivity.addMyPhotoContainer;
-import static com.sleepstream.checkkeeper.MainActivity.blurPlotter;
-import static com.sleepstream.checkkeeper.MainActivity.currentInvoice;
+import static com.sleepstream.checkkeeper.MainActivity.*;
+import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
 
 public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAdapter.ItemViewHolder>  {
     private Context context;
@@ -60,6 +64,10 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
         holder.imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                blurPlotter.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+                addMyPhotoContainer.setVisibility(View.GONE);
+
                 Uri sourceUri = null;
                 try {
                     URL photoUrl = new URL("https://maps.googleapis.com/maps/api/place/photo?maxheight=5000&photo_reference=" + placePhotoMetadataList.get(position) + "&key=" + context.getString(R.string.google_maps_key));
@@ -73,35 +81,30 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
                 }
                 final String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/";
                 File file = new File(filepath, "IMG_" + currentInvoice.store.place_id + ".png");
+                File file1 = new File(filepath);
+                if(!file1.exists())
+                {
+
+                    if(!file1.mkdirs())
+                    {
+                        Toast.makeText(context, context.getString(R.string.error_file_not_found_call_admin), Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
                 Uri destinationUri = Uri.parse(file.toURI().toString());
 
                 UCrop.Options options = new UCrop.Options();
                 options.setFreeStyleCropEnabled(true);
-                UCrop.of (sourceUri, destinationUri)
+                options.setAllowedGestures(UCropActivity.SCALE, UCropActivity.SCALE, UCropActivity.SCALE);
+                options.setHideBottomControls(true);
+                options.setAspectRatioOptions(0, new AspectRatio("16x4", 16, 4));
+                UCrop.of(sourceUri, destinationUri)
                         .withOptions(options)
-                        .withMaxResultSize (1100, 340)
                         .start((Activity) context);
-/*
-                Intent intent = new Intent(context, CropActivity.class);
-                intent.putExtra("photo_reference", placePhotoMetadataList.get(position));
-                intent.putExtra("place_id", currentInvoice.store.place_id);
-                intent.putExtra("store_id", currentInvoice.store.id);
-                context.startActivity(intent);
-                blurPlotter.setVisibility(View.GONE);
-                addMyPhotoContainer.setVisibility(View.GONE);
-                placePhotoMetadataList.clear();
-                notifyDataSetChanged();
-                /*
-                MainActivity.copyfile(imgUrl, Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/" + "IMG_" + currentInvoice.store.place_id + ".png");
-                PurchasesPageFragment.placeImage.setImageBitmap(BitmapFactory.decodeFile(imgUrl));
-                blurPlotter.setVisibility(View.GONE);
-                addMyPhotoContainer.setVisibility(View.GONE);
-                placePhotoMetadataList.clear();
-                notifyDataSetChanged();
-                */
-                //((Activity)context).setResult(RESULT_OK, intent);
-                //((Activity)context).finish();
-
+                if (googleFotoListAdapter != null) {
+                    googleFotoListAdapter.placePhotoMetadataList.clear();
+                    googleFotoListAdapter.notifyDataSetChanged();
+                }
             }
         });
     }

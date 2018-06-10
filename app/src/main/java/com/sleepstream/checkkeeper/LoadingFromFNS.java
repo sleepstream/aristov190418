@@ -52,6 +52,10 @@ public class LoadingFromFNS extends Service {
             AsyncLoadDataInvoice asyncLoadDataInvoice = new AsyncLoadDataInvoice();
             asyncLoadDataInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
+        else
+        {
+            stopService(MainActivity.intentService);
+        }
         //asyncLoadDataInvoice.execute();
         return START_NOT_STICKY;
     }
