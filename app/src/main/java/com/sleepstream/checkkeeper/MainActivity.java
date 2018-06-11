@@ -2,6 +2,7 @@ package com.sleepstream.checkkeeper;
 
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
@@ -29,6 +30,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
+import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
@@ -140,6 +142,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public static final int CAPTURE_FROM_PDF_QR = 7000;
     public static final int restoreFromBackUp = 8000;
 
+    private SmsReceiver smsReceiver = new SmsReceiver();
+
     boolean hasCameraPermission = false;
     boolean hasSmsPermission = false;
     boolean hasSDPermission = false;
@@ -200,9 +204,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private LocationManager mLocationManager;
 
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        MultiDex.install(this);
         hasSmsPermission = RuntimePermissionUtil.checkPermissonGranted(this, smsPerm);
         hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
         hasSDPermission = RuntimePermissionUtil.checkPermissonGranted(this, sdPerm);
@@ -394,26 +401,25 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             addMyPhoto = findViewById(R.id.addMyPhoto);
             addMyPhotoContainer = findViewById(R.id.addMyPhotoContainer);
 
-            blurPlotter.setOnTouchListener(new View.OnTouchListener() {
+            blurPlotter.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public boolean onTouch(View view, MotionEvent motionEvent) {
+                public void onClick(View view) {
                     blurPlotter.setVisibility(View.GONE);
                     progressBar.setVisibility(View.GONE);
                     addMyPhotoContainer.setVisibility(View.GONE);
                     if (googleFotoListAdapter != null) {
                         googleFotoListAdapter.placePhotoMetadataList.clear();
+                        googleFotoListAdapter.placePhotoMetadataList = new ArrayList<>();
                         googleFotoListAdapter.notifyDataSetChanged();
                     }
-                    return true;
                 }
             });
-            addMyPhoto.setOnTouchListener(new View.OnTouchListener() {
+            addMyPhoto.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public boolean onTouch(View view, MotionEvent motionEvent) {
+                public void onClick(View view) {
                     Intent chooseImageIntent = ImagePicker.getPickImageIntent(context);
                     //Intent chooseImageIntent = new Intent(Intent.ACTION_GET_CONTENT, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                     startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
-                    return false;
                 }
             });
 
@@ -435,7 +441,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     */
 
-            SmsReceiver.bindListener(new SmsListener() {
+
+            smsReceiver.bindListener(new SmsListener() {
                 @Override
                 public void messageReceived(String messageText) {
                     Pattern p = Pattern.compile("[0-9]{6,10}");
@@ -451,7 +458,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     }
                 }
             });
-
+            IntentFilter intentFilter = new IntentFilter();
+            registerReceiver(smsReceiver, intentFilter);
 
             initializeCountDrawer();
 
@@ -1552,7 +1560,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     }
 
 
-    private void showPopupMenuAccountingList(View v) {
+    /*private void showPopupMenuAccountingList(View v) {
         final PopupMenu popupMenu = new PopupMenu(context, v);
         popupMenu.inflate(R.menu.popupmenu);
 
@@ -1631,7 +1639,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                                 return true;
                             default:
                                 return false;
-                        }*/
+                        }
                     }
                 });
         popupMenu.setOnDismissListener(new PopupMenu.OnDismissListener() {
@@ -1643,7 +1651,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         });
         menuHelper.show();
     }
-
+*/
     public static int dpToPx(int dp) {
         return (int) (dp * Resources.getSystem().getDisplayMetrics().density);
     }

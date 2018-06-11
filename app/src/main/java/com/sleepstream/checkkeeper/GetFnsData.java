@@ -1,5 +1,6 @@
 package com.sleepstream.checkkeeper;
 
+import android.support.multidex.MultiDexApplication;
 import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

@@ -9,13 +9,21 @@ import android.os.AsyncTask;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
+import com.google.gson.*;
+import com.google.maps.GeoApiContext;
+import com.google.maps.GeocodingApi;
+import com.google.maps.errors.ApiException;
+import com.google.maps.model.GeocodingResult;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.modules.InvoicesPageFragment;
 import com.sleepstream.checkkeeper.qrmanager.QRManager;
+import okhttp3.OkHttpClient;
 import okhttp3.Response;
+import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.List;
@@ -93,35 +101,43 @@ public class LoadingFromFNS extends Service {
         }*/
         if(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress != null)
         {
-            Geocoder geocoder = new Geocoder(context);
-            List<Address> addresses = null;
-            try {
-                addresses = geocoder.getFromLocationName(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress, 1);
-                if(addresses.size() > 0) {
-                    if(finalInvoiceData.store == null) {
-                        finalInvoiceData.store = new InvoiceData.Store();
-                    }
-                    if(finalInvoiceData.store.latitude == null || finalInvoiceData.store.longitude == null ) {
-                        //finalInvoiceData.store.address = addresses.get(0).getAddressLine(0);
-                        finalInvoiceData.store.latitude = addresses.get(0).getLatitude();
-                        finalInvoiceData.store.longitude = addresses.get(0).getLongitude();
-                    }
-                    //if(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress == getFnsData.dataFromReceipt.document.receipt.user)
-                    //    getFnsData.dataFromReceipt.document.receipt.user = null;
-
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            if(finalInvoiceData.store == null) {
+                finalInvoiceData.store = new InvoiceData.Store();
             }
-
+            if(finalInvoiceData.store.latitude == null || finalInvoiceData.store.longitude == null ) {
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                GeocodingResult[] results = getLocationInfo(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress);
+                finalInvoiceData.store.latitude = Double.valueOf(gson.toJson(results[0].geometry.location.lat));
+                finalInvoiceData.store.longitude = Double.valueOf(gson.toJson(results[0].geometry.location.lng));
+            }
         }
-        //finalInvoiceData.set_status(2);
-        //invoice.updateInvoice(finalInvoiceData);
-        //check is address in
         final int count = invoice.fillReceiptData(getFnsData.dataFromReceipt.document.receipt, finalInvoiceData);
 
         //run activity with map to confirm address
     }
+
+    public GeocodingResult[]  getLocationInfo(String address) {
+
+        String apiKey = getString(R.string.google_maps_key);
+        GeoApiContext context = new GeoApiContext.Builder()
+                .apiKey(apiKey)
+                .build();
+
+        GeocodingResult[] results = null;
+        try {
+            results =  GeocodingApi.geocode(context,address).await();
+        } catch (ApiException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return results;
+    }
+
 
     class AsyncLoadDataInvoice extends AsyncTask<Void, InvoiceData, Void> {
         @Override

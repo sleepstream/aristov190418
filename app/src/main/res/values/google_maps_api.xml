@@ -1,3 +1,4 @@
 <resources>
     <string name="google_maps_key" translatable="false" templateMergeStrategy="preserve">AIzaSyAdregtO7KuFhm5EwSwjIrRWwwyxUNlDoo</string>
+    <string name="google_maps_URL_SIGNATURE" translatable="false" templateMergeStrategy="preserve">405850648904-v42hu9jnb4n4s4ba9ducgctoelgsheoq.apps.googleusercontent.com</string>
 </resources>

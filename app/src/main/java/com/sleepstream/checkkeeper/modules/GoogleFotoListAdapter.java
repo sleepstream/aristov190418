@@ -103,6 +103,7 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
                         .start((Activity) context);
                 if (googleFotoListAdapter != null) {
                     googleFotoListAdapter.placePhotoMetadataList.clear();
+                    googleFotoListAdapter.placePhotoMetadataList = new ArrayList<>();
                     googleFotoListAdapter.notifyDataSetChanged();
                 }
             }
