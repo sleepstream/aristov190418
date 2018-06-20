@@ -12,28 +12,40 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.IdRes;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.util.ArrayMap;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.places.Places;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import okhttp3.Response;
 import worker8.com.github.radiogroupplus.RadioGroupPlus;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SettingsActivity extends AppCompatActivity {
+import static com.sleepstream.checkkeeper.MainActivity.*;
+
+public class SettingsActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
     private android.app.FragmentTransaction fTrans;
     private Context context;
@@ -41,6 +53,7 @@ public class SettingsActivity extends AppCompatActivity {
     public UsersDataPreferenceFragment usersDataPreferenceFragment;
     public AppSettingsPage appSettingsPage;
     private MainSettingsPage mainSettingsPage;
+    private final static String LOG_TAG = "SettingsActivity";
 
 
     @Override
@@ -54,6 +67,17 @@ public class SettingsActivity extends AppCompatActivity {
         setContentView(R.layout.settings_main_page);
         context = this;
 
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.Firebase_default_web_client_id))
+                .build();
+        if(mGoogleApiClient == null)
+            mGoogleApiClient = new GoogleApiClient
+                    .Builder(this)
+                    .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                    .addApi(Places.GEO_DATA_API)
+                    .addApi(Places.PLACE_DETECTION_API)
+                    .enableAutoManage(this, this)
+                    .build();
         Intent intent = getIntent();
         Bundle extraData = intent.getExtras();
         String settingsPage = "";
@@ -88,6 +112,11 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
 
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
 
@@ -138,6 +167,12 @@ public class SettingsActivity extends AppCompatActivity {
             });
             return view;
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mGoogleApiClient.connect();
     }
 
     private class RegisterNewAsyncTask extends AsyncTask<PersonalData, Void, Integer> {
@@ -596,13 +631,15 @@ public class SettingsActivity extends AppCompatActivity {
 
     }
     @SuppressLint("ValidFragment")
-    public static class AppSettingsPage extends Fragment
+    public class AppSettingsPage extends Fragment
     {
         private final Context context;
         private RelativeLayout ThemeSettings;
         private RelativeLayout appSettings;
         public AppSettingsPage(Context context){ this.context = context;};
         public String themeId="";
+        public Switch switcher_on_line;
+        public TextView On_lineSettings_summary;
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -614,6 +651,7 @@ public class SettingsActivity extends AppCompatActivity {
                                  Bundle savedInstanceState) {
 
             View view = inflater.inflate(R.layout.settings_app_settings_fragment, null);
+            On_lineSettings_summary = view.findViewById(R.id.On_lineSettings_summary);
             ThemeSettings = view.findViewById(R.id.ThemeSettings);
             ThemeSettings.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -669,6 +707,67 @@ public class SettingsActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
                             themeId="";
+                        }
+                    });
+                    alertDialog.show();
+                }
+            });
+
+            switcher_on_line = view.findViewById(R.id.switcher_on_line);
+            if(On_line)
+                switcher_on_line.setChecked(true);
+            else
+                switcher_on_line.setChecked(false);
+
+            switcher_on_line.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    final boolean isChecked = switcher_on_line.isChecked();
+                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
+                    alertDialog.setTitle(context.getString(R.string.settings_On_lineSettings_text));
+                    if(isChecked)
+                    {
+                        alertDialog.setMessage(R.string.settings_On_lineSettings_On_message);
+                    }
+                    else
+                    {
+                        alertDialog.setMessage(R.string.settings_On_lineSettings_Off_message);
+                    }
+                    alertDialog.setNegativeButton(R.string.btnCancel, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            switcher_on_line.setChecked(!isChecked);
+
+                        }
+                    });
+                    alertDialog.setPositiveButton(R.string.ButtonOK, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if(isChecked)
+                                On_lineSettings_summary.setText(R.string.settings_On_lineSettings_OFF_summary);
+                            else {
+                                On_lineSettings_summary.setText(R.string.settings_On_lineSettings_ON_summary);
+                                user.google_id = null;
+                                user.mPhotoUrl = null;
+                                user.setPersonalData();
+                                if(mGoogleApiClient.isConnected()) {
+                                    Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
+                                            new ResultCallback<Status>() {
+                                                @Override
+                                                public void onResult(Status status) {
+
+
+                                                }
+                                            });
+                                }
+                            }
+                            On_line = isChecked;
+                            Map<String, String> values = new HashMap<>();
+                            values.put("on_line", String.valueOf(isChecked));
+                            settings.setSettings(values);
+                            Log.d(LOG_TAG, "settings updated, on_line set to "+values.get("on_line"));
+                            Intent intent = new Intent(context, Greetings.class);
+                            startActivity(intent);
                         }
                     });
                     alertDialog.show();

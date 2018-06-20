@@ -57,7 +57,7 @@ public class Navigation {
                     Map.Entry<MainActivity.Page, Map<String, String[]>> entry =pageBackList.lastEntry();
                     MainActivity.Page pageTmp = entry.getKey();
                     Map<String, String[]> filterTmp = entry.getValue();
-                    if(!pageTmp.equals(currentPage) || !filterTmp.equals(filterParam)) {
+                    if(!pageTmp.position.equals(currentPage.position) || !filterTmp.equals(filterParam)) {
                         if(page.positionInList != null)
                             currentPage.positionInList =page.positionInList;
                         currentPage.setId();
@@ -69,7 +69,7 @@ public class Navigation {
                         pageBackList.put(currentPage, Tmp);
                     }
                 }
-                else if (pageBackList.size() == 0) {
+                else if (pageBackList.size() == 0 && currentPage.position >0) {
                     if(page.positionInList != null)
                         currentPage.positionInList =page.positionInList;
                     currentPage.setId();
@@ -128,7 +128,7 @@ public class Navigation {
                 break;
             }
             case 4: {
-                //currentPage = page.position;
+                currentPage = page;
                 purchasesPageFragment = PurchasesPageFragment.newInstance(0);
                 purchasesPageFragment.PurchasesPageFragmentSet(this, context);
                 fTrans.replace(R.id.pager, purchasesPageFragment);
@@ -245,6 +245,13 @@ public class Navigation {
                 filterParam.putAll(tmp);
             }
             pageBackList.remove(pageBackList.lastKey());
+            openCurrentPage(page);
+
+        }
+        else
+        {
+
+            MainActivity.Page page = new MainActivity.Page("", 0);
             openCurrentPage(page);
 
         }

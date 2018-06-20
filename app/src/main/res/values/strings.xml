@@ -155,7 +155,28 @@
     <string name="settings_personalData_text">Как к Вам обращаться</string>
     <string name="requested_field_error">Обязательное поле</string>
     <string name="error_fill_form">Необходимо заполнить все поля формы</string>
-    <string name="greetings_text_2">Так же, вы можете пройти автоматическую регистрацию.\nДля продолжения нажимте \"Ok\"</string>
+    <string name="greetings_text_2">Использую наше приложение, вы можете пройти автоматическую регистрацию\nЕсли вы хотите использовать off-line версию приложения нажимте \"Ok\"\n
+    Позже вы сможете переключиться на on-line версию в настройках приложения</string>
     <string name="error_file_not_found_call_admin">Ошибка создания файла, обратитесь к разработчику</string>
+    <string name="sign_in">Войти</string>
+    <string name="sign_up">Регистрация</string>
+    <string name="hint_email">E-mail</string>
+    <string name="hint_password">Пароль</string>
+    <string name="button_sign_in">Войти</string>
+    <string name="sing_up">Регистрация</string>
+    <string name="settings_On_lineSettings_text">On-line версия</string>
+    <string name="settings_On_lineSettings_ON_summary">Вкл</string>
+    <string name="settings_On_lineSettings_OFF_summary">Выкл</string>
+    <string name="settings_On_lineSettings_On_message">Внимание!\nВключая On-Line версию вы автоматически соглашаетесь на
+        хранение данных на сервере приложения, обработку данных из чеков для улучшения сервиса и предоставления
+        дополнительного функционала.
+    </string>
+    <string name="settings_On_lineSettings_Off_message">Отключение On-line функции не приведет к удалению ваших данных с
+        сервера, в дальнейшем все ваши данные будут сохраняться только на вашем телефоне.
+    </string>
+    <string name="googleloginText">Sign in</string>
+    <string name="greetings_text_3">Или используйте on-line версию</string>
+    <string name="settings_On_lineNav_manu_text">On-Line</string>
+    <string name="settings_OFF_lineNav_manu_text">Off-Line</string>
 
 </resources>

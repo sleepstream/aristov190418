@@ -16,5 +16,7 @@
     <attr name="backgroundCheckedCircle" format="reference"/>
     <attr name="link_color_pressed"  format="reference"/>
     <attr name="text_color_error" format="reference"/>
-
+    <attr name="textColorHint" format="reference"/>
+    <attr name="TextAppeareance_nav_Menu" format="reference"/>
+    <attr name="colorForLink" format="reference"/>
 </resources>

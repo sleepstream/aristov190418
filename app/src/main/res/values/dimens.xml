@@ -14,4 +14,7 @@
     <dimen name="standard_155">180dp</dimen>
     <dimen name="standard_105">120dp</dimen>
     <dimen name="standard_55">60dp</dimen>
+
+    <dimen name="nav_menu_header">15sp</dimen>
+    <dimen name="nav_menu_menu">18sp</dimen>
 </resources>

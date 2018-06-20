@@ -34,24 +34,24 @@
     </style>
 
     <style name="TextAppeareance">
-        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:textColor">?attr/colorPrimaryDark</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="android:textSize">20sp</item>
-        <item name="android:textColorHint">@color/textlight30</item>
+        <item name="android:textColorHint">?attr/textColorHint</item>
     </style>
 
     <style name="TextAppeareance_Link">
-        <item name="android:textColor">@color/colorPrimaryDark</item>
+        <item name="android:textColor">?attr/colorForLink</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="android:textSize">20sp</item>
-        <item name="android:textColorHint">@color/textlight30</item>
+        <item name="android:textColorHint">?attr/textColorHint</item>
     </style>
 
     <style name="TextAppeareance_small">
-        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:textColor">?attr/colorPrimaryDark</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:textColorHint">@color/textlight30</item>
+        <item name="android:textColorHint">?attr/textColorHint</item>
     </style>
 
     <style name="TextAppeareance_onDark" parent="TextAppeareance">
@@ -66,7 +66,12 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
-
+    <style name="TextAppeareance_nav_Menu">
+        <item name="android:textColor">?attr/colorPrimaryDark</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColorHint">?attr/textColorHint</item>
+    </style>
 
 
 
@@ -89,6 +94,8 @@
         <item name="backgroundCheckedCircle">@color/backgroundColor</item>
         <item name="link_color_pressed">@color/colorPrimary</item>
         <item name="text_color_error">@color/red</item>
+        <item name="textColorHint">@color/colorPrimary</item>
+        <item name="colorForLink">@color/linkcolor</item>
     </style>
     <style name="SecondTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimaryOrange</item>
@@ -108,5 +115,7 @@
         <item name="backgroundCheckedCircle">@color/colorBackgroundOrange</item>
         <item name="link_color_pressed">@color/colorPrimaryOrange</item>
         <item name="text_color_error">@color/red</item>
+        <item name="textColorHint">@color/colorPrimaryOrange</item>
+        <item name="colorForLink">@color/linkcolor</item>
     </style>
 </resources>

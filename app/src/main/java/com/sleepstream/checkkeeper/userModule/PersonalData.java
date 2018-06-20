@@ -11,20 +11,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
+import static com.sleepstream.checkkeeper.MainActivity.mFirestore;
 
 public class PersonalData {
 
-    private Map<String, String> data;
-    private String tableName="PersonalData";
+    public String mPhotoUrl;
+    public String google_id;
     public String name= null;
     public String e_mail = null;
     public String telephone_number = null;
     public String password = null;
     public Integer id;
     public Integer _status;
+    public boolean signIn= false;
+
+    private Map<String, String> data;
+    private String tableName="PersonalData";
+
+
     final String LOG_TAG = "PersonalData";
     private Context context;
 
+    public PersonalData()
+    {}
 
     public PersonalData(Context context)
     {
@@ -42,6 +51,8 @@ public class PersonalData {
                 telephone_number = cur.getString(cur.getColumnIndex("telephone_number"));
                 password = cur.getString(cur.getColumnIndex("password"));
                 _status = cur.getInt(cur.getColumnIndex("_status"));
+                google_id = cur.getString(cur.getColumnIndex("google_id"));
+                mPhotoUrl = cur.getString(cur.getColumnIndex("mPhotoUrl"));
                 Log.d(LOG_TAG, "Select records on construct: OK");
             }
             catch (Exception ex)
@@ -72,9 +83,24 @@ public class PersonalData {
             data.put("_status", _status);
         else
             data.put("_status", 0);
+        if(google_id!= null)
+            data.put("google_id", google_id);
+        else
+            data.putNull("google_id");
+        if(mPhotoUrl != null)
+            data.put("mPhotoUrl",mPhotoUrl);
+        else
+            data.putNull("mPhotoUrl");
         int count = dbHelper.update(tableName, data, "id=?", new String[]{id+""});
         Log.d(LOG_TAG, "Updated records: "+count);
         
+    }
+    public long deletePersonalData()
+    {
+        if(this.id != null)
+            return dbHelper.delete(tableName, "id=?", new String[]{id.toString()});
+        else
+            return -1;
     }
 
     public void setPersonalData()
@@ -87,6 +113,8 @@ public class PersonalData {
         {
             updatePersonalData();
         }
+        if(google_id != null)
+            mFirestore.collection("users").document(google_id).set(this);
     }
 
     public void insertPersonalData ()
@@ -100,7 +128,18 @@ public class PersonalData {
             data.put("password", password);
         if(e_mail != null)
             data.put("e_mail", e_mail);
-        data.put("_status", 0);
+        if(_status == null)
+            data.put("_status", 0);
+        else
+            data.put("_status", _status);
+        if(google_id!= null)
+            data.put("google_id", google_id);
+        else
+            data.putNull("google_id");
+        if(mPhotoUrl != null)
+            data.put("mPhotoUrl",mPhotoUrl);
+        else
+            data.putNull("mPhotoUrl");
 
         if(telephone_number!= null)
         {
@@ -111,6 +150,8 @@ public class PersonalData {
                     this.id = (int) count;
                 Log.d(LOG_TAG, "Inserted record id: " + count);
             } else {
+                cur.moveToFirst();
+                this.id = cur.getInt(cur.getColumnIndex("id"));
                 Log.d(LOG_TAG, "Insert record ERROR: record with telephone_number exist:" + telephone_number + "\n call update");
                 this.updatePersonalData();
             }

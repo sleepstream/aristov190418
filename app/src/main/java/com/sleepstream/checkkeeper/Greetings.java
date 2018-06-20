@@ -2,34 +2,53 @@ package com.sleepstream.checkkeeper;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputLayout;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.view.MotionEvent;
+import android.text.TextUtils;
+import android.util.ArrayMap;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
+import com.firebase.ui.auth.AuthUI;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import okhttp3.Response;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 
-import static com.sleepstream.checkkeeper.MainActivity.getThemeColor;
-import static com.sleepstream.checkkeeper.MainActivity.user;
+import static com.sleepstream.checkkeeper.MainActivity.*;
 
 public class Greetings extends Activity {
+
+
+    private GoogleSignInAccount account;
 
     Integer backPressed = 0;
 
     TextView link_to_FNS_app;
+    TextView sign_up_google_link;
+
     TextInputLayout password_fns_layout;
     TextInputLayout e_mail_layout;
     TextInputLayout personalData_layout;
@@ -37,6 +56,7 @@ public class Greetings extends Activity {
 
     RelativeLayout registration_layout;
     RelativeLayout greetings_layout;
+    RelativeLayout google_login_layout;
 
     CheckBox auto_registration;
 
@@ -44,20 +64,34 @@ public class Greetings extends Activity {
     EditText e_mail;
     EditText personalData;
     EditText phone_number;
+    EditText e_mail_google_text;
+    EditText password_google_text;
 
     Button button_registration;
     Button cancel_registration_btn;
     Button show_registration_btn;
+    Button button_google_sign_in;
+    SignInButton signinGoogle;
 
     RelativeLayout progressBar;
 
+
+    private final String LOG_TAG = "Greetings_activity";
+
     Context context;
+    private final int RC_SIGN_IN = 100;
+    private FirebaseUser googleUser;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         context = this;
         setContentView(R.layout.greetings_layout);
+        FirebaseFirestore.setLoggingEnabled(true);
+
+
+
         link_to_FNS_app = findViewById(R.id.link_to_FNS_app);
         password_fns_layout = findViewById(R.id.password_fns_layout);
         auto_registration = findViewById(R.id.auto_registration);
@@ -74,6 +108,20 @@ public class Greetings extends Activity {
         show_registration_btn = findViewById(R.id.show_registration_btn);
         cancel_registration_btn = findViewById(R.id.cancel_registration_btn);
         progressBar = findViewById(R.id.progressBar);
+        signinGoogle = findViewById(R.id.signinGoogle);
+
+        signinGoogle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                progressBar.setVisibility(View.VISIBLE);
+                signIn();
+            }
+        });
+
+
+        progressBar.setVisibility(View.VISIBLE);
+
+
 
         cancel_registration_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -245,6 +293,154 @@ public class Greetings extends Activity {
 
     }
 
+
+    /**
+     * Called after {@link #onCreate} &mdash; or after {@link #onRestart} when
+     * the activity had been stopped, but is now again being displayed to the
+     * user.  It will be followed by {@link #onResume}.
+     *
+     * <p><em>Derived classes must call through to the super class's
+     * implementation of this method.  If they do not, an exception will be
+     * thrown.</em></p>
+     *
+     * @see #onCreate
+     * @see #onStop
+     * @see #onResume
+     */
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+
+        if(On_line) {
+            googleUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (googleUser == null && !user.signIn) {
+                // Not signed in, launch the Sign In activity
+                signIn();
+                return;
+            } else if (!user.signIn) {
+                loadUserData(googleUser.getUid());
+            }
+        }
+        else if(user.id==null)
+        {
+            greetings_layout.setVisibility(View.VISIBLE);
+            progressBar.setVisibility(View.GONE);
+            registration_layout.setVisibility(View.GONE);
+        }
+        else
+        {
+            //check if phone number already stored in data base
+            if (user.telephone_number == null || user.password == null) {
+                registration_layout.setVisibility(View.VISIBLE);
+                greetings_layout.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+            }
+            else
+            {
+                finish();
+                return;
+            }
+        }
+    }
+
+    private void signIn() {
+
+        Intent intent = AuthUI.getInstance().createSignInIntentBuilder()
+                .setAvailableProviders(Collections.singletonList(
+                        new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build()))
+                .setIsSmartLockEnabled(false)
+                .build();
+        startActivityForResult(intent, RC_SIGN_IN);
+
+    }
+
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            if (result != null && result.isSuccess()) {
+                loadUserData(result.getSignInAccount().getId());
+            }
+            else if(result == null)
+            {
+                googleUser = FirebaseAuth.getInstance().getCurrentUser();
+                if(googleUser!= null)
+                {
+                    On_line = true;
+                    Map<String, String> tmp =new ArrayMap<>();
+                    tmp.put("on_line", String.valueOf(On_line));
+                    settings.setSettings(tmp);
+                    loadUserData(googleUser.getUid());
+                }
+                else
+                {
+                    On_line = false;
+                    Map<String, String> tmp =new ArrayMap<>();
+                    tmp.put("on_line", String.valueOf(On_line));
+                    settings.setSettings(tmp);
+                    Log.e(LOG_TAG, "Google Sign In failed." +resultCode);
+                    Toast.makeText(context, getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+                }
+            }
+            else{
+                // Google Sign In failed
+                Log.e(LOG_TAG, "Google Sign In failed. result null");
+                Toast.makeText(context, getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void loadUserData(final String id) {
+        Task<DocumentSnapshot> docRef = mFirestore.collection("users").document(id).get();
+        docRef.addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if (task.isSuccessful()) {
+                    DocumentSnapshot document = task.getResult();
+                    if (document != null) {
+                        Integer id = null;
+                        if(user.id != null)
+                            id = user.id;
+                        user = document.toObject(PersonalData.class);
+                        user.id = id;
+                        if(user != null) {
+                            user.signIn = true;
+                            user.setPersonalData();
+                            if ((user.telephone_number != null ) && (user.password != null )) {
+                                finish();
+                                return;
+                            }
+                        }
+                    }
+                } else {
+                    Log.d(LOG_TAG, "get failed with ", task.getException());
+                }
+                if(user == null && googleUser != null)
+                {
+                    user = new PersonalData();
+                    user.google_id = googleUser.getUid();
+                    user.e_mail = googleUser.getEmail();
+                    user.name = googleUser.getDisplayName();
+                    user.telephone_number = googleUser.getPhoneNumber();
+                    user._status = 0;
+                    user.signIn = true;
+                    user.mPhotoUrl = googleUser.getPhotoUrl().toString();
+                    mFirestore.collection("users").document(id).set(user);
+                    user.setPersonalData();
+                }
+
+                registration_layout.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.GONE);
+
+            }
+        });
+    }
 
 
     private void checkFields()

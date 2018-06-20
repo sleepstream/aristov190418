@@ -32,13 +32,13 @@ import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
 import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.view.menu.MenuBuilder;
-import android.support.v7.view.menu.MenuPopupHelper;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -51,6 +51,8 @@ import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.*;
 import android.widget.*;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.places.Place;
@@ -59,10 +61,9 @@ import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.sleepstream.checkkeeper.DB.DBHelper;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
-import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
-import com.sleepstream.checkkeeper.crop.CropActivity;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.linkedListObjects.LinkedListClass;
@@ -73,19 +74,16 @@ import com.sleepstream.checkkeeper.smsListener.SmsListener;
 import com.sleepstream.checkkeeper.smsListener.SmsReceiver;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import com.sleepstream.checkkeeper.userModule.UserDataActivity;
-import com.takusemba.cropme.CropView;
 import com.yalantis.ucrop.UCrop;
 import com.yalantis.ucrop.UCropActivity;
 import com.yalantis.ucrop.model.AspectRatio;
 import okhttp3.*;
-import org.apache.commons.io.FileUtils;
 import org.ghost4j.document.PDFDocument;
 
 import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.FileHandler;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -131,6 +129,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public static PersonalData user;
     private boolean permChecked = false;
 
+    public static FirebaseFirestore mFirestore;
+
+
+
     private final int cameraRequest = 1000;
     private final int personalDataShow = 2001;
     private final int personalDataRequestFull = 2000;
@@ -173,7 +175,6 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public static FloatingActionButton fab_pdf;
     public static FloatingActionButton fab_manual;
     public static FloatingActionButton fab_file;
-    public static FloatingActionButton fab_camera;
     public boolean isFABOpen = false;
 
     public static List<Integer> pageBack = new LinkedList<Integer>();
@@ -182,34 +183,49 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private ImageView ivFilter;
 
 
-    private android.app.FragmentTransaction fTrans;
     private Toolbar toolbar;
     private NavigationView navigationView;
     private boolean statusDateFilter;
     public static ArrayList<? extends Date> filterDates;
     public static Map<String, String[]> filterParam = new LinkedHashMap<>();
-    private Integer currentPageNumber = null;
     public static TextView currentNumber;
     public Navigation navigation;
     public TextView invoiceCount;
     public TextView accountingListCount;
     public TextView linkedListCount;
     public TextView invoicesLoadingPage;
+    public TextView user_name_google_nav_menu;
+    public TextView user_e_mail_nav_menu;
+    public TextView on_line_system_nav_menu;
+    private ImageView mPhotoUrl_nav_menu;
 
     public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
-    public static CropView cropView;
 
     public static SettingsApp settings;
     private int backCount=0;
-    private LocationManager mLocationManager;
+
+    public static boolean On_line = false;
+
 
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         MultiDex.install(this);
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.Firebase_default_web_client_id))
+                .build();
+
+
+        if(mGoogleApiClient == null)
+            mGoogleApiClient = new GoogleApiClient
+                    .Builder(this)
+                    .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                    .addApi(Places.GEO_DATA_API)
+                    .addApi(Places.PLACE_DETECTION_API)
+                    .enableAutoManage(this, this)
+                    .build();
         hasSmsPermission = RuntimePermissionUtil.checkPermissonGranted(this, smsPerm);
         hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
         hasSDPermission = RuntimePermissionUtil.checkPermissonGranted(this, sdPerm);
@@ -219,6 +235,14 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         } else {
             permChecked = true;
             context = this;
+
+
+
+
+
+
+            mFirestore = FirebaseFirestore.getInstance();
+
             //check and create DB if nessesary
             dbHelper = new DBHelper(this);
             try {
@@ -233,11 +257,15 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 //throw sqle;
             }
             settings = new SettingsApp();
+
+            On_line =Boolean.valueOf(settings.settings.get("on_line"));
             if(settings.settings.containsKey("theme"))
             {
                 int theme = Integer.valueOf(settings.settings.get("theme"));
                 setTheme(theme);
             }
+
+
 
             user = new PersonalData(context);
             //if new user
@@ -309,6 +337,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 alert.show();
 
             }
+
             //status 0 - just loaded waiting for loading
             //status 3 - loading in progress
             //status -1 - error loading from FNS not exist
@@ -322,14 +351,41 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             setContentView(R.layout.activity_main);
 
             toolbar = findViewById(R.id.toolbar);
+
             DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            navigationView = (NavigationView) findViewById(R.id.nav_view);
+            navigationView.setNavigationItemSelectedListener(this);
+            View headerLayout = navigationView.getHeaderView(0);
+
+            user_name_google_nav_menu = headerLayout.findViewById(R.id.user_name_google_nav_menu);
+            user_e_mail_nav_menu = headerLayout.findViewById(R.id.user_e_mail_nav_menu);
+            mPhotoUrl_nav_menu = headerLayout.findViewById(R.id.mPhotoUrl_nav_menu);
+            on_line_system_nav_menu=headerLayout.findViewById(R.id.on_line_system_nav_menu);
+
+
+
+
+
             ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                     this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close) {
                 @Override
                 public void onDrawerOpened(View drawerView) {
-                    super.onDrawerOpened(drawerView);
                     initializeCountDrawer();
+                    if(On_line) {
+                        on_line_system_nav_menu.setText(getString(R.string.settings_On_lineNav_manu_text));
+                        on_line_system_nav_menu.setBackgroundColor(getThemeColor(context, R.attr.colorSecondary));
+                    }
+                    else {
+                        on_line_system_nav_menu.setText(getString(R.string.settings_OFF_lineNav_manu_text));
+                        on_line_system_nav_menu.setBackgroundResource(R.color.red);
+                    }
+                    if(user.e_mail != null)
+                        user_e_mail_nav_menu.setText(user.e_mail);
+                    if(user.name != null)
+                        user_name_google_nav_menu.setText(user.name);
+                    setAvatAR();
                     setNavMenuChecked();
+                    super.onDrawerOpened(drawerView);
                 }
             };
             drawer.addDrawerListener(toggle);
@@ -355,8 +411,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 }
             });
             toolbar_title = findViewById(R.id.action_bar_title);
-            navigationView = (NavigationView) findViewById(R.id.nav_view);
-            navigationView.setNavigationItemSelectedListener(this);
+
 
             invoiceCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesPage));
             accountingListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.accountingListPAge));
@@ -423,12 +478,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 }
             });
 
-            mGoogleApiClient = new GoogleApiClient
-                    .Builder(this)
-                    .addApi(Places.GEO_DATA_API)
-                    .addApi(Places.PLACE_DETECTION_API)
-                    .enableAutoManage(this, this)
-                    .build();
+
             intentService = new Intent(context, LoadingFromFNS.class);
             if (!isMyServiceRunning(LoadingFromFNS.class)) {
                 startService(intentService);
@@ -608,6 +658,60 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
             navigation.openCurrentPage(new Page("", 0));
         }
+    }
+
+    private void setAvatAR()
+    {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if(user.mPhotoUrl!= null)
+                {
+                    String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/"+user.google_id+".jpg";
+                    File avatar = new File(path);
+                    if(avatar.exists())
+                    {
+                        final Bitmap bitmap = BitmapFactory.decodeFile(path);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                RoundedBitmapDrawable dr = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
+                                dr.setCornerRadius(50);
+                                mPhotoUrl_nav_menu.setImageDrawable(dr);
+                            }
+                        });
+
+                    }
+                    else
+                    {
+                        final Bitmap bitmap = getBitmapFromUrl(user.mPhotoUrl);
+                        if(bitmap != null)
+                        {
+                            FileOutputStream out = null;
+                            try {
+                                out = new FileOutputStream(avatar);
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                                out.flush();
+                                out.close();
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        RoundedBitmapDrawable dr = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
+                                        dr.setCornerRadius(50);
+                                        mPhotoUrl_nav_menu.setImageDrawable(dr);
+                                    }
+                                });
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                    }
+                }
+            }
+        });
+        thread.start();
+
     }
 
     private void showFABMenu() {
@@ -1552,6 +1656,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
     public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
         if (viewHolder.getClass().getName().contains("AccountingListAdapter"))
             mItemTouchHelperAccList.startDrag(viewHolder);
@@ -1664,7 +1774,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             dbHelper.close();
 
         isActive = false;
-
+        //unregisterReceiver(smsReceiver);
     }
 
     class AsyncFirstAddInvoice extends AsyncTask<String, Void, InvoiceData> {
@@ -2052,7 +2162,13 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     navigation.backPress();
 
                     closeDrawer();
-                } else if (backCount == 0) {
+                }
+                else if(navigation.currentPage.position != 0)
+                {
+                    navigation.backPress();
+                    closeDrawer();
+                }
+                else if (backCount == 0) {
                     backCount += 1;
                     Toast.makeText(context, context.getString(R.string.press_back_to_exit), Toast.LENGTH_LONG).show();
 

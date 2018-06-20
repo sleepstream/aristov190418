@@ -48,7 +48,7 @@
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
         <RelativeLayout
-                android:id="@+id/left"
+                android:id="@+id/left_theme"
                 android:layout_width="match_parent"
                 android:layout_centerVertical="true"
                 android:layout_toStartOf="@+id/relativeReorder"

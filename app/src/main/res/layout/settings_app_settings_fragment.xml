@@ -10,7 +10,7 @@
             android:layout_alignParentTop="true"
             android:padding="10dp">
         <RelativeLayout
-                android:id="@+id/left"
+                android:id="@+id/left_theme"
                 android:orientation="vertical"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -22,12 +22,12 @@
                     android:src="@drawable/ic_color_lens_black_36dp"/>
         </RelativeLayout>
         <RelativeLayout
-                android:id="@+id/right"
+                android:id="@+id/right_theme"
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_alignParentTop="true"
-                android:layout_toEndOf="@+id/left"
+                android:layout_toEndOf="@+id/left_theme"
                 android:padding="10dp">
             <TextView
                     android:id="@+id/ThemeSettings_text"
@@ -44,7 +44,75 @@
                     style="?TextAppeareance_small"/>
         </RelativeLayout>
         <View
-                android:layout_below="@+id/right"
+                android:layout_below="@+id/right_theme"
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:background="@drawable/line" />
+    </RelativeLayout>
+
+
+    <RelativeLayout
+            android:id="@+id/On_lineSettings"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/ThemeSettings"
+            android:padding="10dp">
+        <RelativeLayout
+                android:id="@+id/left_on_line"
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:padding="10dp">
+            <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_cloud_black_36"/>
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/right_on_line"
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_toEndOf="@+id/left_on_line"
+                android:padding="10dp">
+            <TextView
+                    android:id="@+id/On_lineSettings_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_On_lineSettings_text"
+                    style="?TextAppeareance"/>
+            <TextView
+                    android:id="@+id/On_lineSettings_summary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/On_lineSettings_text"
+                    android:text="@string/settings_On_lineSettings_ON_summary"
+                    style="?TextAppeareance_small"/>
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/end_on_line"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_toEndOf="@+id/right_on_line"
+                android:gravity="center"
+                android:padding="10dp">
+            <Switch
+                    android:id="@+id/switcher_on_line"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textOff="@string/settings_On_lineSettings_ON_summary"
+                    android:textOn="@string/settings_On_lineSettings_OFF_summary"
+                    style="?TextAppeareance_small"/>
+
+        </RelativeLayout>
+        <View
+                android:layout_below="@+id/right_on_line"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />

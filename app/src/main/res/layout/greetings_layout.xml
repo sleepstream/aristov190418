@@ -112,12 +112,12 @@
                 </LinearLayout>
             </LinearLayout>
     </RelativeLayout>
-
     <RelativeLayout
             android:id="@+id/greetings_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_alignParentTop="true" android:layout_alignParentStart="true">
+            android:layout_alignParentTop="true" android:layout_alignParentStart="true"
+            android:visibility="gone">
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                       android:orientation="vertical"
                       android:layout_width="match_parent"
@@ -168,8 +168,22 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/btnOk"/>
-
             </LinearLayout>
+            <TextView
+                    android:id="@+id/greetings_text_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/greetings_text_3"
+                    android:gravity="center"
+                    style="@style/TextAppeareance"
+                    android:textSize="17sp"/>
+            <com.google.android.gms.common.SignInButton
+                    android:id="@+id/signinGoogle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_gravity="center"
+                    android:text="@string/googleloginText"
+                    android:layout_marginTop="20dp"/>
         </LinearLayout>
     </RelativeLayout>
     <RelativeLayout

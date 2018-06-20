@@ -13,17 +13,17 @@
             android:layout_alignParentTop="true"
             android:padding="10dp">
         <View
-                android:layout_below="@+id/left"
+                android:layout_below="@+id/left_theme"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
         <RelativeLayout
-                android:id="@+id/left"
+                android:id="@+id/left_theme"
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_centerVertical="true"
-                android:layout_toStartOf="@+id/right"
+                android:layout_toStartOf="@+id/right_theme"
                 android:padding="10dp">
             <TextView
                     android:id="@+id/ThemeFirstTitle"
@@ -57,7 +57,7 @@
             </LinearLayout>
         </RelativeLayout>
         <RelativeLayout
-                android:id="@+id/right"
+                android:id="@+id/right_theme"
                 android:orientation="vertical"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

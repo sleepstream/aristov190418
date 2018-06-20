@@ -10,6 +10,7 @@
     <color name="main_fab_background">#654342</color>
     <color name="main_fab_press_background">#123098</color>
 
+    <color name="linkcolor">#4286f4</color>
 
     <color name="colorPrimary">#B2DFDB</color>
     <color name="colorPrimaryDark">#00796B</color>
@@ -17,10 +18,10 @@
     <color name="colorAccent">#00695C</color>
     <color name="colorNewAccent">#00695C</color>
 
-    <color name="colorPrimaryOrange">#FF9800</color>
-    <color name="colorPrimaryDarkOrange">#F57C00</color>
-    <color name="colorSecondaryOrange">#FFF3E0</color>
-    <color name="colorAccentOrange">#FF9100</color>
+    <color name="colorPrimaryOrange">#ffd496</color>
+    <color name="colorPrimaryDarkOrange">#FF9800</color>
+    <color name="colorSecondaryOrange">#ffc000</color>
+    <color name="colorAccentOrange">#e58f00</color>
     <color name="colorBackgroundOrange">#E65100</color>
 
 

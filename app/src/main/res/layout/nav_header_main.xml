@@ -2,6 +2,37 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="match_parent"
+              android:layout_alignParentTop="true"
+              android:background="@color/backgroundColor"
+              android:paddingStart="20dp"
+              android:paddingEnd="20dp"
+              android:paddingTop="40dp"
+              android:paddingBottom="10dp">
+    <TextView
+            android:id="@+id/on_line_system_nav_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|top"
+            style="?TextAppeareance_nav_Menu"
+            android:textSize="@dimen/nav_menu_header"
+            android:paddingEnd="5dp"
+            android:paddingStart="5dp"/>
+    <ImageView
+            android:id="@+id/mPhotoUrl_nav_menu"
+            android:layout_width="70dp"
+            android:layout_height="70dp"/>
+    <TextView
+            android:id="@+id/user_name_google_nav_menu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?TextAppeareance_nav_Menu"
+            android:textSize="@dimen/nav_menu_header"/>
+    <TextView
+            android:id="@+id/user_e_mail_nav_menu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?TextAppeareance_nav_Menu"
+            android:textSize="@dimen/nav_menu_header"/>
 
 </LinearLayout>
