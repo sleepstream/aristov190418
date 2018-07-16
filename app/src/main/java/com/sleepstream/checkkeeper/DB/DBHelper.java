@@ -158,8 +158,7 @@ public class DBHelper extends SQLiteOpenHelper{
                     src.close();
                     dst.close();
                 }
-                Toast.makeText(myContext, myContext.getString(R.string.backUpReady)+backupDB.getName().toString(),
-                        Toast.LENGTH_LONG).show();
+                //Toast.makeText(myContext, myContext.getString(R.string.backUpReady)+backupDB.getName().toString(), Toast.LENGTH_LONG).show();
 
             }
         } catch (Exception e) {

@@ -61,7 +61,9 @@ import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
+import com.google.firebase.database.*;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.sleepstream.checkkeeper.DB.DBHelper;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
@@ -81,6 +83,10 @@ import okhttp3.*;
 import org.ghost4j.document.PDFDocument;
 
 import java.io.*;
+import java.lang.Process;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -90,6 +96,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.sleepstream.checkkeeper.invoiceObjects.Invoice.tableNameInvoice;
 import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
 
 
@@ -205,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private int backCount=0;
 
     public static boolean On_line = false;
-
+    public static DatabaseReference mFirebase;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -213,6 +220,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         MultiDex.install(this);
+
+
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.Firebase_default_web_client_id))
                 .build();
@@ -237,11 +246,21 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             context = this;
 
 
+            TestInternet testInternet = new TestInternet();
+            testInternet.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
-
-
-
+            FirebaseDatabase.getInstance().setLogLevel(com.google.firebase.database.Logger.Level.DEBUG);
             mFirestore = FirebaseFirestore.getInstance();
+
+            FirebaseFirestoreSettings fireBaseSettings = new FirebaseFirestoreSettings.Builder()
+                    .setPersistenceEnabled(false)
+                    .setTimestampsInSnapshotsEnabled(true)
+                    .build();
+            mFirestore.setFirestoreSettings(fireBaseSettings);
+            mFirestore.setLoggingEnabled(true);
+
+            mFirebase = FirebaseDatabase.getInstance().getReference();
+
 
             //check and create DB if nessesary
             dbHelper = new DBHelper(this);
@@ -1379,7 +1398,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 invoiceData.store.store_type = place.getPlaceTypes().toString();
                 if (invoiceData.kktRegId != null)
                     invoiceData.kktRegId._status = 1;
-                invoice.setStoreDataFull(invoiceData);
+                try {
+                    invoice.setStoreDataFull(invoiceData);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 invoice.updateInvoice(invoiceData);
                 invoice.reLoadInvoice();
                 InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
@@ -1525,7 +1548,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
     }
 
-    private void fillData(Response response, InvoiceData finalInvoiceData) throws IOException {
+   /* private void fillData(Response response, InvoiceData finalInvoiceData) throws IOException {
         getFnsData.body = response.body().string();
         invoice.addJsonData(getFnsData.body, finalInvoiceData.getId());
         getFnsData.bodyJsonParse();
@@ -1567,7 +1590,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
         //run activity with map to confirm address
     }
-
+*/
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull final String[] permissions,
@@ -1670,98 +1693,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     }
 
 
-    /*private void showPopupMenuAccountingList(View v) {
-        final PopupMenu popupMenu = new PopupMenu(context, v);
-        popupMenu.inflate(R.menu.popupmenu);
 
-        MenuPopupHelper menuHelper = new MenuPopupHelper(context, (MenuBuilder) popupMenu.getMenu(), v);
-        menuHelper.setForceShowIcon(true);
-
-        //generate it from DB
-        for (int i = 0; i < accountingList.accountingListData.size(); i++) {
-            log.info(LOG_TAG + "\n" + "Add popUpMenu id =" + accountingList.accountingListData.get(i).getId());
-            popupMenu.getMenu().add(R.id.menugroup1, accountingList.accountingListData.get(i).getId(), Menu.NONE, accountingList.accountingListData.get(i).getName());
-        }
-
-        // для версии Android 3.0 нужно использовать длинный вариант
-        // popupMenu.getMenuInflater().inflate(R.menu.popupmenu,
-        // popupMenu.getMenu());
-
-        popupMenu
-                .setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-
-                    @Override
-                    public boolean onMenuItemClick(MenuItem item) {
-                        if (item.getItemId() == R.id.addButton) {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                            builder.setTitle(R.string.title_addAccointingList);
-                            final EditText input = new EditText(context);
-                            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                            builder.setView(input);
-                            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    AccountingListData tmp = new AccountingListData();
-                                    tmp.setName(input.getText().toString());
-                                    accountingList.addAccountingList(null, tmp);
-
-                                }
-                            });
-                            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.cancel();
-                                }
-                            });
-
-                            builder.show();
-
-                        } else if (item.getItemId() == R.id.allLists) {
-                            invoice.setfilter("fk_invoice_accountinglist", new String[]{null});
-                            invoice.reLoadInvoice();
-                            Toast.makeText(getApplicationContext(), item.getItemId() + "", Toast.LENGTH_SHORT).show();
-                        } else {
-
-                            invoice.setfilter("fk_invoice_accountinglist", new String[]{item.getItemId() + ""});
-                            invoice.reLoadInvoice();
-                            Toast.makeText(getApplicationContext(), item.getItemId() + "", Toast.LENGTH_SHORT).show();
-                        }
-                        return false;
-                        // Toast.makeText(PopupMenuDemoActivity.this,
-                        // item.toString(), Toast.LENGTH_LONG).show();
-                        // return true;
-                        /*switch (item.getItemId()) {
-
-                            case R.id.menu1:
-                                Toast.makeText(getApplicationContext(),
-                                        "Вы выбрали PopupMenu 1",
-                                        Toast.LENGTH_SHORT).show();
-                                return true;
-                            case R.id.menu2:
-                                Toast.makeText(getApplicationContext(),
-                                        "Вы выбрали PopupMenu 2",
-                                        Toast.LENGTH_SHORT).show();
-                                return true;
-                            case R.id.menu3:
-                                Toast.makeText(getApplicationContext(),
-                                        "Вы выбрали PopupMenu 3",
-                                        Toast.LENGTH_SHORT).show();
-                                return true;
-                            default:
-                                return false;
-                        }
-                    }
-                });
-        popupMenu.setOnDismissListener(new PopupMenu.OnDismissListener() {
-
-            @Override
-            public void onDismiss(PopupMenu menu) {
-                //Toast.makeText(getApplicationContext(), "onDismiss", Toast.LENGTH_SHORT).show();
-            }
-        });
-        menuHelper.show();
-    }
-*/
     public static int dpToPx(int dp) {
         return (int) (dp * Resources.getSystem().getDisplayMetrics().density);
     }
@@ -1777,11 +1709,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         //unregisterReceiver(smsReceiver);
     }
 
-    class AsyncFirstAddInvoice extends AsyncTask<String, Void, InvoiceData> {
+    public class AsyncFirstAddInvoice extends AsyncTask<String, InvoiceData, InvoiceData> {
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            //mFirestore = FirebaseFirestore.getInstance();
         }
 
         @Override
@@ -1819,11 +1752,14 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     //just add data from QR - first time to save and check already exist
                     invoiceData.date_day = invoiceDate_day;
                     invoiceData.setDate_add(new Date().getTime());
-                    String existInvoice = invoice.addInvoice(null, invoiceData);
+                    //новое сохрание пока не обрабатывать сервисом
+                    invoiceData.set_status(-5);
+                    String existInvoice = invoice.addInvoice(null, invoiceData, this);
+                    //invoiceData.set_status(0);
+                    //invoice.updateInvoice(invoiceData);
                     currentInvoiceData = invoice.invoices.get(invoice.lastIDCollection);
                     if (existInvoice != "exist")
                         invoice.reLoadInvoice();
-
                 }
             } catch (Exception e) {
                 log.info(LOG_TAG+"\n"+ "ERROR\n");
@@ -1832,6 +1768,22 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             return currentInvoiceData;
         }
+        public void doProgress(InvoiceData value){
+            publishProgress(value);
+        }
+
+        @Override
+        protected void onProgressUpdate(InvoiceData... values) {
+
+            if(InvoicesPageFragment.invoiceListAdapter != null) {
+                int status = values[0].get_status();
+                MainActivity.invoice.reLoadInvoice();
+                InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                //int position = InvoicesPageFragment.invoiceListAdapter.findPosition(values[0]);
+                //InvoicesPageFragment.llm.scrollToPosition(position);
+            }
+            super.onProgressUpdate(values);
+        }
 
         @Override
         protected void onPostExecute(InvoiceData result) {
@@ -1839,7 +1791,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
             int position = -1;
             if(result.getId()!= null) {
-                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                        (result.longitudeAdd == null || result.longitudeAdd == 0 || result.latitudeAdd == null || result.latitudeAdd == 0)) {
 
                     final InvoiceData invoiceData = result;
                     SingleShotLocationProvider.requestSingleUpdate(context,
@@ -1850,9 +1803,18 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                                     {
                                         invoiceData.longitudeAdd = location.longitude;
                                         invoiceData.latitudeAdd = location.latitude;
-                                        invoice.updateInvoice(invoiceData);
+                                        Log.d("Location", "tru to update coordinates " + location.toString());
+                                        //ContentValues data = new ContentValues();
+                                        //data.put("longitudeAdd", invoiceData.longitudeAdd);
+                                        //data.put("latitudeAdd", invoiceData.latitudeAdd);
+                                        //dbHelper.update(tableNameInvoice, data, "id=?", new String[]{invoiceData.getId().toString()});
                                     }
+                                    invoiceData.set_status(0);
+                                    invoice.updateInvoice(invoiceData);
+                                    if (InvoicesPageFragment.invoiceListAdapter != null)
+                                        InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
                                 }
+
                             });
                 }
 
@@ -1976,7 +1938,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 iconImage = getBitmapFromUrl(googlePlace.icon);
                 invoiceData.store.iconName = googlePlace.icon.substring(googlePlace.icon.lastIndexOf("/")+1);
                 invoiceData.store.update = true;
-                invoice.setStoreData(invoiceData);
+                try {
+                    invoice.setStoreData(invoiceData);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
                 invoice.reLoadInvoice();
                 runOnUiThread(new Runnable() {
                     @Override
@@ -2129,6 +2096,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     {
         if(status != null) {
             switch (status) {
+                case -5:
+                    return context.getText(R.string.add_new_invoice).toString();
                 case -3:
                     return context.getText(R.string.not_found_in_FNS).toString();
                 case -4:
@@ -2254,4 +2223,61 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     }
 
+    public static boolean executeCommandPing(){
+        System.out.println("executeCommand");
+        Runtime runtime = Runtime.getRuntime();
+        try
+        {
+            Process mIpAddrProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
+            int mExitValue = mIpAddrProcess.waitFor();
+            System.out.println(" mExitValue "+mExitValue);
+            if(mExitValue==0){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        catch (InterruptedException ignore)
+        {
+            ignore.printStackTrace();
+            System.out.println(" Exception:"+ignore);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            System.out.println(" Exception:"+e);
+        }
+        return false;
+    }
+
+
+    class TestInternet extends AsyncTask<Void, Void, Boolean> {
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            try {
+                URL url = new URL("http://www.google.com");
+                HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
+                urlc.setConnectTimeout(3000);
+                urlc.connect();
+                if (urlc.getResponseCode() == 200) {
+                    return true;
+                }
+            } catch (MalformedURLException e1) {
+                e1.printStackTrace();
+                return false;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if (!result) { // code if not connected
+
+                Toast.makeText(context, R.string.connectionError, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
 }

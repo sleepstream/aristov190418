@@ -6,16 +6,28 @@ import java.util.Locale;
 public class InvoiceData implements Cloneable
 {
 
-    private String FP;
-    private String FD;
-    private String FN;
+    public String jsonData;
+    public String google_id;
+    public boolean fromServer;
+    public String FP;
+    public String FD;
+    public String FN;
+    public long google_hashcode;
     private Long dateInvoice;
     private Float fullPrice;
+    public Float cashTotalSum;
+    public Float ecashTotalSum;
     private Integer id;
-    private Integer order;
+    private Integer _order;
     private Integer fk_invoice_accountinglist;
     private Integer fk_invoice_kktRegId;
     private Integer fk_invoice_stores;
+    public String user_google_id;
+
+    public String fk_invoice_accountinglist_google_id;
+    public String fk_invoice_kktRegId_google_id;
+    public String fk_invoice_stores_google_id;
+
     private Integer pinId;
     private Long date_add;
     private Integer in_basket;
@@ -24,6 +36,12 @@ public class InvoiceData implements Cloneable
     public Double latitudeAdd;
     public Integer repeatCount;
     public boolean fromFNS = false;
+    private Integer _status;
+    public Integer server_status;
+    public Store store;
+    public KktRegId kktRegId;
+    public Integer quantity;
+    public Long date_day;
 
     public Integer isIn_basket() {
         return in_basket;
@@ -49,10 +67,7 @@ public class InvoiceData implements Cloneable
         this.pinId = pinId;
     }
 
-    public Store store;
-    public KktRegId kktRegId;
-    public Integer quantity;
-    public Long date_day;
+
 
 
     public void setfk_invoice_kktRegId(Integer fk_invoice_kktRegId) {
@@ -71,7 +86,7 @@ public class InvoiceData implements Cloneable
         this._status = _status;
     }
 
-    private Integer _status;
+
 
     public Integer getFk_invoice_accountinglist() {
         return fk_invoice_accountinglist;
@@ -83,39 +98,14 @@ public class InvoiceData implements Cloneable
 
 
 
-    public Integer getOrder() {
-        return order;
+    public Integer get_order() {
+        return _order;
     }
 
-    public void setOrder(Integer order) {
-        this.order = order;
+    public void set_order(Integer _order) {
+        this._order = _order;
     }
 
-
-
-    public String getFP() {
-        return FP;
-    }
-
-    public void setFP(String FP) {
-        this.FP = FP;
-    }
-
-    public String getFD() {
-        return FD;
-    }
-
-    public void setFD(String FD) {
-        this.FD = FD;
-    }
-
-    public String getFN() {
-        return FN;
-    }
-
-    public void setFN(String FN) {
-        this.FN = FN;
-    }
 
     public String getDateInvoice(Integer key) {
 
@@ -168,7 +158,7 @@ public class InvoiceData implements Cloneable
         else
             this.fullPrice = null;
         this.id = id;
-        this.order = order;
+        this._order = order;
         this.fk_invoice_accountinglist = fk_invoice_accountinglist;
         this.fk_invoice_kktRegId = fk_invoice_kktRegId;
 
@@ -185,6 +175,7 @@ public class InvoiceData implements Cloneable
     public static class Store
     {
         public Integer id;
+        public String google_id;
         public String name;
         public String address;
         public Double latitude;
@@ -198,14 +189,17 @@ public class InvoiceData implements Cloneable
         public Integer _status;
         public boolean update;
         public String photo_reference;
-        public Integer date_add;
+        public Long date_add;
     }
     public static class KktRegId
     {
         public Integer id;
+        public String google_id;
         public Long kktRegId;
         public Integer fk_kktRegId_stores;
+        public String fk_kktRegId_stores_google_id;
         public Integer _status;
+        public Long date_add;
     }
 
     public Object clone() throws CloneNotSupportedException {

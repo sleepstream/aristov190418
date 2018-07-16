@@ -93,10 +93,11 @@ android {
         compile 'com.google.maps:google-maps-services:0.2.7'
 
         // Firestore
-        compile 'com.google.firebase:firebase-firestore:17.0.1'
+        compile 'com.google.firebase:firebase-firestore:17.0.2'
+        compile 'com.google.firebase:firebase-database:16.0.1'
 
         // Other Firebase/Play services deps
-        compile 'com.google.firebase:firebase-auth:16.0.1'
+        compile 'com.google.firebase:firebase-auth:16.0.2'
         compile 'com.google.android.gms:play-services-auth:15.0.1'
 
         // FirebaseUI (for authentication)

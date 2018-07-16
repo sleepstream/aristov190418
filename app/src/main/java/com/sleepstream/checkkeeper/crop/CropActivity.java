@@ -137,8 +137,12 @@ public class CropActivity extends AppCompatActivity {
         invoiceData.store = store;
         invoiceData.store.id = store_id;
         invoiceData.store.update = true;
-        MainActivity.invoice.setStoreData(invoiceData);
-        finish();
+        try {
+            MainActivity.invoice.setStoreData(invoiceData);
+            finish();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadAlbums() {

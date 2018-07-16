@@ -14,7 +14,16 @@ public class PurchasesListData {
     public Invoice invoice;
     public Store store;
     public Product product;
+    public Integer fk_purchases_accountinglist;
+    public Integer fk_purchases_invoice;
+    public Integer fk_purchases_stores;
+    public Integer fk_purchases_products;
     private Integer order;
+    public String google_id;
+    public Long date_add;
+    public String fk_purchases_products_google_id;
+    public String fk_purchases_invoice_google_id;
+    public String fk_purchases_stores_google_id;
 
     public Integer getOrder() {
         return order;
@@ -38,10 +47,12 @@ public class PurchasesListData {
         public Integer id;
         public String name;
         public String adress;
+        public String google_id;
     }
     public static class Product
     {
         public Integer id;
+        public String google_id;
         public String correctName;
         public String nameFromBill;
         public Integer barcode;

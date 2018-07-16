@@ -44,7 +44,7 @@
     <string name="title_activity_maps">Map</string>
     <string name="finde_store_on_map">Укажите магазин на карте</string>
     <string name="signCompos">\&#xD7;</string>
-    <string name="errorGetFrom_FNS">Ошибка загрузки</string>
+    <string name="errorGetFrom_FNS">Сервер недоступен</string>
     <string name="loading_invoice_from_FNS">Идет загрузка...</string>
     <string name="Single">За день</string>
     <string name="Multi">Несколько дней</string>
@@ -178,5 +178,6 @@
     <string name="greetings_text_3">Или используйте on-line версию</string>
     <string name="settings_On_lineNav_manu_text">On-Line</string>
     <string name="settings_OFF_lineNav_manu_text">Off-Line</string>
+    <string name="add_new_invoice">Проверка чека</string>
 
 </resources>

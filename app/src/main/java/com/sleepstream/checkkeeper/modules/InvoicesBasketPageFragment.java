@@ -108,11 +108,13 @@ public class InvoicesBasketPageFragment extends Fragment {
             public void onClick(View view) {
                 if(selectedCount > 0)
                 {
+
                     for(InvoiceData tmp : invoiceBasketListAdapter.itemList)
                     {
                         if(tmp.selected)
                         {
-                            invoice.deleteInvoiceData(tmp.getId());
+
+                            invoice.deleteInvoiceData(tmp);
                             selectedCount-=1;
                         }
                     }

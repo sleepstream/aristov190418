@@ -705,7 +705,11 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                                         blurPlotter.setVisibility(View.GONE);
                                         MainActivity.currentInvoice.store.name = Name.getText().toString().trim();
                                         MainActivity.currentInvoice.store.update = true;
-                                        invoice.setStoreData(MainActivity.currentInvoice);
+                                        try {
+                                            invoice.setStoreData(MainActivity.currentInvoice);
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
                                         onResume();
                                     }
                                 });

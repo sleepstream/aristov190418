@@ -129,7 +129,7 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                        //itemList.add(position, item);
                         item.setIn_basket(0);
                         invoice.updateInvoice(item);
-                       invoice.addInvoice(position, item);
+                       invoice.addInvoice(position, item, null);
                        invsNumber.setText(String.valueOf(getItemCount()));
                        notifyItemInserted(position);
                     }
@@ -171,12 +171,12 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                 //Toast.makeText(context, fromPosition +" " + toPosition, Toast.LENGTH_LONG).show();
 
                 InvoiceData tmp = itemList.get(i);
-                tmp.setOrder(i+1);
+                tmp.set_order(i+1);
                 itemList.set(i, tmp);
 
 
                 tmp = itemList.get(i+1);
-                tmp.setOrder(i);
+                tmp.set_order(i);
                 itemList.set(i+1, tmp);
 
                 Collections.swap(itemList, i, i + 1);
@@ -189,11 +189,11 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                 //Toast.makeText(context, fromPosition +" " + toPosition, Toast.LENGTH_LONG).show();
 
                 InvoiceData tmp = itemList.get(i);
-                tmp.setOrder(i-1);
+                tmp.set_order(i-1);
                 itemList.set(i, tmp);
 
                 tmp = itemList.get(i-1);
-                tmp.setOrder(i);
+                tmp.set_order(i);
                 itemList.set(i-1, tmp);
 
 

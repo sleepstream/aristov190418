@@ -269,7 +269,7 @@ public class GetFnsData {
         public Float price;
         public Float sum;
         String nds18;
-        public String quantity;
+        public Float quantity;
         public String name;
     }
 

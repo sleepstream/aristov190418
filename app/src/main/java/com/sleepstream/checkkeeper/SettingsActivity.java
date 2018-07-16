@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -32,6 +33,12 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.places.Places;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
+import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import okhttp3.Response;
@@ -39,11 +46,13 @@ import worker8.com.github.radiogroupplus.RadioGroupPlus;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
+import static com.sleepstream.checkkeeper.invoiceObjects.Invoice.tableNameInvoice;
 
 public class SettingsActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
@@ -53,6 +62,7 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
     public UsersDataPreferenceFragment usersDataPreferenceFragment;
     public AppSettingsPage appSettingsPage;
     private MainSettingsPage mainSettingsPage;
+    private  GoogleApiClient mGoogleApiClient;
     private final static String LOG_TAG = "SettingsActivity";
 
 
@@ -127,12 +137,12 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
         private RelativeLayout userSettings;
         private RelativeLayout appSettings;
 
+
         public MainSettingsPage(Context context){ this.context = context;};
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-
         }
         @Override
         public View onCreateView(LayoutInflater inflater, final ViewGroup container,
@@ -743,31 +753,53 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
                     alertDialog.setPositiveButton(R.string.ButtonOK, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            if(isChecked)
-                                On_lineSettings_summary.setText(R.string.settings_On_lineSettings_OFF_summary);
-                            else {
-                                On_lineSettings_summary.setText(R.string.settings_On_lineSettings_ON_summary);
-                                user.google_id = null;
-                                user.mPhotoUrl = null;
-                                user.setPersonalData();
-                                if(mGoogleApiClient.isConnected()) {
-                                    Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
-                                            new ResultCallback<Status>() {
-                                                @Override
-                                                public void onResult(Status status) {
 
-
-                                                }
-                                            });
-                                }
-                            }
                             On_line = isChecked;
                             Map<String, String> values = new HashMap<>();
                             values.put("on_line", String.valueOf(isChecked));
                             settings.setSettings(values);
                             Log.d(LOG_TAG, "settings updated, on_line set to "+values.get("on_line"));
-                            Intent intent = new Intent(context, Greetings.class);
-                            startActivity(intent);
+
+                            if(isChecked) {
+                                On_lineSettings_summary.setText(R.string.settings_On_lineSettings_OFF_summary);
+                                Intent intent = new Intent(context, Greetings.class);
+                                intent.putExtra("from", LOG_TAG);
+                                 startActivityForResult(intent, 1000);
+
+
+                            }
+                            else {
+                                On_lineSettings_summary.setText(R.string.settings_On_lineSettings_ON_summary);
+                                user.google_id = null;
+                                user.mPhotoUrl = null;
+                                user.signIn = false;
+                                user.setPersonalData();
+
+                                FirebaseAuth.getInstance().signOut();
+                                if(mGoogleApiClient.isConnected()) {
+
+                                    Auth.GoogleSignInApi.revokeAccess(mGoogleApiClient).setResultCallback(
+                                            new ResultCallback<Status>() {
+                                                @Override
+                                                public void onResult(Status status) {
+                                                    Log.d(LOG_TAG, "try to log out from google 2 "+status.getStatusMessage());
+                                                }
+                                            });
+                                    Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(
+                                            new ResultCallback<Status>() {
+                                                @Override
+                                                public void onResult(Status status) {
+                                                    //mGoogleApiClient.disconnect();
+                                                    Log.d(LOG_TAG, "try to log out from google "+status.getStatusMessage());
+                                                }
+                                            });
+                                }
+
+                            }
+
+
+
+
                         }
                     });
                     alertDialog.show();
@@ -776,5 +808,86 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
 
             return view;
         }
+        /**
+         * Dispatch incoming result to the correct fragment.
+         *
+         * @param requestCode
+         * @param resultCode
+         * @param data
+         */
+        @Override
+        public void onActivityResult(int requestCode, int resultCode, Intent data) {
+            //super.onActivityResult(requestCode, resultCode, data);
+            if(requestCode == 1000)
+            {
+                if(On_line) {
+                    switcher_on_line.setChecked(true);
+                    //запуск ассинхронного задания по загрузке данных на сервер
+                    //приложение на время выполнения блокируется
+                    AsyncLoadToServerInvoices asyncLoadToServerInvoices = new AsyncLoadToServerInvoices();
+                    asyncLoadToServerInvoices.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }
+                else
+                    switcher_on_line.setChecked(false);
+            }
+        }
     }
+
+    public class AsyncLoadToServerInvoices extends AsyncTask<String, InvoiceData, InvoiceData>
+    {
+        /**
+         * Override this method to perform a computation on a background thread. The
+         * specified parameters are the parameters passed to {@link #execute}
+         * by the caller of this task.
+         * <p>
+         * This method can call {@link #publishProgress} to publish updates
+         * on the UI thread.
+         *
+         * @param strings The parameters of the task.
+         * @return A result, defined by the subclass of this task.
+         * @see #onPreExecute()
+         * @see #onPostExecute
+         * @see #publishProgress
+         */
+        @Override
+        protected InvoiceData doInBackground(String... strings) {
+            Invoice invoisToLoad = new Invoice(null);
+
+            invoisToLoad.reLoadInvoice();
+            if(invoisToLoad.invoices.size()>0)
+            {
+                for(InvoiceData invoiceData : invoisToLoad.invoices)
+                {
+                    //invoisToLoad.addInvoiceDataServer(invoiceData);
+                    invoisToLoad.writeInvoiceDataToServer(invoiceData);
+                }
+            }
+
+            Task<QuerySnapshot> result = mFirestore.collection(tableNameInvoice).whereEqualTo("user_google_id", user.google_id).get(Invoice.source);
+            while(!result.isComplete())
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(result.isSuccessful())
+            {
+                List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                for(DocumentSnapshot documentSnapshot: documents)
+                {
+                    InvoiceData invoiceData = documentSnapshot.toObject(InvoiceData.class);
+                    if(invoiceData!= null) {
+                        invoice.writeInvoiceDataFromServer(invoiceData);
+                    }
+                }
+            }
+
+
+            return null;
+        }
+    }
+
+
 }

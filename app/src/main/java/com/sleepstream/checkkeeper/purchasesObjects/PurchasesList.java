@@ -123,11 +123,11 @@ public class PurchasesList {
 
                                     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:MM:SS", Locale.getDefault());
                                     java.util.Calendar calendar = Calendar.getInstance();
-                                    calendar.setTimeInMillis(fk_cur.getLong(fk_cur.getColumnIndex("date")));
+                                    calendar.setTimeInMillis(fk_cur.getLong(fk_cur.getColumnIndex("dateInvoice")));
 
                                     invoice.date = dateFormat.format(calendar.getTime());
                                     invoice.id = fk_cur.getInt(fk_cur.getColumnIndex("id"));
-                                    invoice.fullprice = fk_cur.getDouble(fk_cur.getColumnIndex("fullprice"));
+                                    invoice.fullprice = fk_cur.getDouble(fk_cur.getColumnIndex("fullPrice"));
                                     purchasesListData.invoice = invoice;
                                 }
                                 fk_cur.close();

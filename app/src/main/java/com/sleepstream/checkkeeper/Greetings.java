@@ -10,16 +10,13 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputLayout;
-import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.auth.api.Auth;
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
@@ -42,6 +39,7 @@ import static com.sleepstream.checkkeeper.MainActivity.*;
 public class Greetings extends Activity {
 
 
+    String from = null;
     private GoogleSignInAccount account;
 
     Integer backPressed = 0;
@@ -90,6 +88,8 @@ public class Greetings extends Activity {
         setContentView(R.layout.greetings_layout);
         FirebaseFirestore.setLoggingEnabled(true);
 
+        Intent intent = getIntent();
+        from = intent.getStringExtra("from");
 
 
         link_to_FNS_app = findViewById(R.id.link_to_FNS_app);
@@ -114,7 +114,7 @@ public class Greetings extends Activity {
             @Override
             public void onClick(View v) {
                 progressBar.setVisibility(View.VISIBLE);
-                signIn();
+                signIn_Google();
             }
         });
 
@@ -316,7 +316,7 @@ public class Greetings extends Activity {
             googleUser = FirebaseAuth.getInstance().getCurrentUser();
             if (googleUser == null && !user.signIn) {
                 // Not signed in, launch the Sign In activity
-                signIn();
+                signIn_Google();
                 return;
             } else if (!user.signIn) {
                 loadUserData(googleUser.getUid());
@@ -344,11 +344,21 @@ public class Greetings extends Activity {
         }
     }
 
-    private void signIn() {
+    private void signIn_Google() {
 
         Intent intent = AuthUI.getInstance().createSignInIntentBuilder()
                 .setAvailableProviders(Collections.singletonList(
                         new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build()))
+                .setIsSmartLockEnabled(false)
+                .build();
+        startActivityForResult(intent, RC_SIGN_IN);
+
+    }
+    private void signIn_Email() {
+
+        Intent intent = AuthUI.getInstance().createSignInIntentBuilder()
+                .setAvailableProviders(Collections.singletonList(
+                        new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build()))
                 .setIsSmartLockEnabled(false)
                 .build();
         startActivityForResult(intent, RC_SIGN_IN);
@@ -359,10 +369,11 @@ public class Greetings extends Activity {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+        //super.onActivityResult(requestCode, resultCode, data);
 
         // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
         if (requestCode == RC_SIGN_IN) {
+            //mFirestore = FirebaseFirestore.getInstance();
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
             if (result != null && result.isSuccess()) {
                 loadUserData(result.getSignInAccount().getId());
@@ -384,19 +395,29 @@ public class Greetings extends Activity {
                     Map<String, String> tmp =new ArrayMap<>();
                     tmp.put("on_line", String.valueOf(On_line));
                     settings.setSettings(tmp);
+                    progressBar.setVisibility(View.GONE);
                     Log.e(LOG_TAG, "Google Sign In failed." +resultCode);
                     Toast.makeText(context, getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+
+
+                    if(from != null)
+                        finish();
                 }
             }
             else{
                 // Google Sign In failed
+                progressBar.setVisibility(View.GONE);
                 Log.e(LOG_TAG, "Google Sign In failed. result null");
                 Toast.makeText(context, getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+
+                if(from != null)
+                    finish();
             }
         }
     }
 
     private void loadUserData(final String id) {
+
         Task<DocumentSnapshot> docRef = mFirestore.collection("users").document(id).get();
         docRef.addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
@@ -408,8 +429,9 @@ public class Greetings extends Activity {
                         if(user.id != null)
                             id = user.id;
                         user = document.toObject(PersonalData.class);
-                        user.id = id;
+
                         if(user != null) {
+                            user.id = id;
                             user.signIn = true;
                             user.setPersonalData();
                             if ((user.telephone_number != null ) && (user.password != null )) {
@@ -418,25 +440,31 @@ public class Greetings extends Activity {
                             }
                         }
                     }
+
+                    if(user == null && googleUser != null)
+                    {
+                        user = new PersonalData();
+                        user.google_id = googleUser.getUid();
+                        user.e_mail = googleUser.getEmail();
+                        user.name = googleUser.getDisplayName();
+                        user.telephone_number = googleUser.getPhoneNumber();
+                        user._status = 0;
+                        user.signIn = true;
+                        user.mPhotoUrl = googleUser.getPhotoUrl().toString();
+                        mFirestore.collection("users").document(id).set(user);
+                        //DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+                        user.setPersonalData();
+                    }
+                    registration_layout.setVisibility(View.VISIBLE);
+                    progressBar.setVisibility(View.GONE);
                 } else {
+                    progressBar.setVisibility(View.GONE);
                     Log.d(LOG_TAG, "get failed with ", task.getException());
-                }
-                if(user == null && googleUser != null)
-                {
-                    user = new PersonalData();
-                    user.google_id = googleUser.getUid();
-                    user.e_mail = googleUser.getEmail();
-                    user.name = googleUser.getDisplayName();
-                    user.telephone_number = googleUser.getPhoneNumber();
-                    user._status = 0;
-                    user.signIn = true;
-                    user.mPhotoUrl = googleUser.getPhotoUrl().toString();
-                    mFirestore.collection("users").document(id).set(user);
-                    user.setPersonalData();
+                    Toast.makeText(context, getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+                    if(from != null)
+                        finish();
                 }
 
-                registration_layout.setVisibility(View.VISIBLE);
-                progressBar.setVisibility(View.GONE);
 
             }
         });
