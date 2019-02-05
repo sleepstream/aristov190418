@@ -14,6 +14,7 @@ public class PurchasesListData {
     public Invoice invoice;
     public Store store;
     public Product product;
+    public Long fk_purchases_kktRegId_stores_links;
     public Integer fk_purchases_accountinglist;
     public Integer fk_purchases_invoice;
     public Integer fk_purchases_stores;
@@ -47,7 +48,6 @@ public class PurchasesListData {
         public Integer id;
         public String name;
         public String adress;
-        public String google_id;
     }
     public static class Product
     {
@@ -57,6 +57,10 @@ public class PurchasesListData {
         public String nameFromBill;
         public Integer barcode;
         public Category category;
+        public String fk_productCutegory_google_id;
+        public int fk_bar_code_product;
+        public int fk_productCutegory;
+        public String fk_bar_code_product_google_id;
     }
     public static class Category
     {

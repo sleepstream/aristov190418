@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
@@ -23,6 +24,8 @@ import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.linkedListObjects.LinkedListData;
+import com.sleepstream.checkkeeper.purchasesObjects.PurchasesList;
+import com.sleepstream.checkkeeper.purchasesObjects.PurchasesListData;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,6 +33,8 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
+import static com.sleepstream.checkkeeper.MainActivity.currentNumber;
+import static com.sleepstream.checkkeeper.MainActivity.getDrawable;
 import static com.sleepstream.checkkeeper.MainActivity.linkedListClass;
 import static com.sleepstream.checkkeeper.modules.InvoicesBasketPageFragment.selectedCount;
 
@@ -55,10 +60,10 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
 
     public InvoiceBasketListAdapter(Context context, Invoice invoice, View view, Navigation navigation) {
         this.context = context;
-        this.invoice = invoice;
+        InvoiceBasketListAdapter.invoice = invoice;
         itemList.clear();
         if(invoice.invoices != null) {
-            this.itemList.addAll(invoice.invoices);
+            itemList.addAll(invoice.invoices);
         }
         this.navigation = navigation;
 
@@ -67,26 +72,26 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
     {
         itemList.clear();
         if(invoice.invoices != null) {
-            this.itemList.addAll(invoice.invoices);
+            itemList.addAll(invoice.invoices);
         }
     }
 
 
     public void swap(List<InvoiceData> itemList)
     {
-        if(this.itemList != null && itemList != null)
+        if(InvoiceBasketListAdapter.itemList != null && itemList != null)
         {
-            this.itemList.clear();
-            this.itemList = null;
-            this.itemList.addAll(itemList);
+            InvoiceBasketListAdapter.itemList.clear();
+            InvoiceBasketListAdapter.itemList = null;
+            InvoiceBasketListAdapter.itemList.addAll(itemList);
         }
-        else if(this.itemList != null && itemList == null)
+        else if(InvoiceBasketListAdapter.itemList != null && itemList == null)
         {
             //this.itemList.clear();
         }
         else
         {
-            this.itemList.addAll(itemList);
+            InvoiceBasketListAdapter.itemList.addAll(itemList);
         }
         notifyDataSetChanged();
     }
@@ -131,10 +136,10 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
                 itemViewHolder.quantity.setText(String.valueOf(item.quantity));
             else
                 itemViewHolder.quantity.setText("");
-            if (item.store != null && item.store.name != null) {
-                itemViewHolder.storeName.setText(item.store.name);
-            } else if (item.store != null && item.store.name == null && item.store.name_from_fns != null) {
-                itemViewHolder.storeName.setText(item.store.name_from_fns);
+            if (item.store_on_map != null && item.store_on_map.name != null) {
+                itemViewHolder.storeName.setText(item.store_on_map.name);
+            } else if (item.store_from_fns != null  && item.store_from_fns.name_from_fns != null) {
+                itemViewHolder.storeName.setText(item.store_from_fns.name_from_fns);
             } else {
                 itemViewHolder.storeName.setText(MainActivity.setInvoiceNameByStatus(item.get_status()));
             }
@@ -431,6 +436,7 @@ public class InvoiceBasketListAdapter extends RecyclerView.Adapter<InvoiceBasket
         }
         return  -1;
     }
+
 
 
 }

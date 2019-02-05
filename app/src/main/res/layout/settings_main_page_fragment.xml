@@ -96,5 +96,52 @@
                 android:layout_height="0.5dp"
                 android:background="@drawable/line" />
     </RelativeLayout>
+    <RelativeLayout
+            android:id="@+id/clearServerData"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/userSettings"
+            android:padding="10dp">
+        <RelativeLayout
+                android:id="@+id/clearServerDataLeft"
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:padding="10dp">
+            <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/baseline_cloud_off_black_36"/>
+        </RelativeLayout>
+        <RelativeLayout
+                android:id="@+id/clearServerDataRight"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_toEndOf="@+id/clearServerDataLeft"
+                android:padding="10dp">
+            <TextView
+                    android:id="@+id/clearServerData_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_clearServerData_text"
+                    style="?TextAppeareance"/>
+            <TextView
+                    android:id="@+id/clearServerData_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/clearServerData_text"
+                    android:text="@string/settings_clearServerData_summary"
+                    style="?TextAppeareance_small"/>
+        </RelativeLayout>
+        <View
+                android:layout_below="@+id/clearServerDataRight"
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:background="@drawable/line" />
+    </RelativeLayout>
 
 </RelativeLayout>

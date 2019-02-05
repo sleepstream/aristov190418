@@ -9,7 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.sleepstream.checkkeeper.MainActivity.dbHelper;
-import static com.sleepstream.checkkeeper.MainActivity.getDrawable;
+import static com.sleepstream.checkkeeper.invoiceObjects.Invoice.tableNamePurchases;
 
 public class PurchasesList {
 
@@ -18,7 +18,7 @@ public class PurchasesList {
     private Context context;
     public List<PurchasesListData> purchasesListData = new ArrayList<>();
     private String tableName="purchases";
-    private String[] tableName_fk = new String[]{"accountinglist", "invoice", "stores", "products", "currency"};
+    private String[] tableName_fk = new String[]{"invoice",  "products", "currency"};
     public int lastIDCollection;
     public Integer lastShowedCategory;
 
@@ -26,9 +26,7 @@ public class PurchasesList {
     public String title;
 
     public void setfilter(String param, String value) {
-        if(filterParam.containsKey(param)) {
-            filterParam.remove(param);
-        }
+        filterParam.remove(param);
         filterParam.put(param, value);
     }
     public boolean checkFilter()
@@ -79,23 +77,24 @@ public class PurchasesList {
             if (selection != "") {
                 selection = selection.substring(0, selection.length() - 5);
                 Log.d(LOG_TAG, "Reload selection !" + selection + "!");
-                cur = dbHelper.query(tableName, null, selection, args, null, null, "_order", null);
+                cur = dbHelper.query(tableNamePurchases, null, selection, args, null, null, "_order", null);
             } else {
-                cur = dbHelper.query(tableName, null, null, null, null, null, "_order", null);
+                cur = dbHelper.query(tableNamePurchases, null, null, null, null, null, "_order", null);
             }
         }
         else if(categoryId == -1)
         {
-            String selectionQuery  ="Select * from "+tableName+" where fk_purchases_products not in " +
+            String selectionQuery  ="Select * from "+tableNamePurchases+" where fk_purchases_products not in " +
                     "(Select id from Products where id in " +
                     "(Select fk_product_category_products from product_category)) "+(selection != ""? " AND "+selection.substring(0, selection.length() - 5) : "");
             cur = dbHelper.rawQuery(selectionQuery,args.length>0 ? args : null);
         }
         else
         {
-            String selectionQuery  ="Select * from "+tableName+" where fk_purchases_products in " +
+            String selectionQuery  ="Select * from "+tableNamePurchases+" where fk_purchases_products in " +
                     "(Select id from Products where id in " +
                     "(Select fk_product_category_products from product_category where fk_product_category_data = ?)) "+(selection != ""? " AND "+selection.substring(0, selection.length() - 5) : "");
+
             cur = dbHelper.rawQuery(selectionQuery, args);
         }
 
@@ -107,8 +106,8 @@ public class PurchasesList {
                 for(int i=0; i<tableName_fk.length; i++)
                 {
                     try {
-                        Log.d(LOG_TAG, "purchases fk index "+"fk_" + tableName.toLowerCase() + "_" + tableName_fk[i]);
-                        int fk = cur.getInt(cur.getColumnIndex("fk_" + tableName.toLowerCase() + "_" + tableName_fk[i]));
+                        Log.d(LOG_TAG, "purchases fk index "+"fk_" + tableNamePurchases.toLowerCase() + "_" + tableName_fk[i]);
+                        int fk = cur.getInt(cur.getColumnIndex("fk_" + tableNamePurchases.toLowerCase() + "_" + tableName_fk[i]));
                         purchasesListData.fk.put(tableName_fk[i], fk);
                         //get data from fk tables
                         Cursor fk_cur;
@@ -148,9 +147,8 @@ public class PurchasesList {
                                 if(fk_cur.moveToFirst()) {
                                     PurchasesListData.Product product = new PurchasesListData.Product();
                                     product.id = fk_cur.getInt(fk_cur.getColumnIndex("id"));
-                                    product.correctName = fk_cur.getString(fk_cur.getColumnIndex("correctName"));
                                     product.nameFromBill = fk_cur.getString(fk_cur.getColumnIndex("nameFromBill"));
-                                    product.barcode = fk_cur.getInt(fk_cur.getColumnIndex("barcode"));
+                                    product.fk_bar_code_product = fk_cur.getInt(fk_cur.getColumnIndex("fk_bar_code_product"));
                                     purchasesListData.product = product;
 
                                     Cursor cur_product_category = dbHelper.query("product_category", null, "fk_product_category_products=?", new String[]{product.id.toString()},
@@ -176,7 +174,6 @@ public class PurchasesList {
                                             }
                                         }
                                         while(cur_product_category.moveToNext());
-                                        cur_product_category.close();
                                     }
                                     else
                                     {
@@ -186,6 +183,7 @@ public class PurchasesList {
                                         category.category_id = -1;
 
                                     }
+                                    cur_product_category.close();
                                     purchasesListData.product.category = category;
                                 }
                                 fk_cur.close();
@@ -222,12 +220,8 @@ public class PurchasesList {
         values.put("_order", purchasesListData.getOrder());
         long count = dbHelper.update(tableName,values,"id=?", new String[]{id.toString()});
         //check list in another tables
-        
-        if(count>0) {
-            return true;
 
-        }
-        return false;
+        return count > 0;
 
     }
 
@@ -259,20 +253,5 @@ public class PurchasesList {
     }
 
 
-    public List<PurchasesListData.Category> loadProductCategories() {
-        List<PurchasesListData.Category> categories = new ArrayList<>();
-        Cursor cur = dbHelper.query("product_category_data", null, null, null, null, null, null, null);
-        if(cur.moveToFirst()) {
-            do {
-                PurchasesListData.Category category = new PurchasesListData.Category();
-                category.icon_name = cur.getString(cur.getColumnIndex("icon_name"));
-                category.category = cur.getString(cur.getColumnIndex("category"));
-                category.category_id = cur.getInt(cur.getColumnIndex("id"));
-                categories.add(category);
-            }
-            while (cur.moveToNext());
-        }
-        cur.close();
-        return categories;
-    }
+
 }

@@ -17,8 +17,8 @@ public class InvoicePageActivity  extends AppCompatActivity{
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        this.invoice = MainActivity.invoice;
-        this.accountingList = MainActivity.accountingList;
+        invoice = MainActivity.invoice;
+        accountingList = MainActivity.accountingList;
         Intent intent = getIntent();
         intent.getStringExtra("invoiceId");
     }

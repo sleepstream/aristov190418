@@ -5,14 +5,13 @@ import android.database.Cursor;
 import android.support.annotation.NonNull;
 import android.util.ArrayMap;
 import android.util.Log;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.*;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.*;
-import com.google.firebase.firestore.EventListener;
 import com.sleepstream.checkkeeper.GetFnsData;
 import com.sleepstream.checkkeeper.LoadingFromFNS;
 import com.sleepstream.checkkeeper.MainActivity;
@@ -41,12 +40,25 @@ public class Invoice {
     }
 
     public final static String tableNameInvoice ="invoice";
-    public final static String tablenameStores ="stores";
-    public final static String tableJsonData ="collectedData";
+    public final static String tableNameStoresFromFns ="stores_from_fns";
+    public final static String tableNameStoresOnMap ="stores_on_map";
     public final static String tableNameKktRegId = "kktRegId";
     public final static String tableNamePurchases = "purchases";
-    public final static String tableNameProducts = "Products";
-    public int lastIDCollection;
+    public final static String tableNameProducts = "products";
+    public final static String tableNameCollectedData = "collectedData";
+    public final static String tableNameBarCodeProduct = "bar_code_product";
+    public final static String tableNameStoresLinks = "stores_links";
+    public final static String tableNameKktRegIdStoresLinks = "kktRegId_store_links";
+    public final static String tableNameLinkedObjects = "linked_objects";
+    public final static String tableNameAccountinglist__invoice_links = "accountinglist__invoice_links";
+    public final static String tableNameAccountinglist__purchases_links = "accountinglist__purchases_links";
+
+    public final static String tableNameProduct_category_data = "product_category_data";
+    public final static String tableNameProduct_category = "product_category";
+
+    private static  boolean tablenameStoresSnapshot = false;
+
+    public Integer lastIDCollection;
     public ArrayList<Date> filterDates;
 
 
@@ -62,9 +74,7 @@ public class Invoice {
     }
 
     public void setfilter(String param, String value) {
-        if(filterParam.containsKey(param)) {
-            filterParam.remove(param);
-        }
+        filterParam.remove(param);
         filterParam.put(param, new String[]{value});
     }
 
@@ -75,10 +85,7 @@ public class Invoice {
                 if(id != null && filterParam.get(param).equals(id)) {
                     return true;
                 }
-                else if (id == null)
-                    return true;
-                else
-                    return false;
+                else return id == null;
             }
             else
                 return false;
@@ -155,7 +162,11 @@ public class Invoice {
     public Invoice(Navigation navigation) {
         this.navigation = navigation;
 
-        //updateOlddataBase();
+        if(user!= null && user.google_id!=null && On_line) {
+            //addSnaphotListeners();
+
+            //updateOlddataBase();
+        }
 
         /*Cursor cur = dbHelper.query(tableNameInvoice, null, null, null, null, null, "date_day DESC, _order ASC", null);
         invoices.clear();
@@ -167,15 +178,45 @@ public class Invoice {
         else {
             Log.d(LOG_TAG, "No records in DB");
         }*/
+
         
     }
 
+    /*private void addSnaphotListeners() {
+        if(!tablenameStoresSnapshot) {
+            tablenameStoresSnapshot = true;
+            mFirestore.collection(tableNameStoresOnMap).addSnapshotListener(new EventListener<QuerySnapshot>() {
+                @Override
+                public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                    if(queryDocumentSnapshots!= null) {
+                        List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+
+                        for (DocumentSnapshot doc : documents) {
+                            InvoiceData.Store_on_map store = doc.toObject(InvoiceData.Store_on_map.class);
+                            if (store != null && store.place_id != null) {
+                                store.google_id = doc.getId();
+                                Cursor cur = dbHelper.query(tableNameStoresOnMap, null, "google_id=?", new String[]{store.google_id}, null, null, null, null);
+                                if (cur.moveToFirst()) {
+                                    store.id = cur.getInt(cur.getColumnIndex("id"));
+
+                                    saveStoreDataLocal(null, store);
+                                }
+                                cur.close();
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+*/
     public void reLoadInvoice() {
         if(navigation != null )
             navigation.copyFiltersToInvoice();
         String selection ="";
         List<String> selectionArgs=new ArrayList<>();
         String tmp="";
+        List<Integer> fk_accountinglists = new ArrayList<>();
 
         for(Map.Entry<String, String[]> entry : filterParam.entrySet()) {
             String key = entry.getKey();
@@ -210,6 +251,29 @@ public class Invoice {
                 }
                 selection = selection.substring(0, selection.length()-4) + ") and ";
             }
+            else if(key == "fk_invoice_accountinglist")
+            {
+                Cursor cur_acc = dbHelper.query(tableNameAccountinglist__invoice_links, null, "fk_accountinglist=?",
+                        new String[]{value[0].toString()}, null, null, null, null);
+                if(cur_acc.moveToFirst())
+                {
+                    String invoices_id_acc = " (";
+                    do{
+                        long id = cur_acc.getInt(cur_acc.getColumnIndex("fk_invoice"));
+                        invoices_id_acc+= "id=? OR ";
+                        selectionArgs.add(String.valueOf(id));
+                        tmp += id+ " ";
+                    }
+                    while(cur_acc.moveToNext());
+                    selection+=invoices_id_acc.substring(0, invoices_id_acc.length()-4)+") and ";
+
+                }
+                cur_acc.close();
+            }
+            else if(key.equals("text_search"))
+            {}
+            else if(key.equals("place_id"))
+            {}
             else if(value != null)
             {
                 selection+=key+"=? and ";
@@ -252,13 +316,13 @@ public class Invoice {
         else
         {
             this.invoices.clear();
-            //InvoicesPageFragment.invoiceListAdapter.swap(null);
+            //InvoicesPageFragment.placeChooserAdapter.swap(null);
             Log.d(LOG_TAG, " Reload No records in DB size "+ this.invoices.size());
         }
         
     }
 
-    private List<InvoiceData> loadData(Cursor cur)
+    public List<InvoiceData> loadData(Cursor cur)
     {
         List<InvoiceData> invoiceDataTMP = new ArrayList<>();
         if(cur.moveToFirst())
@@ -271,76 +335,145 @@ public class Invoice {
                         Long.parseLong(cur.getString(cur.getColumnIndex("dateInvoice"))),
                         cur.getString(cur.getColumnIndex("fullPrice")),
                         cur.getInt(cur.getColumnIndex("id")),
-                        cur.getInt(cur.getColumnIndex("_order")),
-                        cur.getInt(cur.getColumnIndex("fk_invoice_accountinglist")),
-                        cur.getInt(cur.getColumnIndex("fk_invoice_kktRegId")));
+                        cur.getInt(cur.getColumnIndex("_order")));
+
                 invoiceData.setIn_basket(cur.getInt(cur.getColumnIndex("in_basket")));
                 invoiceData.set_status(cur.getInt(cur.getColumnIndex("_status")));
-                invoiceData.setfk_invoice_stores(cur.getInt(cur.getColumnIndex("fk_invoice_stores")));
+                //invoiceData.setfk_invoice_stores_from_fns(cur.getInt(cur.getColumnIndex("fk_invoice_stores_from_fns")));
+                //invoiceData.setFk_invoice_stores_on_map(cur.getInt(cur.getColumnIndex("fk_invoice_stores_on_map")));
 
-                invoiceData.latitudeAdd =cur.getDouble(cur.getColumnIndex("latitudeAdd"));
-                invoiceData.longitudeAdd =cur.getDouble(cur.getColumnIndex("longitudeAdd"));
+                if(!cur.isNull(cur.getColumnIndex("fk_invoice_kktRegId_store_links")))
+                    invoiceData.fk_invoice_kktRegId_store_links = cur.getLong(cur.getColumnIndex("fk_invoice_kktRegId_store_links"));
+
+                if(!cur.isNull(cur.getColumnIndex("latitudeAdd")))
+                    invoiceData.latitudeAdd =cur.getDouble(cur.getColumnIndex("latitudeAdd"));
+                if(!cur.isNull(cur.getColumnIndex("longitudeAdd")))
+                    invoiceData.longitudeAdd =cur.getDouble(cur.getColumnIndex("longitudeAdd"));
+
                 invoiceData.repeatCount =cur.getInt(cur.getColumnIndex("repeatCount"));
 
-                invoiceData.server_status =cur.getInt(cur.getColumnIndex("server_status"));
+                if(!cur.isNull(cur.getColumnIndex("server_status")))
+                    invoiceData.server_status =cur.getInt(cur.getColumnIndex("server_status"));
+
+                invoiceData.setDate_add(cur.getLong(cur.getColumnIndex("date_add")));
+
+                if(!cur.isNull(cur.getColumnIndex("google_id")))
+                    invoiceData.google_id = cur.getString(cur.getColumnIndex("google_id"));
+
+                if(!cur.isNull(cur.getColumnIndex("fk_invoice_accountinglist_google_id")))
+                    invoiceData.fk_invoice_accountinglist_google_id =cur.getString(cur.getColumnIndex("fk_invoice_accountinglist_google_id"));
+                if(!cur.isNull(cur.getColumnIndex("user_google_id")))
+                    invoiceData.user_google_id =cur.getString(cur.getColumnIndex("user_google_id"));
 
 
-                invoiceData.google_id = cur.getString(cur.getColumnIndex("google_id"));
-                invoiceData.fk_invoice_accountinglist_google_id =cur.getString(cur.getColumnIndex("fk_invoice_accountinglist_google_id"));
-                invoiceData.fk_invoice_kktRegId_google_id =cur.getString(cur.getColumnIndex("fk_invoice_kktRegId_google_id"));
-                invoiceData.fk_invoice_stores_google_id =cur.getString(cur.getColumnIndex("fk_invoice_stores_google_id"));
-                invoiceData.user_google_id =cur.getString(cur.getColumnIndex("user_google_id"));
 
-
-
-                if(invoiceData.getfk_invoice_kktRegId() !=null)
-                {
-                    Cursor cur_purchases = dbHelper.query("purchases", null, "fk_purchases_invoice=?", new String[]{invoiceData.getId().toString()}, null, null, null, null);
-                    if(cur_purchases.moveToFirst())
+                if(invoiceData.getId() !=null) {
+                    Cursor cur_accountinglist = dbHelper.query(tableNameAccountinglist__invoice_links, null,"fk_invoice=?",
+                            new String[]{invoiceData.getId().toString()}, null, null, null, null);
+                    if(cur_accountinglist.moveToFirst())
                     {
+                        List<Integer> fk_accountinglist = new ArrayList<>();
+                        do{
+
+                            invoiceData.setFk_invoice_accountinglist(cur_accountinglist.getInt(cur_accountinglist.getColumnIndex("fk_accountinglist")));
+                        }
+                        while(cur_accountinglist.moveToNext());
+
+                    }
+                    cur_accountinglist.close();
+
+                    Cursor cur_purchases = dbHelper.query(tableNamePurchases, null, "fk_purchases_invoice=?", new String[]{invoiceData.getId().toString()}, null, null, null, null);
+                    if (cur_purchases.moveToFirst()) {
                         invoiceData.quantity = cur_purchases.getCount();
                     }
                     cur_purchases.close();
 
-                    Integer id = invoiceData.getfk_invoice_kktRegId();
-                    Cursor cur_kktRegId = dbHelper.query("kktRegId", null, "id=?", new String[]{id.toString()}, null, null, null, null);
-                    if(cur_kktRegId.moveToFirst()) {
-                        invoiceData.kktRegId = new InvoiceData.KktRegId();
-
-                        invoiceData.kktRegId.id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
-                        invoiceData.kktRegId.fk_kktRegId_stores = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
-                        invoiceData.kktRegId.fk_kktRegId_stores_google_id = cur_kktRegId.getString(cur_kktRegId.getColumnIndex("fk_kktRegId_stores_google_id"));
-                        invoiceData.kktRegId.google_id = cur_kktRegId.getString(cur_kktRegId.getColumnIndex("google_id"));
-                        invoiceData.kktRegId.kktRegId = cur_kktRegId.getLong(cur_kktRegId.getColumnIndex("kktRegId"));
-                        invoiceData.kktRegId._status = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("_status"));
-                        if(invoiceData.kktRegId.fk_kktRegId_stores > 0 && invoiceData.kktRegId.fk_kktRegId_stores != invoiceData.getfk_invoice_stores())
-                            invoiceData.setfk_invoice_stores(invoiceData.kktRegId.fk_kktRegId_stores);
-                        cur_kktRegId.close();
-                    }
-                    Cursor cur_stores = dbHelper.query("stores", null, "id=?", new String[]{invoiceData.getfk_invoice_stores().toString()}, null, null, null, null);
-                    if(cur_stores.moveToFirst())
+                    if(invoiceData.fk_invoice_kktRegId_store_links!= null)
                     {
-                        InvoiceData.Store store = new InvoiceData.Store();
-                        store.address = cur_stores.getString(cur_stores.getColumnIndex("address"));
-                        store.id = cur_stores.getInt(cur_stores.getColumnIndex("id"));
-                        store.google_id = cur_stores.getString(cur_stores.getColumnIndex("google_id"));
-                        store.name = cur_stores.getString(cur_stores.getColumnIndex("name"));
-                        store.name_from_fns = cur_stores.getString(cur_stores.getColumnIndex("name_from_fns"));
-                        store.address_from_fns = cur_stores.getString(cur_stores.getColumnIndex("address_from_fns"));
-                        store.store_type = cur_stores.getString(cur_stores.getColumnIndex("store_type"));
+                        Cursor cur_kktRegId_store_links = dbHelper.query(tableNameKktRegIdStoresLinks, null, "id =?", new String[]{invoiceData.fk_invoice_kktRegId_store_links.toString()}, null, null, null, null);
+                        if (cur_kktRegId_store_links.moveToFirst()) {
+                            invoiceData.fk_invoice_kktRegId_store_links = cur_kktRegId_store_links.getLong(cur_kktRegId_store_links.getColumnIndex("id"));
 
-                        store.longitude = cur_stores.getDouble(cur_stores.getColumnIndex("longitude"));
-                        store.latitude = cur_stores.getDouble(cur_stores.getColumnIndex("latitude"));
-                        store.inn = cur_stores.getLong(cur_stores.getColumnIndex("inn"));
-                        store.place_id = cur_stores.getString(cur_stores.getColumnIndex("place_id"));
-                        store.iconName = cur_stores.getString(cur_stores.getColumnIndex("iconName"));
-                        store._status = cur_stores.getInt(cur_stores.getColumnIndex("_status"));
-                        cur_stores.close();
-                        invoiceData.store = store;
+                            Long fk_kktRegId = cur_kktRegId_store_links.getLong(cur_kktRegId_store_links.getColumnIndex("fk_kktRegId"));
+                            if (fk_kktRegId != null && fk_kktRegId > 0) {
+                                invoiceData.kktRegId = loadKKtRegIdLocal(fk_kktRegId, "id=?");
+                            }
+                            if (!cur_kktRegId_store_links.isNull(cur_kktRegId_store_links.getColumnIndex("fk_stores_links"))) {
+                                invoiceData.fk_stores_links = cur_kktRegId_store_links.getLong(cur_kktRegId_store_links.getColumnIndex("fk_stores_links"));
+                                invoiceData.fk_stores_links_google_id = cur_kktRegId_store_links.getString(cur_kktRegId_store_links.getColumnIndex("fk_stores_links_google_id"));
+                                cur_kktRegId_store_links.close();
+
+                                String query = null;
+
+                                String[] args;
+                                if (navigation != null && navigation.filterParam != null && navigation.filterParam.containsKey("text_search")) {
+                                    String searchName = "%" + navigation.filterParam.get("text_search")[0] + "%";
+                                    query = "SELECT * FROM " + tableNameStoresLinks + " WHERE  (fk_stores_from_fns in " +
+                                            "(Select id from " + tableNameStoresFromFns + " where name_from_fns like ? ) or " +
+                                            "fk_stores_on_map in (Select id from " + tableNameStoresOnMap + " where name like ?)) AND id=?";
+                                    args = new String[]{searchName, searchName, invoiceData.fk_stores_links.toString()};
+                                } else if (navigation != null && navigation.filterParam != null && navigation.filterParam.containsKey("place_id")) {
+                                    args = new String[]{invoiceData.fk_stores_links.toString()};
+                                    if (navigation.filterParam.get("place_id")[0].equals("not null")) {
+                                        query = "SELECT * FROM " + tableNameStoresLinks + " WHERE  (fk_stores_on_map in " +
+                                                "(Select id from " + tableNameStoresOnMap + " where place_id " + navigation.filterParam.get("place_id")[0] + ") ) AND id=?";
+                                    } else {
+                                        query = "SELECT * FROM " + tableNameStoresLinks + " WHERE  (fk_stores_on_map in " +
+                                                "(Select id from " + tableNameStoresOnMap + " where place_id " + navigation.filterParam.get("place_id")[0] + ") or fk_stores_on_map " + navigation.filterParam.get("place_id")[0] + ") AND id=?";
+                                    }
+                                } else {
+                                    query = "SELECT * FROM " + tableNameStoresLinks + " WHERE  id=?";
+                                    args = new String[]{invoiceData.fk_stores_links.toString()};
+                                }
+
+
+                                Cursor cur_store_links = dbHelper.rawQuery(query, args);
+                                if (cur_store_links.moveToFirst()) {
+                                    Integer id_store_from_fns = cur_store_links.getInt(cur_store_links.getColumnIndex("fk_stores_from_fns"));
+                                    Integer id_store_on_map = cur_store_links.getInt(cur_store_links.getColumnIndex("fk_stores_on_map"));
+
+                                    if (id_store_from_fns > 0) {
+                                        Map<String, String> selection = new ArrayMap<String, String>();
+                                        selection.put("id", id_store_from_fns.toString());
+                                        List<InvoiceData.Store_from_fns> store_from_fns_list = loadDataFromStore_from_fns(selection);
+                                        if (store_from_fns_list.size() > 0) {
+                                            invoiceData.store_from_fns = store_from_fns_list.get(0);
+                                        }
+                                    }
+                                    if (id_store_on_map > 0) {
+                                        Map<String, List<String>> selection = new ArrayMap<>();
+                                        //selection = new ArrayMap<String, String>();
+                                        selection.put("id", Arrays.asList(id_store_on_map.toString()));
+                                        List<InvoiceData.Store_on_map> store_on_map_list = loadDataFromStore_on_map(selection, null);
+                                        if (store_on_map_list.size() > 0) {
+                                            invoiceData.store_on_map = store_on_map_list.get(0);
+                                        }
+                                    }
+                                } else if (navigation.filterParam.containsKey("text_search")) {
+                                    cur_store_links.close();
+                                    continue;
+                                } else if (navigation.filterParam.containsKey("place_id")) {
+                                    cur_store_links.close();
+                                    continue;
+                                }
+                                if (!cur_store_links.isClosed())
+                                    cur_store_links.close();
+                            }
+                            else if (navigation.filterParam.containsKey("place_id") && navigation.filterParam.get("place_id")[0].equals("not null")) {
+                                cur_kktRegId_store_links.close();
+                                continue;
+                            }
+                        }
+                        if(!cur_kktRegId_store_links.isClosed())
+                            cur_kktRegId_store_links.close();
+                    }
+                    else if(navigation != null && navigation.filterParam.containsKey("place_id") && navigation.filterParam.get("place_id")[0].equals("not null"))
+                    {
+                        continue;
                     }
                 }
 
-                Cursor cur_linked_objects = dbHelper.query("linked_objects", null, "fk_name = ? and fk_id = ?", new String[]{tableNameInvoice, invoiceData.getId().toString()}, null, null, null, null);
+                Cursor cur_linked_objects = dbHelper.query(tableNameLinkedObjects, null, "fk_name = ? and fk_id = ?", new String[]{tableNameInvoice, invoiceData.getId().toString()}, null, null, null, null);
                 if(cur_linked_objects.moveToFirst())
                     invoiceData.setPinId(cur_linked_objects.getInt(cur_linked_objects.getColumnIndex("id")));
                 invoiceDataTMP.add(invoiceData);
@@ -348,34 +481,80 @@ public class Invoice {
 
             }
             while(cur.moveToNext());
-            //cur.close();
 
             Log.d(LOG_TAG, "Loaded from DB records " + invoiceDataTMP.size());
         }
-        //cur.close();
         return invoiceDataTMP;
     }
 
-    public void addJsonData(String json, int fk_invoice) {
-        Integer id = null;
-        Cursor jsonCur = dbHelper.query(tableJsonData, new String[]{"id"}, "fk_" + tableJsonData + "_invoice=?", new String[]{String.valueOf(fk_invoice)}, null, null, null, null);
-        if (jsonCur.getCount() > 1)
-        {
-            dbHelper.delete(tableJsonData, "fk_" + tableJsonData + "_invoice=?", new String[]{String.valueOf(fk_invoice)});
+    public void addJsonData(InvoiceData invoiceData) {
+
+        Log.d(LOG_TAG, "addJsonData 492");
+        Map<String, Object> fStore = new HashMap<>();
+        Integer fk_invoice = invoiceData.getId();
+        String json = invoiceData.jsonData;
+        String google_id = null;
+
+        if(json.length()>0) {
+            if (On_line && user.google_id != null) {
+                fStore.put("json", json);
+                if (invoiceData.google_id != null) {
+                    Task<QuerySnapshot> result = mFirestore.collection(tableNameCollectedData).whereEqualTo("fk_collectedData_invoice_google_id", invoiceData.google_id).get(source);
+                    while (!result.isComplete()) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (result.isSuccessful()) {
+                        Log.d(LOG_TAG, "addJsonData  result.isSuccessful() "+ new Exception().getStackTrace()[0].getLineNumber());
+                        if (!result.getResult().getMetadata().isFromCache()) {
+                            List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                            if (documents.size() <= 0) {
+                                Log.d(LOG_TAG, "addJsonData  such invoice link not found save new "+ new Exception().getStackTrace()[0].getLineNumber());
+                                fStore.put("fk_collectedData_invoice_google_id", invoiceData.google_id);
+                                DocumentReference addedDocRef = mFirestore.collection(tableNameCollectedData).document();
+                                google_id = addedDocRef.getId();
+                                mFirestore.collection(tableNameCollectedData).document(google_id).set(fStore);
+                                return;
+                            } else {
+                                Log.d(LOG_TAG, "addJsonData  such invoice link found  "+ new Exception().getStackTrace()[0].getLineNumber());
+                                google_id = documents.get(0).getId();
+                            }
+                        }
+                    } else {
+                        Log.d(LOG_TAG, "addJsonData  repeat "+ new Exception().getStackTrace()[0].getLineNumber());
+                        addJsonData(invoiceData);
+                        return;
+                    }
+                }
+
+            }
+            Integer id = null;
+            Cursor jsonCur = dbHelper.query(tableNameCollectedData, new String[]{"id"}, "fk_" + tableNameCollectedData + "_invoice=?", new String[]{String.valueOf(fk_invoice)}, null, null, null, null);
+            if (jsonCur.getCount() > 1) {
+                dbHelper.delete(tableNameCollectedData, "fk_" + tableNameCollectedData + "_invoice=?", new String[]{String.valueOf(fk_invoice)});
+            } else if (jsonCur.getCount() == 1) {
+                jsonCur.moveToFirst();
+                id = jsonCur.getInt(jsonCur.getColumnIndex("id"));
+            }
+            jsonCur.close();
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("fk_" + tableNameCollectedData + "_invoice", fk_invoice);
+            contentValues.put("jsonData", json);
+
+            if (google_id != null) {
+                contentValues.put("google_id", google_id);
+            }
+            if (invoiceData.google_id != null)
+                contentValues.put("fk_collectedData_invoice_google_id", invoiceData.google_id);
+
+            if (id != null)
+                dbHelper.update(tableNameCollectedData, contentValues, "id=?", new String[]{id.toString()});
+            else
+                dbHelper.insert(tableNameCollectedData, null, contentValues);
         }
-        else if(jsonCur.getCount() == 1)
-        {
-            jsonCur.moveToFirst();
-            id = jsonCur.getInt(jsonCur.getColumnIndex("id"));
-        }
-        jsonCur.close();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("fk_"+tableJsonData+"_invoice", fk_invoice);
-        contentValues.put("jsonData", json);
-        if(id != null)
-            dbHelper.update(tableJsonData, contentValues, "id=?", new String[]{id.toString()});
-        else
-            dbHelper.insert(tableJsonData, null, contentValues);
 
 
         
@@ -472,15 +651,20 @@ public class Invoice {
                     this.invoices.add(invoiceData);
                     this.lastIDCollection= this.invoices.size()-1;
 
-                    //MainActivity.invoiceListAdapter.notifyItemInserted(this.lastIDCollection);
+                    //MainActivity.placeChooserAdapter.notifyItemInserted(this.lastIDCollection);
                     */
                 }
                 return "exist";
             }
+            cur.close();
         }
         addInvoiceDataLocal(position, invoiceData);
-        //if(On_line && user.google_id != null)
-        //   addInvoiceDataServer(invoiceData);
+        Log.d(LOG_TAG, this.lastIDCollection+"11 latst id collection");
+        Log.d(LOG_TAG, "00 invoices size  "+invoice.invoices.size());
+        if(On_line && user.google_id != null)
+           addInvoiceDataServer(invoiceData);
+
+        Log.d(LOG_TAG, " 01 invoices size  "+invoice.invoices.size());
         /*
         Map<String, Object> fStore = new HashMap<>();
         ContentValues data = new ContentValues();
@@ -526,15 +710,15 @@ public class Invoice {
         id = dbHelper.insert(tableNameInvoice, null, data);
         if(id>-1)
         {
-            if(On_line && user.google_id != null && invoiceData.google_id == null)
+            if(On_line && user.stores_from_fns_google_id != null && invoiceData.stores_from_fns_google_id == null)
             {
-                fStore.put("user_google_id", user.google_id);
+                fStore.put("user_google_id", user.stores_from_fns_google_id);
                 //пераое сохранение данных
                 DocumentReference addedDocRef =  mFirestore.collection(tableNameInvoice).document();
                 addedDocRef.set(fStore);
-                invoiceData.google_id = addedDocRef.getId();
+                invoiceData.stores_from_fns_google_id = addedDocRef.getId();
                 ContentValues val = new ContentValues();
-                val.put("google_id", invoiceData.google_id);
+                val.put("stores_from_fns_google_id", invoiceData.stores_from_fns_google_id);
                 dbHelper.update(tableNameInvoice, val, "id=?", new String[]{String.valueOf(id)});
             }
 
@@ -585,10 +769,11 @@ public class Invoice {
         data.put("date_day", invoiceData.date_day);
         data.put("fullPrice", invoiceData.getFullPrice());
 
-        if(invoiceData.getDate_add() != null)
-            data.put("date_add", invoiceData.getDate_add());
-        else
-            data.put("date_add", new Date().getTime());
+        if(invoiceData.getDate_add() == null)
+            invoiceData.setDate_add(new Date().getTime());
+
+        data.put("date_add", invoiceData.getDate_add());
+
 
         if(invoiceData.server_status!= null) {
             data.put("server_status", invoiceData.server_status);
@@ -608,20 +793,20 @@ public class Invoice {
             data.put("longitudeAdd", invoiceData.longitudeAdd);
             data.put("latitudeAdd", invoiceData.latitudeAdd);
         }
-        if(checkFilter("fk_invoice_accountinglist", null)) {
-            data.put("fk_invoice_accountinglist", filterParam.get("fk_invoice_accountinglist")[0]);
-        }
-        if(invoiceData.getFk_invoice_accountinglist()!=null) {
-            data.put("fk_invoice_accountinglist", invoiceData.getFk_invoice_accountinglist().toString());
-        }
+        
         if(invoiceData.get_order()!= null)
         {
             data.put("_order", invoiceData.get_order());
         }
         long id = dbHelper.insert(tableNameInvoice, null, data);
-        if(id>-1)
+        Log.d(LOG_TAG, "Check inserted record id: " + id);
+        if(id>0)
         {
+            Log.d(LOG_TAG, "1Inserted record id: " + id);
             invoiceData.setId((int) id);
+
+            insertNewAccountingList(invoiceData);
+
             if(position != null) {
                 this.invoices.add(position, invoiceData);
                 this.lastIDCollection = position;
@@ -629,12 +814,10 @@ public class Invoice {
             else
             {
                 invoiceData.setId((int) id);
-                this.invoices.add(invoiceData);
+                boolean i = this.invoices.add(invoiceData);
                 this.updateInvoice(invoiceData);
-                this.lastIDCollection =   this.invoices.size()-1;
+                this.lastIDCollection =   (int)id;
             }
-
-            Log.d(LOG_TAG, "Inserted record id: " + id);
 
         }
         else
@@ -642,10 +825,28 @@ public class Invoice {
             Log.d(LOG_TAG, "Inserted ERROR ");
         }
 
+
+    }
+
+    public void insertNewAccountingList(InvoiceData invoiceData)
+    {
+        if(invoiceData.getFk_invoice_accountinglist() !=null && invoiceData.getFk_invoice_accountinglist().size()>0) {
+            long count = dbHelper.delete(tableNameAccountinglist__invoice_links, "fk_invoice=?", new String[]{invoiceData.getId().toString()});
+            Log.d(LOG_TAG, "deleted links from "+tableNameAccountinglist__invoice_links+" count = " + count);
+            for(Integer accId : invoiceData.getFk_invoice_accountinglist()) {
+                ContentValues accountinglist_data = new ContentValues();
+                accountinglist_data.put("fk_accountinglist", accId);
+                accountinglist_data.put("fk_invoice", invoiceData.getId());
+                count = dbHelper.insert(tableNameAccountinglist__invoice_links, null, accountinglist_data);
+                Log.d(LOG_TAG, "inserted links to "+tableNameAccountinglist__invoice_links+" count = " + count);
+            }
+        }
     }
 
     public void  addInvoiceDataServer(InvoiceData invoiceData)
     {
+
+        Log.d(LOG_TAG, "001 invoices size  "+invoice.invoices.size());
         Long dateInvoice = Long.parseLong(invoiceData.getDateInvoice(1));
         if(dateInvoice == 0)
         {
@@ -653,6 +854,16 @@ public class Invoice {
         }
 
         Map<String, Object> fStore = new HashMap<>();
+        /*
+        if(invoiceData.getId() != null) {
+            Cursor cur_data = dbHelper.query(tableNameCollectedData, null, "fk_collectedData_invoice=?", new String[]{invoiceData.getId().toString()}, null, null, null, null);
+            if (cur_data.moveToFirst()) {
+                invoiceData.jsonData = cur_data.getString(cur_data.getColumnIndex("jsonData"));
+                fStore.put("jsonData", invoiceData.jsonData);
+            }
+            cur_data.close();
+        }
+        */
 
         fStore.put("FP", invoiceData.FP);
         fStore.put("FD", invoiceData.FD);
@@ -670,12 +881,12 @@ public class Invoice {
         fStore.put("date_add", invoiceData.getDate_add());
 
 
-        if(invoiceData.store.google_id != null)
-            fStore.put("fk_invoice_stores_google_id", invoiceData.store.google_id);
+        /*if(invoiceData.store_from_fns.google_id != null)
+            fStore.put("fk_invoice_stores_from_fns_google_id", invoiceData.store_from_fns.google_id);
 
         if(invoiceData.kktRegId.google_id != null)
             fStore.put("fk_invoice_kktRegId_google_id", invoiceData.kktRegId.google_id);
-
+        */
         if(invoiceData.longitudeAdd != null && invoiceData.latitudeAdd != null)
         {
             fStore.put("longitudeAdd", invoiceData.longitudeAdd);
@@ -687,6 +898,8 @@ public class Invoice {
         }
 
         fStore.put("user_google_id", user.google_id);
+        Log.d(LOG_TAG, "002 invoices size  "+invoice.invoices.size());
+
         Task<QuerySnapshot> result = mFirestore.collection(tableNameInvoice).whereEqualTo("FP_FD_FN", invoiceData.FP+"_"+invoiceData.FD+"_"+invoiceData.FN).get(source);
         while(!result.isComplete())
         {
@@ -697,6 +910,7 @@ public class Invoice {
             }
         }
         if(result.isSuccessful()) {
+            Log.d(LOG_TAG, "003 invoices size  "+invoice.invoices.size());
             QuerySnapshot querySnapshot = result.getResult();
             Log.d(LOG_TAG, "\n" + querySnapshot.getMetadata().toString());
             if (!result.getResult().getMetadata().isFromCache()) {
@@ -709,25 +923,30 @@ public class Invoice {
                     //первое сохранение данных
                     fStore.put("FP_FD_FN",invoiceData.FP+"_"+invoiceData.FD+"_"+invoiceData.FN);
                     DocumentReference addedDocRef = mFirestore.collection(tableNameInvoice).document();
-                    addedDocRef.set(fStore);
                     invoiceData.google_id = addedDocRef.getId();
+                    mFirestore.collection(tableNameInvoice).document(invoiceData.google_id).set(fStore);
 
-                    //invoiceData.google_id = mFirebase.child(tableNameInvoice).push().getKey();
+                    //invoiceData.stores_from_fns_google_id = mFirebase.child(tableNameInvoice).push().getKey();
 
-                    //mFirebase.child(tableNameInvoice).child(invoiceData.google_id).setValue(fStore);
+                    //mFirebase.child(tableNameInvoice).child(invoiceData.stores_from_fns_google_id).setValue(fStore);
                 }
                 ContentValues val = new ContentValues();
-                val.put("google_id", invoiceData.google_id);
+
+
+                if(invoiceData.google_id != null)
+                    val.put("google_id", invoiceData.google_id);
                 dbHelper.update(tableNameInvoice, val, "id=?", new String[]{String.valueOf(invoiceData.getId())});
             }
+
+            Log.d(LOG_TAG, "004 invoices size  "+invoice.invoices.size());
         }
     }
-
+/*
     public boolean writeInvoiceDataFromServer(InvoiceData invoiceData)
     {
 
-        if (invoiceData.fk_invoice_stores_google_id != null) {
-            Task<DocumentSnapshot> result_store = mFirestore.collection(tablenameStores).document(invoiceData.fk_invoice_stores_google_id).get(source);
+        if (invoiceData.fk_invoice_stores_from_fns_google_id != null) {
+            Task<DocumentSnapshot> result_store = mFirestore.collection(tableNameStoresFromFns).document(invoiceData.fk_invoice_stores_from_fns_google_id).get(source);
             while (!result_store.isComplete()) {
                 try {
                     Thread.sleep(100);
@@ -736,10 +955,10 @@ public class Invoice {
                 }
             }
             if (result_store.isSuccessful()) {
-                InvoiceData.Store store = result_store.getResult().toObject(InvoiceData.Store.class);
+                InvoiceData.Store_from_fns store = result_store.getResult().toObject(InvoiceData.Store_from_fns.class);
                 if (store != null) {
-                    invoiceData.store = store;
-                    invoiceData.store.google_id = result_store.getResult().getId();
+                    invoiceData.store_from_fns = store;
+                    invoiceData.store_from_fns.stores_from_fns_google_id = result_store.getResult().getId();
                 }
             }
         }
@@ -756,67 +975,67 @@ public class Invoice {
                 InvoiceData.KktRegId kkt = result_kkt.getResult().toObject(InvoiceData.KktRegId.class);
                 if (kkt != null) {
                     invoiceData.kktRegId = kkt;
-                    invoiceData.kktRegId.google_id = result_kkt.getResult().getId();
+                    invoiceData.kktRegId.stores_from_fns_google_id = result_kkt.getResult().getId();
                 }
             }
         }
 
-        if (invoiceData.kktRegId != null && invoiceData.kktRegId.google_id != null) {
+        if (invoiceData.kktRegId != null && invoiceData.kktRegId.stores_from_fns_google_id != null) {
             Cursor cur_kktRegId = dbHelper.query(tableNameKktRegId, null, "kktRegId=?", new String[]{invoiceData.kktRegId.kktRegId.toString()}, null, null, null, null);
             if (cur_kktRegId.moveToFirst()) {
-                invoiceData.kktRegId.fk_kktRegId_stores = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
+                invoiceData.kktRegId.fk_kktRegId = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId"));
                 invoiceData.kktRegId.id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
 
                 cur_kktRegId.close();
 
-                Cursor cur_store = dbHelper.query(tablenameStores, null, "id=?", new String[]{invoiceData.kktRegId.fk_kktRegId_stores.toString()}, null, null, null, null);
+                Cursor cur_store = dbHelper.query(tableNameStoresFromFns, null, "id=?", new String[]{invoiceData.kktRegId.fk_kktRegId.toString()}, null, null, null, null);
                 if (cur_store.moveToFirst()) {
-                    invoiceData.store.id = cur_store.getInt(cur_store.getColumnIndex("id"));
+                    invoiceData.store_from_fns.id = cur_store.getInt(cur_store.getColumnIndex("id"));
                     int _status = cur_store.getInt(cur_store.getColumnIndex("_status"));
                     cur_store.close();
-                    if (invoiceData.store._status != _status && invoiceData.store._status == 1) {
-                        invoiceData.store.update = true;
-                        saveStoreDataLocal(invoiceData.store);
+                    if (invoiceData.store_from_fns._status != _status && invoiceData.store_from_fns._status == 1) {
+                        invoiceData.store_from_fns.update = true;
+                        saveStoreDataLocal(invoiceData.store_from_fns, store);
                     }
                     //сравнить данные у пользователя и на сервере. обновить если статус магазина на сервера "подтвержден администарцией"
                     //магазин может быть пустой так как добавлена только геометка
-                } else if (invoiceData.store != null) {
+                } else if (invoiceData.store_from_fns != null) {
                     //сохраняем магазин в локальной базе
-                    invoiceData.store.update = false;
-                    saveStoreDataLocal(invoiceData.store);
+                    invoiceData.store_from_fns.update = false;
+                    saveStoreDataLocal(invoiceData.store_from_fns, store);
                 }
-            } else if (invoiceData.store != null) {
-                invoiceData.store.update = false;
-                saveStoreDataLocal(invoiceData.store);
+            } else if (invoiceData.store_from_fns != null) {
+                invoiceData.store_from_fns.update = false;
+                saveStoreDataLocal(invoiceData.store_from_fns, store);
                 try {
                     saveKktRegId(invoiceData.kktRegId);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        } else if (invoiceData.store != null && invoiceData.store.google_id != null) {
-            String selection = "google_id=?";
-            String[] args = new String[]{invoiceData.store.google_id.toString()};
-            if (invoiceData.store.place_id != null) {
+        } else if (invoiceData.store_from_fns != null && invoiceData.store_from_fns.stores_from_fns_google_id != null) {
+            String selection = "stores_from_fns_google_id=?";
+            String[] args = new String[]{invoiceData.store_from_fns.stores_from_fns_google_id};
+            if (invoiceData.store_from_fns.place_id != null) {
                 selection += "OR place_id=?";
-                args = new String[]{invoiceData.store.google_id.toString(), invoiceData.store.place_id};
+                args = new String[]{invoiceData.store_from_fns.stores_from_fns_google_id, invoiceData.store_from_fns.place_id};
             }
-            Cursor cur_store = dbHelper.query(tablenameStores, null, selection, args, null, null, null, null);
+            Cursor cur_store = dbHelper.query(tableNameStoresFromFns, null, selection, args, null, null, null, null);
             if (cur_store.moveToFirst()) {
-                invoiceData.store.id = cur_store.getInt(cur_store.getColumnIndex("id"));
+                invoiceData.store_from_fns.id = cur_store.getInt(cur_store.getColumnIndex("id"));
                 int _status = cur_store.getInt(cur_store.getColumnIndex("_status"));
                 cur_store.close();
-                if (invoiceData.store._status != _status && invoiceData.store._status == 1) {
-                    invoiceData.store.update = true;
-                    saveStoreDataLocal(invoiceData.store);
+                if (invoiceData.store_from_fns._status != _status && invoiceData.store_from_fns._status == 1) {
+                    invoiceData.store_from_fns.update = true;
+                    saveStoreDataLocal(invoiceData.store_from_fns, store);
                 }
             } else {
-                invoiceData.store.update = false;
-                saveStoreDataLocal(invoiceData.store);
+                invoiceData.store_from_fns.update = false;
+                saveStoreDataLocal(invoiceData.store_from_fns, store);
             }
         }
         //загрузить покупки с севера
-        Task<QuerySnapshot> result_purchases = mFirestore.collection(tableNamePurchases).whereEqualTo("fk_purchases_invoice_google_id", invoiceData.google_id).get(source);
+        Task<QuerySnapshot> result_purchases = mFirestore.collection(tableNamePurchases).whereEqualTo("fk_purchases_invoice_google_id", invoiceData.stores_from_fns_google_id).get(source);
         while (!result_purchases.isComplete()) {
             try {
                 Thread.sleep(100);
@@ -825,6 +1044,7 @@ public class Invoice {
             }
         }
         if (result_purchases.isSuccessful()) {
+            Log.d(LOG_TAG, "find purchases "+result_purchases.getResult().isEmpty());
             List<DocumentSnapshot> documents_purchases = result_purchases.getResult().getDocuments();
             for (DocumentSnapshot documentSnapshot : documents_purchases) {
                 PurchasesListData purchasesListData = documentSnapshot.toObject(PurchasesListData.class);
@@ -833,7 +1053,7 @@ public class Invoice {
                     //проеряем наличем продукта в локальной базе и загружаем его
                     if (purchasesListData.fk_purchases_products_google_id != null) {
 
-                        Task<DocumentSnapshot> result_product = mFirestore.collection("products").document(purchasesListData.fk_purchases_products_google_id).get(source);
+                        Task<DocumentSnapshot> result_product = mFirestore.collection(tableNameProducts).document(purchasesListData.fk_purchases_products_google_id).get(source);
                         while (!result_product.isComplete()) {
                             try {
                                 Thread.sleep(100);
@@ -842,20 +1062,22 @@ public class Invoice {
                             }
                         }
                         if (result_product.isSuccessful()) {
+                            Log.d(LOG_TAG, "product from server exist " + result_product.getResult().exists() +"\n document id "+ purchasesListData.fk_purchases_products_google_id +"\n"
+                                    + result_product.getException());
                             PurchasesListData.Product product = result_product.getResult().toObject(PurchasesListData.Product.class);
                             if(product != null) {
                                 String fk_purchases_products_google_id;
-                                Cursor cur_products = dbHelper.query("Products", null, "nameFromBill=?",
+                                Cursor cur_products = dbHelper.query(tableNameProducts, null, "nameFromBill=?",
                                         new String[]{product.nameFromBill}, null, null, null, null);
                                 if (cur_products.moveToFirst()) {
                                     fk_purchases_products = cur_products.getInt(cur_products.getColumnIndex("id"));
-                                    fk_purchases_products_google_id = cur_products.getString(cur_products.getColumnIndex("google_id"));
+                                    fk_purchases_products_google_id = cur_products.getString(cur_products.getColumnIndex("stores_from_fns_google_id"));
                                     cur_products.close();
                                 } else {
                                     ContentValues values = new ContentValues();
                                     values.put("nameFromBill", product.nameFromBill);
-                                    values.put("google_id", result_product.getResult().getId());
-                                    fk_purchases_products = ((int) dbHelper.insert("Products", null, values));
+                                    values.put("stores_from_fns_google_id", result_product.getResult().getId());
+                                    fk_purchases_products = ((int) dbHelper.insert(tableNameProducts, null, values));
                                 }
                             }
                         }
@@ -865,10 +1087,10 @@ public class Invoice {
                         try {
                             //add in table purchases
 
-                            values.put("fk_purchases_stores", invoiceData.store.id);
-                            values.put("fk_purchases_stores_google_id", invoiceData.store.google_id);
+                            values.put("fk_purchases_stores", invoiceData.store_from_fns.id);
+                            values.put("fk_purchases_stores_google_id", invoiceData.store_from_fns.stores_from_fns_google_id);
                             values.put("fk_purchases_products_google_id", purchasesListData.fk_purchases_products_google_id);
-                            values.put("fk_purchases_invoice_google_id", invoiceData.google_id);
+                            values.put("fk_purchases_invoice_google_id", invoiceData.stores_from_fns_google_id);
                             values.put("fk_purchases_products", fk_purchases_products);
                             values.put("fk_purchases_invoice", invoiceData.getId());
                             if (checkFilter("fk_invoice_accountinglist", null)) {
@@ -892,10 +1114,11 @@ public class Invoice {
             }
         }
 
-        if (invoiceData.store != null && invoiceData.store.google_id != null && invoiceData.kktRegId != null && invoiceData.kktRegId.google_id != null
+        Log.d(LOG_TAG, "find purchases "+result_purchases.getResult().isEmpty());
+        if (invoiceData.store_from_fns != null && invoiceData.store_from_fns.stores_from_fns_google_id != null && invoiceData.kktRegId != null && invoiceData.kktRegId.stores_from_fns_google_id != null
                 && !result_purchases.getResult().isEmpty()) {
             invoiceData.set_status(1);
-            updateInvoice(invoiceData);
+            updateInvoiceLocal(invoiceData);
             return true;
         } else
             return false;
@@ -904,8 +1127,279 @@ public class Invoice {
     public boolean writeInvoiceDataToServer(InvoiceData invoiceData)
     {
 
+        //поиск чека на сервере
+        String store_to_delete_googleId = null;
+        WriteBatch batch = mFirestore.batch();
+
+        Task<QuerySnapshot> task_invoice = mFirestore.collection(tableNameInvoice).whereEqualTo("FP_FD_FN", invoiceData.FP + "_" + invoiceData.FD + "_" + invoiceData.FN).get(Source.SERVER);
+        while (!task_invoice.isComplete())
+        {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if(task_invoice.isSuccessful())
+        {
+            //если запрос к серверу был успешным идем дальше. проверяем нашелся ли чек на сервере.
+            if(!task_invoice.getResult().isEmpty())
+            {
+                List<DocumentSnapshot> documents = task_invoice.getResult().getDocuments();
+                InvoiceData invoiceData_FromServer = documents.get(0).toObject(InvoiceData.class);
+                if(invoiceData_FromServer != null)
+                {
+                    invoiceData.stores_from_fns_google_id = documents.get(0).getId();
+                    if(invoiceData_FromServer.fk_invoice_kktRegId_google_id !=null)
+                    {
+                        //загружаем с сервера данные по кассе
+                        invoiceData.fk_invoice_kktRegId_google_id = invoiceData_FromServer.fk_invoice_kktRegId_google_id;
+                        Task<DocumentSnapshot> task_kktRegId = mFirestore.collection(tableNameKktRegId).document(invoiceData_FromServer.fk_invoice_kktRegId_google_id).get(Source.SERVER);
+                        while (!task_kktRegId.isComplete())
+                        {
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        if(task_kktRegId.isSuccessful())
+                        {
+                            if(task_kktRegId.getResult().exists())
+                            {
+                                InvoiceData.KktRegId kktRegId_server = task_kktRegId.getResult().toObject(InvoiceData.KktRegId.class);
+                                if(kktRegId_server != null)
+                                {
+                                    //проверяем что рег номер кассы на сервере и локально совпадают - иначе ОШИБКА В ДАННЫХ!!!
+                                    if(kktRegId_server.kktRegId.equals(invoiceData.kktRegId.kktRegId))
+                                    {
+                                        //прописываем ссылки на найденные документы на сервере
+                                        invoiceData.kktRegId.stores_from_fns_google_id = task_kktRegId.getResult().getId();
+                                        kktRegId_server.stores_from_fns_google_id = task_kktRegId.getResult().getId();
+
+
+                                        //сохраняем самую раннюю дату добавления кассы
+                                        if(invoiceData.kktRegId.date_add > kktRegId_server.date_add)
+                                            invoiceData.kktRegId.date_add = kktRegId_server.date_add;
+                                        else
+                                            kktRegId_server.date_add = invoiceData.kktRegId.date_add;
+
+                                        //проверяем статус кассы
+                                        if(invoiceData.kktRegId._status == 1 && kktRegId_server._status!= 1)
+                                            kktRegId_server._status = 1;
+                                        else if (invoiceData.kktRegId._status != 1 && kktRegId_server._status == 1)
+                                            invoiceData.kktRegId._status = 1;
+
+                                        //ссылка на магазин в чеке на сервере отличается от ссылки в кассе
+                                        //это перестаховка - такого быть не может - это ошибка в данных
+                                        if(invoiceData_FromServer.fk_invoice_stores_from_fns_google_id != null && !invoiceData_FromServer.fk_invoice_stores_from_fns_google_id.equals(kktRegId_server.fk_kktRegId_google_id))
+                                        {
+                                            //ссылка на магазин в чеке на сервере отличается от ссылки в кассе
+                                            //ссылку в чеке заменить на ссылку в кассе
+                                            kktRegId_server.fk_kktRegId_google_id = invoiceData_FromServer.fk_invoice_stores_from_fns_google_id;
+                                            invoiceData.kktRegId.fk_kktRegId_google_id = kktRegId_server.fk_kktRegId_google_id;
+                                        }
+
+                                        invoiceData.kktRegId.fk_kktRegId_google_id = kktRegId_server.fk_kktRegId_google_id;
+
+
+                                        //загружаем данные по магазину
+                                        Task<DocumentSnapshot> task_store = mFirestore.collection(tableNameStoresFromFns).document(kktRegId_server.fk_kktRegId_google_id).get(Source.SERVER);
+                                        while (!task_store.isComplete())
+                                        {
+                                            try {
+                                                Thread.sleep(100);
+                                            } catch (InterruptedException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                        if(task_store.isSuccessful())
+                                        {
+                                            if(task_store.getResult().exists())
+                                            {
+                                                InvoiceData.Store_from_fns store_server = task_store.getResult().toObject(InvoiceData.Store_from_fns.class);
+                                                if(store_server != null)
+                                                {
+                                                    //статус локального магазина не важен если на сервере статус 1
+                                                    //данные магазина на сервере главнее - обновляем локальные по данным на сервере
+                                                    if(store_server._status==1)
+                                                    {
+                                                        if(store_server.date_add > invoiceData.store_from_fns.date_add)
+                                                            store_server.date_add = invoiceData.store_from_fns.date_add;
+                                                        else
+                                                            invoiceData.store_from_fns.date_add = store_server.date_add;
+                                                        store_server.id = invoiceData.store_from_fns.id;
+
+                                                        store_server.stores_from_fns_google_id = task_store.getResult().getId();
+                                                        invoiceData.store_from_fns = store_server;
+                                                    }
+                                                    else
+                                                    {
+                                                        //если на сервере статус не 1 а локально магазин отмечен карте
+                                                        //пробуем найти наиболее подходящий на сервере магазин
+                                                        //поиск по place_id
+                                                        if(invoiceData.store_from_fns.place_id!= null && invoiceData.store_from_fns.place_id.length()>0) {
+                                                            Task<QuerySnapshot> task_store_finde = mFirestore.collection(tableNameStoresFromFns)
+                                                                    .whereEqualTo("place_id", invoiceData.store_from_fns.place_id)
+                                                                    //.whereEqualTo("inn", invoiceData.store_from_fns.inn)
+                                                                    .get(Source.SERVER);
+
+                                                            while (!task_store_finde.isComplete())
+                                                            {
+                                                                try {
+                                                                    Thread.sleep(100);
+                                                                } catch (InterruptedException e) {
+                                                                    e.printStackTrace();
+                                                                }
+                                                            }
+                                                            if(task_store_finde.isSuccessful())
+                                                            {
+                                                                if(!task_store_finde.getResult().isEmpty())
+                                                                {
+                                                                    List<DocumentSnapshot> documents_stores = task_store_finde.getResult().getDocuments();
+                                                                    InvoiceData.Store_from_fns doc_store_finde = documents_stores.get(0).toObject(InvoiceData.Store_from_fns.class);
+                                                                    if(doc_store_finde != null)
+                                                                    {
+                                                                        //найден магазин по place-ID необходимо проверить что inn  в обоих магазинах одинаковый
+                                                                        //могло случиться такое, что другой пользователь или текущий ошибочно указал это place_id для другого магазина
+                                                                        //либо был указан place_id  торгового центра а inn  у точек разный
+                                                                        //если inn не совпадают - надо загружать на сервер локальные данные и удалять привязанную версию магазина
+
+                                                                        if(invoiceData.store_from_fns.inn != null && invoiceData.store_from_fns.inn>0 && doc_store_finde.inn == invoiceData.store_from_fns.inn)
+                                                                        {
+                                                                            //inn  одинаковые - необходимо обновить локальные данные по найденному магазину и заменить ссылки на магазин
+
+                                                                            if(doc_store_finde.date_add > invoiceData.store_from_fns.date_add)
+                                                                                doc_store_finde.date_add = invoiceData.store_from_fns.date_add;
+                                                                            else
+                                                                                invoiceData.store_from_fns.date_add = doc_store_finde.date_add;
+                                                                            doc_store_finde.id = invoiceData.store_from_fns.id;
+
+                                                                            doc_store_finde.stores_from_fns_google_id = documents_stores.get(0).getId();
+                                                                            invoiceData.store_from_fns = doc_store_finde;
+
+                                                                            //обновляем ссылки на магазин
+                                                                            invoiceData.fk_invoice_stores_from_fns_google_id = doc_store_finde.stores_from_fns_google_id;
+                                                                            invoiceData.kktRegId.fk_kktRegId_google_id = doc_store_finde.stores_from_fns_google_id;
+                                                                            kktRegId_server.fk_kktRegId_google_id = doc_store_finde.stores_from_fns_google_id;
+
+                                                                            //удаляем старый магазин
+                                                                            //чтобы удалить мы должны обновить покупки, сам чек и кассу - удалять магазин будем позже.
+                                                                            store_to_delete_googleId = store_server.stores_from_fns_google_id;
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            //загружаем локальный вариант на сервер
+                                                                            saveStoreDataServer(invoiceData.store_from_fns);
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    //загружаем локальный вариант на сервер
+                                                                    saveStoreDataServer(invoiceData.store_from_fns);
+                                                                }
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            //загружаем локальный вариант на сервер
+                                                            saveStoreDataServer(invoiceData.store_from_fns);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            //если не найден - ошибка в данных!!!!!!
+
+                                        }
+
+                                        //обновляем кассу на сервере
+                                        try {
+                                            saveKktRegIdServer(kktRegId_server);
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //если полученная по ссылке касса имеет другой рег номер ищем на сервере по рег номеру, и обновляем ссылки
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //если на сервере нет ссылки на кассу пробуем найти кассу, если она есть локально, на сервере
+                    else
+                    {
+                        if(invoiceData.kktRegId != null && invoiceData.kktRegId.kktRegId != null)
+                        {
+                            Task<QuerySnapshot> result_kkt = mFirestore.collection(tableNameKktRegId).whereEqualTo("kktRegId", invoiceData.kktRegId.kktRegId).get(source);
+                            while (!result_kkt.isComplete()) {
+                                try {
+                                    Thread.sleep(100);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            if (result_kkt.isSuccessful()) {
+
+                                List<DocumentSnapshot> kkt = result_kkt.getResult().getDocuments();
+                                if(kkt.size()==1) {
+                                    //касса найдена - необходимо привязать кассу к текущему чеку
+                                    InvoiceData.KktRegId kktRegId_from_server = kkt.get(0).toObject(InvoiceData.KktRegId.class);
+                                    if(kktRegId_from_server != null) {
+                                        kktRegId_from_server.stores_from_fns_google_id = kkt.get(0).getId();
+
+                                        //если ссылка локальная на сервер пустая либо отличается от ссылки на найденную кассу
+                                        if (invoiceData.kktRegId.stores_from_fns_google_id == null ||  !invoiceData.kktRegId.stores_from_fns_google_id.equals(kktRegId_from_server.stores_from_fns_google_id)) {
+                                            //ссылка локальная устарела,  нужно обновить локальную ссылку
+                                            //обновляем локальные данные
+                                            invoiceData.kktRegId.stores_from_fns_google_id = kktRegId_from_server.stores_from_fns_google_id;
+                                            invoiceData.fk_invoice_kktRegId_google_id = kktRegId_from_server.stores_from_fns_google_id;
+                                            //обновляем локальную копию кассы
+                                            try {
+                                                saveKktRegIdLocal(invoiceData.kktRegId);
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                        //ссылка локальная существует на сервере и соответствует локальной версии
+                                        //нигде обновлять не надо
+                                    }
+                                }
+                                //если кассовый аппарат не найден на сервере
+                                else if(kkt.size() == 0)
+                                {
+                                    //необходимо добавить магазин на сервер, предварительно проверив что магазина с placeid (если не null) не усуществует на сервере
+                                    if (invoiceData.store_from_fns.place_id!= null)
+                                    {}
+                                    invoiceData.kktRegId.stores_from_fns_google_id = null;
+                                    try {
+                                        saveKktRegIdServer(invoiceData.kktRegId);
+                                        if(invoiceData.kktRegId.stores_from_fns_google_id != null)
+                                        {
+                                            invoiceData.fk_invoice_kktRegId_google_id = invoiceData.kktRegId.stores_from_fns_google_id;
+                                        }
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //если ссылка на магазин существует, а ссылка на кассу нет
+                    //если есть ссылка на кассу ранее мы обработали ссылку на магазин
+                    if(invoiceData_FromServer.fk_invoice_stores_from_fns_google_id != null && invoiceData_FromServer.fk_invoice_kktRegId_google_id == null) {
+                        invoiceData.fk_invoice_stores_from_fns_google_id = invoiceData_FromServer.fk_invoice_stores_from_fns_google_id;
+
+
+                    }
+                }
+            }
+        }
+
         boolean loadKktToServer = false;
-        boolean loadKktStoreServer = false;
+        boolean loadStoreToServer = false;
                 //проверяем есть ли на сервере касса если она есть локально
         if (invoiceData.getfk_invoice_kktRegId() != null) {
             //если ссылка на кассу есть а данные еще не загружены - получаем из локальной базы данные
@@ -914,9 +1408,9 @@ public class Invoice {
                 Cursor cur_kktRegId = dbHelper.query(tableNameKktRegId, null, "id=?", new String[]{invoiceData.getfk_invoice_kktRegId().toString()}, null, null, null, null);
                 if (cur_kktRegId.moveToFirst()) {
                     invoiceData.kktRegId.kktRegId = (long) cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("kktRegId"));
-                    invoiceData.kktRegId.google_id = cur_kktRegId.getString(cur_kktRegId.getColumnIndex("google_id"));
+                    invoiceData.kktRegId.stores_from_fns_google_id = cur_kktRegId.getString(cur_kktRegId.getColumnIndex("stores_from_fns_google_id"));
                     invoiceData.kktRegId._status = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("_status"));
-                    invoiceData.kktRegId.fk_kktRegId_stores = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
+                    invoiceData.kktRegId.fk_kktRegId = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId"));
                     invoiceData.kktRegId.id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
                 }
                 cur_kktRegId.close();
@@ -939,12 +1433,12 @@ public class Invoice {
                     if(kkt.size()==1) {
                         kktRegId = kkt.get(0).toObject(InvoiceData.KktRegId.class);
                         if(kktRegId != null) {
-                            kktRegId.google_id = kkt.get(0).getId();
+                            kktRegId.stores_from_fns_google_id = kkt.get(0).getId();
 
-                            if (invoiceData.kktRegId.google_id == null ||  !invoiceData.kktRegId.google_id.equals(kktRegId.google_id)) {
+                            if (invoiceData.kktRegId.stores_from_fns_google_id == null ||  !invoiceData.kktRegId.stores_from_fns_google_id.equals(kktRegId.stores_from_fns_google_id)) {
                                 //ссылка локальная устарела,  нужно обновить локальную ссылку
                                 //обновляем локальные данные
-                                invoiceData.kktRegId.google_id = kktRegId.google_id;
+                                invoiceData.kktRegId.stores_from_fns_google_id = kktRegId.stores_from_fns_google_id;
                                 try {
                                     saveKktRegIdLocal(invoiceData.kktRegId);
                                 } catch (Exception e) {
@@ -958,7 +1452,7 @@ public class Invoice {
                     //если кассовый аппарат не найден на сервере
                     else if(kkt.size() == 0)
                     {
-                        invoiceData.kktRegId.google_id = null;
+                        invoiceData.kktRegId.stores_from_fns_google_id = null;
                         loadKktToServer = true;
                     }
                 }
@@ -972,12 +1466,12 @@ public class Invoice {
                 //иначе - версию на сервере
                 if (kktRegId._status != null && kktRegId._status == 1 && invoiceData.kktRegId._status != 1) {
                     //касса на сервере подтверждена, значит есть подтвержденный магазин на сервере
-                    //необходимо сверить ссылки на магазины, но на сервере ссылка - google_id  магазин сейчас хранится только локально.
+                    //необходимо сверить ссылки на магазины, но на сервере ссылка - stores_from_fns_google_id  магазин сейчас хранится только локально.
                     //если касса не подтверждена локально то и магазин тоже - его локально можно смело затирать данными с сервера
                     //нужно загрузить данные по магазину и обновить информацию локально по кассе и магазину
-                    if(kktRegId.fk_kktRegId_stores_google_id!=null && !invoiceData.kktRegId.fk_kktRegId_stores_google_id.equals(kktRegId.fk_kktRegId_stores_google_id))
+                    if(kktRegId.fk_kktRegId_google_id !=null && !kktRegId.fk_kktRegId_google_id.equals(invoiceData.kktRegId.fk_kktRegId_google_id))
                     {
-                        Task<DocumentSnapshot> result_store = mFirestore.collection(tablenameStores).document(kktRegId.fk_kktRegId_stores_google_id).get(source);
+                        Task<DocumentSnapshot> result_store = mFirestore.collection(tableNameStoresFromFns).document(kktRegId.fk_kktRegId_google_id).get(source);
                         while (!result_store.isComplete()) {
                             try {
                                 Thread.sleep(100);
@@ -987,18 +1481,18 @@ public class Invoice {
                         }
                         if(result_store.isSuccessful())
                         {
-                            InvoiceData.Store store = result_store.getResult().toObject(InvoiceData.Store.class);
+                            InvoiceData.Store_from_fns store = result_store.getResult().toObject(InvoiceData.Store_from_fns.class);
 
                             if(store != null)
                             {
-                                store.google_id = result_store.getResult().getId();
+                                store.stores_from_fns_google_id = result_store.getResult().getId();
                                 //если магазин найден - обновляем информацию локально по кассе и по магазину
-                                store.id = invoiceData.kktRegId.fk_kktRegId_stores;
+                                store.id = invoiceData.kktRegId.fk_kktRegId;
                                 kktRegId.id = invoiceData.kktRegId.id;
-                                kktRegId.fk_kktRegId_stores = store.id;
+                                kktRegId.fk_kktRegId = store.id;
                                 invoiceData.kktRegId = kktRegId;
-                                invoiceData.store = store;
-                                saveStoreDataLocal(invoiceData.store);
+                                invoiceData.store_from_fns = store;
+                                saveStoreDataLocal(invoiceData.store_from_fns, store);
                                 try {
                                     saveKktRegIdLocal(invoiceData.kktRegId);
                                 } catch (Exception e) {
@@ -1019,7 +1513,8 @@ public class Invoice {
 
                 //загружаем данные на сервер
                 if(invoiceData.kktRegId!= null)
-                {invoiceData.kktRegId.google_id = null;
+                {
+                    invoiceData.kktRegId.stores_from_fns_google_id = null;
                     loadKktToServer = true;
                     /*
                     try {
@@ -1027,28 +1522,28 @@ public class Invoice {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }*/
-                }
+  /*              }
             }
         }
         //если  есть ссылка на магазин
-        if(invoiceData.getfk_invoice_stores()!= null)
+        if(invoiceData.getfk_invoice_stores_from_fns()!= null)
         {
-            if(invoiceData.store == null)
+            if(invoiceData.store_from_fns == null)
             {
                 Map<String, String> get = new HashMap<>();
-                get.put("id", invoiceData.getfk_invoice_stores().toString());
-                List<InvoiceData.Store> stores = loadDataFromStore(get);
+                get.put("id", invoiceData.getfk_invoice_stores_from_fns().toString());
+                List<InvoiceData.Store_from_fns> stores = loadDataFromStore_from_fns(get);
                 if(stores.size() == 1)
                 {
                     //получили магазин из локальной базы
-                    invoiceData.store = stores.get(0);
+                    invoiceData.store_from_fns = stores.get(0);
                 }
 
             }
 
-            if(invoiceData.store.place_id!=null)
+            if(invoiceData.store_from_fns.place_id!=null)
             {
-                Task<QuerySnapshot> result_store = mFirestore.collection(tablenameStores).whereEqualTo("place_id", invoiceData.store.place_id).get(source);
+                Task<QuerySnapshot> result_store = mFirestore.collection(tableNameStoresFromFns).whereEqualTo("place_id", invoiceData.store_from_fns.place_id).get(source);
                 while (!result_store.isComplete()) {
                     try {
                         Thread.sleep(100);
@@ -1061,35 +1556,36 @@ public class Invoice {
                     List<DocumentSnapshot> stores = result_store.getResult().getDocuments();
                     if(stores.size()==1)
                     {
-                        InvoiceData.Store store = stores.get(0).toObject(InvoiceData.Store.class);
+                        InvoiceData.Store_from_fns store = stores.get(0).toObject(InvoiceData.Store_from_fns.class);
                         //если версия на сервере имеет данные по магазину из ФНС то надо обновлять локальную версию
                         //т.к. если в коде дошли до сюда значит в данном чеке информация из ФНС отсутствует.
                         //до этого пытались найти инфу по
                         if(store.inn != null)
                         {
-                            store.id = invoiceData.store.id;
+                            store.id = invoiceData.store_from_fns.id;
                             store.update = true;
-                            invoiceData.store = store;
-                            saveStoreDataLocal(invoiceData.store);
+                            store.stores_from_fns_google_id = stores.get(0).getId();
+                            invoiceData.store_from_fns = store;
+                            saveStoreDataLocal(invoiceData.store_from_fns, store);
                         }
                     }
                     else
                     {
-                        invoiceData.kktRegId.google_id = null;
-                        loadKktStoreServer = true;
+                        invoiceData.kktRegId.stores_from_fns_google_id = null;
+                        loadStoreToServer = true;
                         //если на сервере такого магазина нет то загружем данные из локальной базы данных
-                        //saveStoreDataServer(invoiceData.store);
+                        //saveStoreDataServer(invoiceData.store_from_fns);
                     }
 
                 }
                 //есть возможность проверить магазин только по метке
-                //если магазина с такой меткой нет на сервере то найти там именно этот локальный магазин невозможно поэтому если метки нет и в локальном магазине нет ссылки google_id
+                //если магазина с такой меткой нет на сервере то найти там именно этот локальный магазин невозможно поэтому если метки нет и в локальном магазине нет ссылки stores_from_fns_google_id
                 //то просто загрузим магазин на сервер и обновим локальные данные
                 //если ссылка есть то проверим наличие магазина на сервере и если его нет то загрузим данные на сервер а если есть то обновим локальные данные
             }
-            else if(invoiceData.store.google_id != null)
+            else if(invoiceData.store_from_fns.stores_from_fns_google_id != null)
             {
-                Task<DocumentSnapshot> result_store = mFirestore.collection(tablenameStores).document(invoiceData.fk_invoice_stores_google_id).get(source);
+                Task<DocumentSnapshot> result_store = mFirestore.collection(tableNameStoresFromFns).document(invoiceData.fk_invoice_stores_from_fns_google_id).get(source);
                 while (!result_store.isComplete()) {
                     try {
                         Thread.sleep(100);
@@ -1098,19 +1594,19 @@ public class Invoice {
                     }
                 }
                 if (result_store.isSuccessful() && result_store.getResult().exists()) {
-                    InvoiceData.Store store = result_store.getResult().toObject(InvoiceData.Store.class);
+                    InvoiceData.Store_from_fns store = result_store.getResult().toObject(InvoiceData.Store_from_fns.class);
                     if (store != null) {
-                        store.google_id = result_store.getResult().getId();
+                        store.stores_from_fns_google_id = result_store.getResult().getId();
                         //если магазин есть на сервере и на сервере статус 1 а локально нет - обновляем локально
-                        if(invoiceData.store._status != store._status && store._status == 1)
+                        if(invoiceData.store_from_fns._status != store._status && store._status == 1)
                         {
-                            store.id = invoiceData.store.id;
-                            saveStoreDataLocal(store);
+                            store.id = invoiceData.store_from_fns.id;
+                            saveStoreDataLocal(store, store);
                         }
-                        else if(invoiceData.store._status == 1)
+                        else if(invoiceData.store_from_fns._status == 1)
                         {
-                            loadKktStoreServer = true;
-                            //saveStoreDataServer(invoiceData.store);
+                            loadStoreToServer = true;
+                            //saveStoreDataServer(invoiceData.store_from_fns);
                         }
                     }
                     else
@@ -1121,21 +1617,21 @@ public class Invoice {
                 {
                     //если магазин по ссылке не найден, ранее он не был найден по place_id
                     //сохраняем данные на сервере.
-                    //saveStoreDataServer(invoiceData.store);
-                    loadKktStoreServer = true;
+                    //saveStoreDataServer(invoiceData.store_from_fns);
+                    loadStoreToServer = true;
                 }
             }
         }
 
-        if(loadKktStoreServer) {
-            invoiceData.store.google_id = null;
-            saveStoreDataServer(invoiceData.store);
+        if(loadStoreToServer) {
+            invoiceData.store_from_fns.stores_from_fns_google_id = null;
+            saveStoreDataServer(invoiceData.store_from_fns);
         }
 
         if(loadKktToServer) {
             try {
-                //invoiceData.kktRegId.google_id = null;
-                invoiceData.kktRegId.fk_kktRegId_stores_google_id = invoiceData.store.google_id;
+                //invoiceData.kktRegId.stores_from_fns_google_id = null;
+                invoiceData.kktRegId.fk_kktRegId_google_id = invoiceData.store_from_fns.stores_from_fns_google_id;
                 saveKktRegIdServer(invoiceData.kktRegId);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1143,7 +1639,9 @@ public class Invoice {
         }
 
 
-
+        //обновляем ссылки на кассу и магазин на сервере
+        invoiceData.fk_invoice_stores_from_fns_google_id = invoiceData.store_from_fns.stores_from_fns_google_id;
+        invoiceData.fk_invoice_kktRegId_google_id = invoiceData.kktRegId.stores_from_fns_google_id;
         //загружаем данные по чеку на сервер
         addInvoiceDataServer(invoiceData);
 
@@ -1170,7 +1668,7 @@ public class Invoice {
                 purchaseLocal.fk_purchases_stores = cur_purchases.getInt(cur_purchases.getColumnIndex("fk_purchases_stores"));
                 purchaseLocal.fk_purchases_products = cur_purchases.getInt(cur_purchases.getColumnIndex("fk_purchases_products"));
 
-                purchaseLocal.google_id = cur_purchases.getString(cur_purchases.getColumnIndex("google_id"));
+                purchaseLocal.stores_from_fns_google_id = cur_purchases.getString(cur_purchases.getColumnIndex("stores_from_fns_google_id"));
                 purchaseLocal.fk_purchases_invoice_google_id = cur_purchases.getString(cur_purchases.getColumnIndex("fk_purchases_invoice_google_id"));
                 purchaseLocal.fk_purchases_products_google_id = cur_purchases.getString(cur_purchases.getColumnIndex("fk_purchases_products_google_id"));
                 purchaseLocal.fk_purchases_stores_google_id = cur_purchases.getString(cur_purchases.getColumnIndex("fk_purchases_stores_google_id"));
@@ -1181,31 +1679,31 @@ public class Invoice {
 
                 //проверяем, что если выше мы загрузили на сервер магазин и кассу и чек, что локально хранится верная инфа, иначе обновляем
                 //проверять после проверки наличия продукта на сервере
-                if(invoiceData.google_id!= null && !invoiceData.google_id.equals(purchaseLocal.fk_purchases_invoice_google_id)
-                        ||  invoiceData.store.google_id!= null && !invoiceData.store.google_id.equals(purchaseLocal.fk_purchases_stores_google_id))
+                if(invoiceData.stores_from_fns_google_id!= null && !invoiceData.stores_from_fns_google_id.equals(purchaseLocal.fk_purchases_invoice_google_id)
+                        ||  invoiceData.store_from_fns.stores_from_fns_google_id!= null && !invoiceData.store_from_fns.stores_from_fns_google_id.equals(purchaseLocal.fk_purchases_stores_google_id))
                 {
                     //обновляем запись в таблице локально
                     //обновляем ссылку на чек и магазин в товаре из чека
-                    purchaseLocal.fk_purchases_stores_google_id = invoiceData.store.google_id;
-                    purchaseLocal.fk_purchases_invoice_google_id = invoiceData.google_id;
+                    purchaseLocal.fk_purchases_stores_google_id = invoiceData.store_from_fns.stores_from_fns_google_id;
+                    purchaseLocal.fk_purchases_invoice_google_id = invoiceData.stores_from_fns_google_id;
                 }
 
                 //собираем продукт из данных в локальной базе
                 Cursor cur_product = dbHelper.query(tableNameProducts, null, "id=?", new String[]{fk_purchases_products.toString()}, null, null, null, null);
                 if (cur_product.moveToFirst()) {
-                    purchaseLocal.product.google_id = cur_product.getString(cur_product.getColumnIndex("google_id"));
+                    purchaseLocal.product.stores_from_fns_google_id = cur_product.getString(cur_product.getColumnIndex("stores_from_fns_google_id"));
                     purchaseLocal.product.nameFromBill = cur_product.getString(cur_product.getColumnIndex("nameFromBill"));
                     purchaseLocal.product.id = cur_product.getInt(cur_product.getColumnIndex("id"));
                     cur_product.close();
                 }
 
-                if(purchaseLocal.google_id!= null && purchaseLocal.google_id.length()>0)
+                if(purchaseLocal.stores_from_fns_google_id!= null && purchaseLocal.stores_from_fns_google_id.length()>0)
                 {
                     //если у покупки есть ссылка на гугл - проверяем  ее наличие на сервере - если на сервере нет загружаем на него
                     //если есть ссылка на гугл у локальной покупки то должна быть и ссылка на чек и на продукт
                     //проверять все покупки по чеку на сервере или индивидуально каждую покупку?
                     //в конце обязательно сверить количество
-                    Task<DocumentSnapshot> result_purchases = mFirestore.collection(tableNamePurchases).document(purchaseLocal.google_id).get(source);
+                    Task<DocumentSnapshot> result_purchases = mFirestore.collection(tableNamePurchases).document(purchaseLocal.stores_from_fns_google_id).get(source);
                     while (!result_purchases.isComplete()) {
                         try {
                             Thread.sleep(100);
@@ -1246,7 +1744,7 @@ public class Invoice {
                                                 //если в локальной базе по ссылке есть запись то идем дальше
                                                 //иначе надо просто сохранить локально новый продукт и обновить ссылку? вопрос? как появилась ссылка на продукт без продукта?
                                                 //на случай ошибки стоит проверять
-                                                if (purchaseLocal.product.google_id.equals(purchase.fk_purchases_products_google_id)) {
+                                                if (purchaseLocal.product.stores_from_fns_google_id.equals(purchase.fk_purchases_products_google_id)) {
                                                     //если ссылки совпадают проверяем совпадение названий и бар кода
                                                     if (!purchaseLocal.product.nameFromBill.equals(product.nameFromBill)) {
                                                         //если не совпадают ищем на сервере товар и обновляем данные локально или добавляем на сервер новый продукт
@@ -1256,7 +1754,7 @@ public class Invoice {
                                                 }
                                                 //если ссылки не совпадают, но одинаоквые названия товаров - обновляем локальные данные
                                                 else if (purchaseLocal.product.nameFromBill.equals(product.nameFromBill)) {
-                                                    purchaseLocal.product.google_id = purchase.fk_purchases_products_google_id;
+                                                    purchaseLocal.product.stores_from_fns_google_id = purchase.fk_purchases_products_google_id;
                                                     insertProductDataLocal(purchaseLocal.product);
                                                 }
                                                 //если ссылки не совпали и названия разные, то ищем на сервере продукт из локальной базы и пытаемся его добавить
@@ -1294,7 +1792,8 @@ public class Invoice {
                             //полностью собрать обЪект и загрузить
                             //загрузить продукт на сервер
                             purchaseLocal.fk_purchases_products = fk_purchases_products;
-                            purchaseLocal.product.google_id = null;
+
+                            purchaseLocal.product.stores_from_fns_google_id = null;
                             loadPurchaseDataToServer(purchaseLocal);
                         }
 
@@ -1312,7 +1811,8 @@ public class Invoice {
         }
         return false;
     }
-
+*/
+  /*
     private void loadPurchaseDataToServer(PurchasesListData purchaseLocal) {
 
         ContentValues contentValues = new ContentValues();
@@ -1334,9 +1834,10 @@ public class Invoice {
         {
             toServer.put("quantity", purchaseLocal.quantity);
         }
-
-
-
+        if(purchaseLocal.fk_purchases_invoice_google_id != null)
+        {
+            toServer.put("fk_purchases_invoice_google_id", purchaseLocal.fk_purchases_invoice_google_id);
+        }
 
         if(purchaseLocal.fk_purchases_products != null && purchaseLocal.fk_purchases_products >0)
         {
@@ -1345,16 +1846,16 @@ public class Invoice {
             if(purchaseLocal.product.id != null)
             {
                 insertProductDataServer(purchaseLocal.product);
-                if(purchaseLocal.product.google_id != null) {
-                    purchaseLocal.fk_purchases_products_google_id = purchaseLocal.product.google_id;
+                if(purchaseLocal.product.stores_from_fns_google_id != null) {
+                    purchaseLocal.fk_purchases_products_google_id = purchaseLocal.product.stores_from_fns_google_id;
 
                     toServer.put("fk_purchases_products_google_id", purchaseLocal.fk_purchases_products_google_id);
 
-                    purchaseLocal.google_id = mFirestore.collection(tableNamePurchases).document().getId();
-                    mFirestore.collection(tableNamePurchases).document(purchaseLocal.google_id).set(toServer);
-                    if(purchaseLocal.google_id !=null)
+                    purchaseLocal.stores_from_fns_google_id = mFirestore.collection(tableNamePurchases).document().getId();
+                    mFirestore.collection(tableNamePurchases).document(purchaseLocal.stores_from_fns_google_id).set(toServer);
+                    if(purchaseLocal.stores_from_fns_google_id !=null)
                     {
-                        contentValues.put("google_id", purchaseLocal.google_id);
+                        contentValues.put("stores_from_fns_google_id", purchaseLocal.stores_from_fns_google_id);
                     }
 
                     if(purchaseLocal.id != null)
@@ -1365,16 +1866,21 @@ public class Invoice {
             }
         }
     }
-
+*/
     private PurchasesListData.Product getProductLocal(int id)
     {
         PurchasesListData.Product product = new PurchasesListData.Product();
         Cursor cur = dbHelper.query(tableNameProducts, null, "id=?", new String[]{String.valueOf(id)}, null, null, null, null);
         if(cur.moveToFirst())
         {
-            product.google_id = cur.getString(cur.getColumnIndex("google_id"));
+            product.google_id = cur.getString(cur.getColumnIndex("stores_from_fns_google_id"));
             product.nameFromBill = cur.getString(cur.getColumnIndex("nameFromBill"));
             product.id = cur.getInt(cur.getColumnIndex("id"));
+
+            product.fk_productCutegory_google_id = cur.getString(cur.getColumnIndex("fk_productCutegory_google_id"));
+            product.fk_bar_code_product = cur.getInt(cur.getColumnIndex("fk_bar_code_product"));
+            product.fk_productCutegory = cur.getInt(cur.getColumnIndex("fk_productCutegory"));
+            product.fk_bar_code_product_google_id = cur.getString(cur.getColumnIndex("fk_bar_code_product_google_id"));
             cur.close();
         }
 
@@ -1457,7 +1963,7 @@ public class Invoice {
             if(product_tmp.id!= null && product_tmp.google_id != null)
             {
                 ContentValues db = new ContentValues();
-                db.put("google_id", product_tmp.google_id);
+                db.put("stores_from_fns_google_id", product_tmp.google_id);
                 dbHelper.update(tableNameProducts, db, "id=?", new String[]{product_tmp.id.toString()});
             }
         }
@@ -1468,9 +1974,9 @@ public class Invoice {
     }
 
     public boolean getInvoiceFromServer(InvoiceData invoiceData, LoadingFromFNS.AsyncLoadDataInvoice asyncFirstAddInvoice) throws Exception {
-        if(invoiceData != null) {
+       /* if(invoiceData != null) {
             InvoiceData tmp = (InvoiceData) invoiceData.clone();
-            if(On_line && user.google_id != null)
+            if(On_line && user.stores_from_fns_google_id != null)
             {
                 Task<QuerySnapshot> result = null;
                 Task<DocumentSnapshot> doc = null;
@@ -1542,13 +2048,13 @@ public class Invoice {
                         if(invoiceData.user_google_id != null)
                             fStore.put("user_google_id", invoiceData.user_google_id);
                         else
-                            if(user.google_id != null)
+                            if(user.stores_from_fns_google_id != null)
                                 fStore.put("user_google_id", invoiceData.user_google_id);
                         DocumentReference addedDocRef = mFirestore.collection(tableNameInvoice).document();
                         addedDocRef.set(fStore);
-                        invoiceData.google_id = addedDocRef.getId();
+                        invoiceData.stores_from_fns_google_id = addedDocRef.getId();
                         ContentValues val = new ContentValues();
-                        val.put("google_id", invoiceData.google_id);
+                        val.put("stores_from_fns_google_id", invoiceData.stores_from_fns_google_id);
                         dbHelper.update(tableNameInvoice, val, "id=?", new String[]{String.valueOf(invoiceData.getId())});
                         return false;
                     }
@@ -1561,7 +2067,7 @@ public class Invoice {
                     throw new Exception("Error loading from server, check connection");
                 }
             }
-        }
+        }*/
         return false;
     }
 
@@ -1572,7 +2078,7 @@ public class Invoice {
             Cursor cur_kktRegId= null;
 
             InvoiceData.KktRegId on_line_kkt = new InvoiceData.KktRegId();
-            InvoiceData.Store on_line_store = new InvoiceData.Store();
+            InvoiceData.Store_from_fns on_line_store = new InvoiceData.Store_from_fns();
 
             if(On_line && user.google_id != null)
             {
@@ -1590,15 +2096,15 @@ public class Invoice {
                         for (DocumentSnapshot documentReference : documents_kkt) {
                             on_line_kkt = documentReference.toObject(InvoiceData.KktRegId.class);
                             on_line_kkt.google_id = documentReference.getId();
-                            //on_line_kkt.google_id = documentReference.getId();
-                            //on_line_kkt.fk_kktRegId_stores_google_id = documentReference.getString("fk_kktRegId_stores_google_id");;
+                            //on_line_kkt.stores_from_fns_google_id = documentReference.getId();
+                            //on_line_kkt.fk_kktRegId_google_id = documentReference.getString("fk_kktRegId_google_id");;
                             //on_line_kkt._status = (Integer) documentReference.get("_status");
                             //on_line_kkt.kktRegId = (Long) documentReference.get("kktRegId");
                             finalInvoiceData.kktRegId = on_line_kkt;
 
                         }
-                        if (on_line_kkt != null && on_line_kkt.fk_kktRegId_stores_google_id != null && finalInvoiceData.store.google_id == null) {
-                            Task<DocumentSnapshot> result_store = mFirestore.collection(tablenameStores).document(on_line_kkt.fk_kktRegId_stores_google_id).get(source);
+                        if (on_line_kkt != null && on_line_kkt.fk_kktRegId_google_id != null && finalInvoiceData.store_from_fns.google_id == null) {
+                            Task<DocumentSnapshot> result_store = mFirestore.collection(tableNameStoresFromFns).document(on_line_kkt.fk_kktRegId_google_id).get(source);
                             while (!result_store.isComplete()) {
                                 try {
                                     Thread.sleep(100);
@@ -1608,10 +2114,10 @@ public class Invoice {
                             }
                             DocumentSnapshot documents_store = result_store.getResult();
                             if (documents_store.exists()) {
-                                on_line_store = documents_store.toObject(InvoiceData.Store.class);
+                                on_line_store = documents_store.toObject(InvoiceData.Store_from_fns.class);
                                 on_line_store.google_id = documents_store.getId();
 
-                                finalInvoiceData.store = on_line_store;
+                                finalInvoiceData.store_from_fns = on_line_store;
                             }
                         }
                     }
@@ -1619,180 +2125,215 @@ public class Invoice {
             }
 
             //проверка что касса уже существует в таблице
-            cur_kktRegId=dbHelper.query(tableNameKktRegId, null, "kktRegId=?", new String[]{kktRegId.kktRegId.toString()}, null, null, null, null);
-            if(cur_kktRegId.moveToFirst())
+            InvoiceData.KktRegId kktRegId_data =loadKKtRegIdLocal(kktRegId.kktRegId, "kktRegId=?");
+            if(kktRegId_data != null)
             {
+                finalInvoiceData.kktRegId = kktRegId_data;
+                InvoiceData.Store_from_fns storeFromFns = null;
+                InvoiceData.Store_on_map storeOnMap = null;
+                Integer kktRegId_id = kktRegId_data.id;
+
                 //загружаем данные из строки с найденной кассой
-                Integer fk_kktRegId_stores = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
-                Integer kktRegId_id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
-                cur_kktRegId.close();
-                //загружаме информацю по магазину к которому привязана касса
-                Map<String, String> args = new ArrayMap<String, String>();
-                args.put("id", fk_kktRegId_stores.toString());
-                List<InvoiceData.Store> stores = loadDataFromStore(args);
-                //проверка что данные загружены, загружаем по id  поэтому больше 1 записи быть не может, но может быть 0 если ранее магазин удалили или т.п.
-                if(stores.size()>0)
+                //загружаем информацю по магазину к которому привязана касса
+                Cursor cur_KktRegId_stores_links = dbHelper.query(tableNameKktRegIdStoresLinks, null, "fk_kktRegId=?", new String[]{kktRegId_id.toString()}, null, null, "date_add DESC", null);
+                Integer fk_kktRegId_stores_link = null;
+                Integer fk_stores_links = null;
+                if(cur_KktRegId_stores_links.moveToFirst())
                 {
-                    InvoiceData.Store store = stores.get(0);
-                    //проверка что магазин который сейчас привязан к чеку (если данные были добавлены вручную раньше загрузки с ФНС) отличается от того на который ссылается касса
-                    if(finalInvoiceData.store.id!= null && finalInvoiceData.store.id != store.id)
+                    fk_kktRegId_stores_link = cur_KktRegId_stores_links.getInt(cur_KktRegId_stores_links.getColumnIndex("id"));;
+                    fk_stores_links = cur_KktRegId_stores_links.getInt(cur_KktRegId_stores_links.getColumnIndex("fk_stores_links"));
+                    Cursor cur_stores_links = dbHelper.query(tableNameStoresLinks, null, "id=?", new String[]{fk_stores_links.toString()}, null, null, null, null);
+                    if(cur_stores_links.moveToFirst()) {
+                        Integer id_store_from_fns = cur_stores_links.getInt(cur_stores_links.getColumnIndex("fk_stores_from_fns"));
+                        Integer id_store_on_map = cur_stores_links.getInt(cur_stores_links.getColumnIndex("fk_stores_on_map"));
+
+                        if (id_store_from_fns > 0) {
+                            //загружаем информацю по магазину к которому привязана касса
+                            Map<String, String> args = new ArrayMap<String, String>();
+                            args.put("id", id_store_from_fns.toString());
+                            List<InvoiceData.Store_from_fns> stores_from_fns = loadDataFromStore_from_fns(args);
+                            if (stores_from_fns.size() > 0) {
+                                storeFromFns = stores_from_fns.get(0);
+                            }
+                        }
+
+                        if (id_store_on_map > 0) {
+                            //загружаем информацю по магазину к которому привязана касса
+                            Map<String, List<String>> args = new ArrayMap<>();
+                            args.put("id", Arrays.asList(id_store_on_map.toString()));
+                            List<InvoiceData.Store_on_map> stores_on_map = loadDataFromStore_on_map(args, null);
+                            if (stores_on_map.size() > 0) {
+                                storeOnMap = stores_on_map.get(0);
+                            }
+                        }
+                    }
+                    cur_stores_links.close();
+
+                }
+                cur_KktRegId_stores_links.close();
+
+                if(storeFromFns != null)
+                {
+                    //если данные одинковые
+                    String newhascode = encryptPassword(finalInvoiceData.store_from_fns.inn+finalInvoiceData.store_from_fns.name_from_fns+finalInvoiceData.store_from_fns.address_from_fns);
+                    Log.d(LOG_TAG, "compare two hashcode "+ newhascode + " old hash "+ storeFromFns.hashCode);
+                    if(storeFromFns.hashCode.equals(newhascode))
                     {
-                        //если в магазине на который ссылается чек прописана гугл метка места обновляем магазин к которому привязана найденная касса
-                        //если геометки различаются изменять ссылку на магазин нельзя
-                        //если есть геометки - статус магазина уже 1 -- подтвержден пользователем
+                        //текущий магазин заменяем на полученый из базы
+                        InvoiceData.Store_from_fns old_store_from_fns = finalInvoiceData.store_from_fns;
+                        finalInvoiceData.store_from_fns = storeFromFns;
+                        deleteStoreFromFnsLink(old_store_from_fns);
+                    }
+                    else
+                    {
+                        //иначе сохраняем текущий магазин
+                        saveStoreDataServer(finalInvoiceData.store_from_fns, null, finalInvoiceData.fk_stores_links_google_id);
+                        saveStoreDataLocal(finalInvoiceData.store_from_fns, null);
+
+                    }
+                }
+                //чек привзян к магазину на карте
+                if(storeOnMap != null)
+                {
+                    //проверка что магазин который сейчас привязан к чеку (если данные были добавлены вручную раньше загрузки с ФНС) отличается от того на который ссылается касса
+                    if(finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.id != storeOnMap.id)
+                    {
+                        //если в магазине привязанном к  чеку прописана гугл метка
+                        //и одинаковая с меткой в магазине привязанном к кассе
+                        //или в магазине чека нет гугл метки а в кассе есть
+                        // - заменяем привязку магазина к чеку на магазин от кассы
                         //
-                        if(finalInvoiceData.store.place_id!= null && finalInvoiceData.store.place_id.equals(store.place_id)) {
-
-                            finalInvoiceData.store.id = store.id;
-                            finalInvoiceData.store.update = true;
-                            saveStoreDataLocal(finalInvoiceData.store);
-
-
-                            //Обновляем ссылки на кассу и новый найденный магазин
-                            finalInvoiceData.kktRegId.id = kktRegId_id;
+                        if(storeOnMap.place_id == null && finalInvoiceData.store_on_map.place_id != null)
+                        {
+                            //если в привязанном магазине нет метки гугул - нужно заменить найденный магазин на новый
                             ContentValues contentValues = new ContentValues();
-                            contentValues.put("fk_invoice_stores", store.id);
-                            contentValues.put("fk_invoice_kktRegId", kktRegId_id);
-                            dbHelper.update(tableNameInvoice, contentValues, "id=?", new String[]{finalInvoiceData.getId().toString()});
+                            contentValues.put("fk_stores_on_map", finalInvoiceData.store_on_map.id);
+                            int count = dbHelper.update(tableNameStoresLinks, contentValues, "fk_stores_on_map=?", new String[]{storeOnMap.id.toString()});
+                            Log.d(LOG_TAG, "updated rows in " + tableNameStoresLinks+" count = "+ count);
+                            //удаляем ссылку без метки
+                            deleteStoreOnMapLink(storeOnMap.id, storeOnMap.google_id);
 
-                            //обновляем ссылку на найденный магазин в таблице с покупками
-                            contentValues = new ContentValues();
-                            contentValues.put("fk_purchases_stores", store.id);
-                            dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
+                        }//storeOnMap.place_id != null = true из-за предыдущего условия
+                        else if(finalInvoiceData.store_on_map.place_id != null && !finalInvoiceData.store_on_map.place_id.equals(storeOnMap.place_id))
+                        {
+                            //если Place_id одинаковые - это 100% одна и та же запись в таблице
+                            //и с текущим магазином ничего делать ненадо
+                            //Integer oldStore_on_map_id =finalInvoiceData.store_on_map.id;
+                            //String oldStore_on_map_google_id =finalInvoiceData.store_on_map.google_id;
 
+                            //finalInvoiceData.store_on_map = storeOnMap;
+                            //Обновляем ссылки на кассу и новый найденный магазин
                             //пытаемя удалить магазин, который раньше был приявязан к чеку, если больше он ни к чему не привязан
-                            deleteStoreLink(finalInvoiceData.store.id, finalInvoiceData.store.google_id);
-                            finalInvoiceData.store = store;
+                            //deleteStoreOnMapLink(oldStore_on_map_id, oldStore_on_map_google_id);
+
+
+                            //если метки разные - мы выгрузили самую новую метку. нужно сравнть дату из чека и дату добавления загруженного магазина
+                            //если даты добавления меток разные нужно проверить еслть ли еще ссылки с кассой на магазины
+                            //еслы еще ссылки есть надо проверить там ссылки на магазины ч pl_id
+                            //если ссылок больше нет - ищем текущий pl_id
+                            //нужно будет сохранить в линки новую ссылку на кассу текущую и на магазин с новой меткой
+
+                            //просто добавлем еще одну ссылку в таблицу ссылок с той же кассой но другим магазином
+                            //tryToSaveKktRegStoresLinks(finalInvoiceData);
+                        }
+                        else if(finalInvoiceData.store_on_map.place_id == null && storeOnMap.place_id != null)
+                        {
+                            //заменяем текущий магазин на привязанный
+                            Integer oldStore_on_map_id =finalInvoiceData.store_on_map.id;
+                            String oldStore_on_map_google_id =finalInvoiceData.store_on_map.google_id;
+                            finalInvoiceData.store_on_map = storeOnMap;
+
+                            //tryToSaveKktRegStoresLinks(finalInvoiceData);
+                            //магазин в данном случае еще не был сохранен так что его нет надобности удалять или заменять
+
                         }
                         else
                         {
-                            finalInvoiceData.store.update = true;
-                            saveStoreDataLocal(finalInvoiceData.store);
+                            //так как гео метки разные  то нужно создавать новую ссылку с той же кассой но новой геометкой
+
                         }
 
                     }
-                    //Если к чеку еще не привязан магазин, а мы нашли кассу с магазином мы обновляем данные в чеке, чтобы он ссылался на найденую кассу и магазин
-                    else if(finalInvoiceData.store.id == null)
+                    else if(finalInvoiceData.store_on_map == null)
                     {
-                        finalInvoiceData.store = store;
-                        if(on_line_store.google_id == null)
-                        {
-                            finalInvoiceData.store.update = false;
-                            saveStoreDataServer(finalInvoiceData.store);
-                        }
-
+                        //если к чеку не привязан магазин на карте, а к кассе привязан - привязываем его к чеку
+                        finalInvoiceData.store_on_map = storeOnMap;
                         finalInvoiceData.kktRegId.id = kktRegId_id;
-                        finalInvoiceData.set_status(1);
-                        finalInvoiceData.setfk_invoice_stores(finalInvoiceData.store.id);
-                        finalInvoiceData.setfk_invoice_kktRegId(kktRegId_id);
-                        updateInvoice(finalInvoiceData);
+                        tryToSaveKktRegStoresLinks(finalInvoiceData);
                     }
-
                 }
+
+                tryToSaveStoreLinks(finalInvoiceData);
+                tryToSaveKktRegStoresLinks(finalInvoiceData);
 
             }
             else
             {
-                if(finalInvoiceData.store.id!= null && finalInvoiceData.store.id != 0)
+                //если касса не найде в локальной базе
+                //сохраняем магазин локально и потом кассу
+                //ищем локально инфу по магазину изи ФНС
+                Map<String, String> args = new ArrayMap<String, String>();
+                args.put("hashcode", encryptPassword(finalInvoiceData.store_from_fns.inn+finalInvoiceData.store_from_fns.name_from_fns+finalInvoiceData.store_from_fns.address_from_fns));
+                List<InvoiceData.Store_from_fns> stores_from_fns = loadDataFromStore_from_fns(args);
+                if(stores_from_fns.size()>0)
                 {
-                    finalInvoiceData.kktRegId.fk_kktRegId_stores = finalInvoiceData.store.id;
-                    if(finalInvoiceData.store.google_id != null)
-                        finalInvoiceData.kktRegId.fk_kktRegId_stores_google_id = finalInvoiceData.store.google_id;
-                    setStoreData(finalInvoiceData);
-                    try {
-                        finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
-                    } catch (Exception e) {
-                        log.info(e.getMessage()+ Arrays.toString(e.getStackTrace()));
-                        e.printStackTrace();
-                        //finalInvoiceData.kktRegId.id = 0;
-                    }
-                    //finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
+                    finalInvoiceData.store_from_fns = stores_from_fns.get(0);
                 }
-                else
-                {
-                    if(on_line_store == null || on_line_store._status ==  null)
-                    {
-                        finalInvoiceData.store._status = 0;
-                    }
-
-                    finalInvoiceData.store.update = false;
-                    setStoreData(finalInvoiceData);
-                    if(finalInvoiceData.store.id >0) {
-                        finalInvoiceData.kktRegId.fk_kktRegId_stores = finalInvoiceData.store.id;
-                        if(finalInvoiceData.store.google_id != null)
-                            finalInvoiceData.kktRegId.fk_kktRegId_stores_google_id = finalInvoiceData.store.google_id;
-                        try {
-                            finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
-                        } catch (Exception e) {
-                            log.info(e.getMessage()+ Arrays.toString(e.getStackTrace()));
-                            e.printStackTrace();
-                            //finalInvoiceData.kktRegId.id = 0;
-                        }
-                        //finalInvoiceData.setfk_invoice_kktRegId(finalInvoiceData.kktRegId.id);
-                    }
+                else {
+                    saveStoreDataServer(finalInvoiceData.store_from_fns, null, finalInvoiceData.fk_stores_links_google_id);
+                    saveStoreDataLocal(finalInvoiceData.store_from_fns, null);
 
                 }
-                //updateInvoice(finalInvoiceData);
+
+                if(finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.id == null) {
+                    saveStoreDataServer(null, finalInvoiceData.store_on_map, finalInvoiceData.fk_stores_links_google_id);
+                    saveStoreDataLocal(null, finalInvoiceData.store_on_map);
+                }
+
+                Long old_link = null;
+                if(finalInvoiceData.fk_stores_links != null)
+                    old_link = finalInvoiceData.fk_stores_links;
+                tryToSaveStoreLinks(finalInvoiceData);
+
+
+
+                try {
+                    finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
+                } catch (Exception e) {
+                    log.info(e.getMessage()+ Arrays.toString(e.getStackTrace()));
+                    e.printStackTrace();
+                    //finalInvoiceData.kktRegId.id = 0;
+                }
+                tryToSaveKktRegStoresLinks(finalInvoiceData);
+
+                if(old_link!= null)
+                    Log.d(LOG_TAG, " old link fk_stores_links "+ old_link+ "new link "+ finalInvoiceData.fk_stores_links);
+
+                if(old_link != null && old_link != finalInvoiceData.fk_stores_links)
+                    tryToDeleteStoresLinks(old_link);
+            }
+
+
+            if(finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.place_id!= null)
+            {
+                //обновляем статус чека на подтвержденный если в текущем чеке есть гугл метка
+                finalInvoiceData.set_status(2);
             }
 
         }
-       /* else if (finalInvoiceData.fromServer)
-        {
-            if(finalInvoiceData.kktRegId!= null && finalInvoiceData.kktRegId.google_id != null)
-            {
-                Cursor cur_kktRegId = dbHelper.query(tableNameKktRegId, null, "google_id=?", new String[]{finalInvoiceData.kktRegId.google_id}, null, null, null, null);
-                if(cur_kktRegId.moveToFirst())
-                {
-                    finalInvoiceData.kktRegId.fk_kktRegId_stores = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("fk_kktRegId_stores"));
-                    finalInvoiceData.kktRegId.id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
-
-                    Cursor cur_store = dbHelper.query(tablenameStores, null, "id=?", new String[]{finalInvoiceData.kktRegId.fk_kktRegId_stores.toString()}, null, null, null, null);
-                    if(cur_store.moveToFirst())
-                    {
-                        finalInvoiceData.store.id = cur_store.getInt(cur_store.getColumnIndex("id"));
-                        int _status = cur_store.getInt(cur_store.getColumnIndex("_status"));
-                        if(finalInvoiceData.store._status != _status && finalInvoiceData.store._status == 1)
-                        {
-                            setStoreData(finalInvoiceData);
-                        }
-                        //сравнить данные у пользователя и на сервере. обновить если статус магазина на сервера "подтвержден администарцией"
-                        //магазин может быть пустой так как добавлена только геометка
-                    }
-                    else
-                    {
-                        //сохраняем магазин в локальной базе
-                        setStoreData(finalInvoiceData);
-                    }
-                }
-                else
-                {
-                    setStoreData(finalInvoiceData);
-                    try {
-                        saveKktRegId(finalInvoiceData.kktRegId);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            //выходим, остальные действия делаем в  фукнции загрузки чека с сервера
-            return;
-        }*/
         else
         {
-            if(finalInvoiceData.store.place_id!= null && finalInvoiceData.store.place_id.length()>0)
+            if(finalInvoiceData.store_on_map.place_id!= null && finalInvoiceData.store_on_map.place_id.length()>0)
             {
-                InvoiceData.Store on_line_store = null;
+                InvoiceData.Store_from_fns on_line_store = null;
 
-                if(On_line && user.google_id != null)
+  /*              if(On_line && user.stores_from_fns_google_id != null)
                 {
 
-                    Task<QuerySnapshot> result_store = null;//mFirestore.collection(tablenameStores).whereEqualTo("place_id", finalInvoiceData.store.place_id).get(source);
+                    Task<QuerySnapshot> result_store = null;//mFirestore.collection(tableNameStoresFromFns).whereEqualTo("place_id", finalInvoiceData.store_from_fns.place_id).get(source);
 
-                        /*FirebaseFirestoreSettings fireBaseSettings = new FirebaseFirestoreSettings.Builder()
-                                .setPersistenceEnabled(false)
-                                .build();
-                        mFirestore.setFirestoreSettings(fireBaseSettings);*/
-                    result_store = mFirestore.collection(tablenameStores).whereEqualTo("place_id", finalInvoiceData.store.place_id).get(source);
+
+                    result_store = mFirestore.collection(tableNameStoresOnMap).whereEqualTo("place_id", finalInvoiceData.store_on_map.place_id).get(source);
                     while (!result_store.isComplete()) {
                         try {
                             Thread.sleep(100);
@@ -1809,16 +2350,16 @@ public class Invoice {
                         List<DocumentSnapshot> documents_store = result_store.getResult().getDocuments();
                         if (documents_store.size() == 1) {
                             for (DocumentSnapshot documentReference : documents_store) {
-                                on_line_store = documentReference.toObject(InvoiceData.Store.class);
+                                on_line_store = documentReference.toObject(InvoiceData.Store_from_fns.class);
                                 if(on_line_store != null) {
-                                    on_line_store.google_id = documentReference.getId();
-                                    if (!finalInvoiceData.store.google_id.equals(on_line_store.google_id))
+                                    on_line_store.stores_from_fns_google_id = documentReference.getId();
+                                    if (!finalInvoiceData.store_from_fns.stores_from_fns_google_id.equals(on_line_store.stores_from_fns_google_id))
                                     {
-                                        mFirestore.collection(tablenameStores).document(finalInvoiceData.store.google_id).delete();
-                                        finalInvoiceData.store.google_id = on_line_store.google_id;
-                                        finalInvoiceData.fk_invoice_stores_google_id=on_line_store.google_id;
+                                        mFirestore.collection(tableNameStoresFromFns).document(finalInvoiceData.store_from_fns.stores_from_fns_google_id).delete();
+                                        finalInvoiceData.store_from_fns.stores_from_fns_google_id = on_line_store.stores_from_fns_google_id;
+                                        finalInvoiceData.fk_invoice_stores_from_fns_google_id =on_line_store.stores_from_fns_google_id;
                                         if(finalInvoiceData.kktRegId != null)
-                                            finalInvoiceData.kktRegId.fk_kktRegId_stores_google_id=on_line_store.google_id;
+                                            finalInvoiceData.kktRegId.fk_kktRegId_google_id =on_line_store.stores_from_fns_google_id;
                                     }
                                 }
 
@@ -1826,61 +2367,91 @@ public class Invoice {
                         }
                     }
                 }
+*/
 
+                Map<String, List<String>> args = new ArrayMap<>();
+                args.put("place_id", Arrays.asList(finalInvoiceData.store_on_map.place_id));
+                List<InvoiceData.Store_on_map> stores = loadDataFromStore_on_map(args, null);
 
-
-                Cursor cur_store = dbHelper.query(tablenameStores, null, "place_id=?", new String[]{finalInvoiceData.store.place_id}, null, null, null, null);
-                if(cur_store. moveToFirst())
+                //если данный магазин по гугл метке найден в локальной базе
+                if(stores.size()>0)
                 {
-                    Integer id = cur_store.getInt(cur_store.getColumnIndex("id"));
-                    Map<String, String> args = new ArrayMap<String, String>();
-                    args.put("id", id.toString());
-                    List<InvoiceData.Store> stores = loadDataFromStore(args);
+                    Integer id = stores.get(0).id;
+                    String google_id = stores.get(0).google_id;
 
-                    if(finalInvoiceData.store.id!= null && finalInvoiceData.store.id >0)
+                    if(finalInvoiceData.store_on_map.id == null || finalInvoiceData.store_on_map.id <= 0 || !finalInvoiceData.store_on_map.id.equals(id))
                     {
-                        if(finalInvoiceData.store.id == id)
-                        {
-                            finalInvoiceData.store.update = checkStoretoUpdate(finalInvoiceData);
-                            finalInvoiceData.store._status = 1;
-                            setStoreData(finalInvoiceData);
+                        //finalInvoiceData.setFk_invoice_stores_on_map(id);
+                        InvoiceData.Store_on_map old_store_on_map = finalInvoiceData.store_on_map;
+                        finalInvoiceData.store_on_map = stores.get(0);
+
+                        Long old_link = null;
+                        if(finalInvoiceData.fk_stores_links != null)
+                            old_link = finalInvoiceData.fk_stores_links;
+                        tryToSaveStoreLinks(finalInvoiceData);
+
+                        if(old_link!= null)
+                            Log.d(LOG_TAG, " old link fk_stores_links "+ old_link+ "new link "+ finalInvoiceData.fk_stores_links);
+
+                        if(old_link == null || old_link != finalInvoiceData.fk_stores_links) {
+                            tryToSaveKktRegStoresLinks(finalInvoiceData);
                         }
-                        else
-                        {
-                            ContentValues contentValues = new ContentValues();
-                            contentValues.put("fk_invoice_stores",id);
-                            dbHelper.update(tableNameInvoice, contentValues, "id=?", new String[]{finalInvoiceData.getId().toString()});
-                            contentValues =  new ContentValues();
-                            contentValues.put("fk_purchases_stores", id);
-                            dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
-                            contentValues =  new ContentValues();
-                            contentValues.put("fk_kktRegId_stores", id);
-                            dbHelper.update(tableNameKktRegId, contentValues, "id=?", new String[]{finalInvoiceData.kktRegId.id.toString()});
-                            finalInvoiceData.kktRegId.fk_kktRegId_stores = id;
+
+                        if(old_link != null && old_link != finalInvoiceData.fk_stores_links)
+                            tryToDeleteStoresLinks(old_link);
+
+                        //try to delete old store_on_map
+                        if(old_store_on_map != null && (old_store_on_map.id != null || old_store_on_map.google_id != null))
+                            deleteStoreOnMapLink(old_store_on_map.id, old_store_on_map.google_id);
 
 
-                            //try to delete old store
-                            deleteStoreLink(finalInvoiceData.store.id, finalInvoiceData.store.google_id);
-                            finalInvoiceData.store = stores.get(0);
+                        //обновление статуса магазина от ФНС - обновляем статус локально и на сервере
+                        if(finalInvoiceData.store_from_fns._status != 1) {
+                            finalInvoiceData.store_from_fns._status = 1;
+                            saveStoreDataServer(finalInvoiceData.store_from_fns, null, finalInvoiceData.fk_stores_links_google_id);
+                            saveStoreDataLocal(finalInvoiceData.store_from_fns, null);
                         }
                     }
                     else
                     {
-                        //new item in table stores
-                        finalInvoiceData.store._status = 1;
-                        setStoreData(finalInvoiceData);
+                        tryToSaveStoreLinks(finalInvoiceData);
+                        tryToSaveKktRegStoresLinks(finalInvoiceData);
                     }
+
                 }
                 else
                 {
-                    finalInvoiceData.store.update = false;
-                    if(finalInvoiceData.store.id != null && finalInvoiceData.store.id >0)
+                    finalInvoiceData.store_on_map.update = false;
+                    Integer id = finalInvoiceData.store_on_map.id;
+                    String google_id = finalInvoiceData.store_on_map.google_id;
+                    if(finalInvoiceData.store_on_map.id != null && finalInvoiceData.store_on_map.id >0)
                     {
-                        finalInvoiceData.store.update = checkStoretoUpdate(finalInvoiceData);
+                        finalInvoiceData.store_on_map.update = checkStoreOnMaptoUpdate(finalInvoiceData);
                     }
-                    finalInvoiceData.store._status = 1;
-                    setStoreData(finalInvoiceData);
-                    //finalInvoiceData.setfk_invoice_stores(finalInvoiceData.store.id);
+                    if(finalInvoiceData.store_from_fns == null)
+                        finalInvoiceData.store_from_fns = new InvoiceData.Store_from_fns();
+                    if(finalInvoiceData.kktRegId == null)
+                        finalInvoiceData.kktRegId = new InvoiceData.KktRegId();
+
+                    finalInvoiceData.store_from_fns._status = 1;
+                    finalInvoiceData.kktRegId._status = 1;
+                    //finalInvoiceData.store_on_map.fk_stores_from_fns = finalInvoiceData.store_from_fns.id;
+                    //finalInvoiceData.store_on_map.fk_stores_from_fns_google_id = finalInvoiceData.store_from_fns.google_id;
+
+                    saveStoreDataServer(finalInvoiceData.store_from_fns, finalInvoiceData.store_on_map, finalInvoiceData.fk_stores_links_google_id);
+                    saveStoreDataLocal(finalInvoiceData.store_from_fns, finalInvoiceData.store_on_map);
+                    tryToSaveStoreLinks(finalInvoiceData);
+
+                    if(finalInvoiceData.fk_stores_links != null && finalInvoiceData.fk_stores_links > 0)
+                    {
+                        tryToSaveKktRegStoresLinks(finalInvoiceData);
+                    }
+                    if(!finalInvoiceData.store_on_map.update)
+                    {
+                        deleteStoreOnMapLink(id, google_id);
+                    }
+                    //saveStoreDataLocal(finalInvoiceData.store_from_fns, null);
+                    //finalInvoiceData.setfk_invoice_stores_from_fns(finalInvoiceData.store_from_fns.id);
                     //updateInvoice(finalInvoiceData);
                 }
 
@@ -1889,17 +2460,17 @@ public class Invoice {
 
         PurchasesListData purchasesListData = new PurchasesListData();
         purchasesListData.store = new PurchasesListData.Store();
-        purchasesListData.store.id = finalInvoiceData.store.id;
-        purchasesListData.store.google_id = finalInvoiceData.store.google_id;
-
+        if(finalInvoiceData.fk_invoice_kktRegId_store_links !=  null && finalInvoiceData.fk_invoice_kktRegId_store_links > 0 ) {
+            purchasesListData.fk_purchases_kktRegId_stores_links = finalInvoiceData.fk_invoice_kktRegId_store_links;
+        }
         updatePurchases(purchasesListData, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
 
-        if(finalInvoiceData.kktRegId!= null && finalInvoiceData.kktRegId.kktRegId>0)
+        /* if(finalInvoiceData.kktRegId!= null && finalInvoiceData.kktRegId.kktRegId>0)
         {
             finalInvoiceData.set_status(1);
             //updateInvoice(finalInvoiceData);
-            finalInvoiceData.kktRegId.fk_kktRegId_stores_google_id = finalInvoiceData.store.google_id;
-            finalInvoiceData.kktRegId._status = finalInvoiceData.store._status;
+
+            finalInvoiceData.kktRegId._status = finalInvoiceData.store_from_fns._status;
             try {
                 finalInvoiceData.kktRegId.id = saveKktRegId(finalInvoiceData.kktRegId);
                 if(finalInvoiceData.kktRegId.google_id != null)
@@ -1910,6 +2481,387 @@ public class Invoice {
                 finalInvoiceData.kktRegId.id = 0;
             }
         }
+        */
+    }
+
+    private boolean tryToDeleteKktRegStoresLinks(Long old_link) {
+        Cursor cur = dbHelper.query(tableNameInvoice, null, "fk_invoice_kktRegId_store_links=?", new String[]{old_link.toString()}, null, null, null, null);
+        if(!cur.moveToFirst()) {
+            cur.close();
+            cur = dbHelper.query(tableNamePurchases, null, "fk_purchases_kktRegId_stores_links=?", new String[]{old_link.toString()}, null, null, null, null);
+            if(!cur.moveToFirst()) {
+                long count = dbHelper.delete(tableNameKktRegIdStoresLinks, "id=?", new String[]{old_link.toString()});
+                Log.d(LOG_TAG, "deleted row from " + tableNameKktRegIdStoresLinks + " row id " + old_link + " count " + count);
+                return count>0;
+            }
+        }
+        cur.close();
+        return false;
+
+    }
+
+    private boolean tryToDeleteStoresLinks(Long old_link) {
+        Cursor cur = dbHelper.query(tableNameKktRegIdStoresLinks, null, "fk_stores_links=?", new String[]{old_link.toString()}, null, null, null, null);
+        if(!cur.moveToFirst()) {
+            cur.close();
+            long count = dbHelper.delete(tableNameStoresLinks, "id=?", new String[]{old_link.toString()});
+            Log.d(LOG_TAG, "deleted row from " + tableNameStoresLinks + " row id " + old_link + " count " + count);
+            return count>0;
+        }
+        cur.close();
+        return false;
+
+    }
+    private boolean tryToDeleteStoresLinksServer(String old_link) {
+        Task<QuerySnapshot> result = mFirestore.collection(tableNameKktRegIdStoresLinks).whereEqualTo("fk_stores_links_google_id", old_link).get(source);
+        while(!result.isComplete())
+        {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if(result.isSuccessful()) {
+            Log.d(LOG_TAG, "tryToDeleteStoresLinksServer  result.isSuccessful() "+ new Exception().getStackTrace()[0].getLineNumber());
+            if (!result.getResult().getMetadata().isFromCache()) {
+                List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                if (documents.size() > 0) {
+                    mFirestore.collection(tableNameKktRegIdStoresLinks).document(old_link).delete();
+                    return true;
+                }
+            }
+        }
+        return false;
+
+    }
+
+    private void tryToSaveKktRegStoresLinks(InvoiceData finalInvoiceData) throws Exception {
+        Cursor cur = null;
+
+        if(finalInvoiceData.fk_stores_links != null && finalInvoiceData.kktRegId != null && finalInvoiceData.kktRegId.id != null) {
+            cur = dbHelper.query(tableNameKktRegIdStoresLinks, null, "fk_kktRegId=? AND fk_stores_links=?", new String[]{finalInvoiceData.kktRegId.id.toString(), finalInvoiceData.fk_stores_links.toString()}, null, null, null, null);
+            if (cur.moveToFirst()) {
+                    Long old_link = finalInvoiceData.fk_invoice_kktRegId_store_links;
+                    finalInvoiceData.fk_invoice_kktRegId_store_links = cur.getLong(cur.getColumnIndex("id"));
+                    ContentValues contentValues = new ContentValues();
+                    contentValues.put("fk_invoice_kktRegId_store_links", finalInvoiceData.fk_invoice_kktRegId_store_links);
+                    int count = dbHelper.update(tableNameInvoice, contentValues, "id=?", new String[]{finalInvoiceData.getId().toString()});
+                    Log.d(LOG_TAG, "updated rows in " + tableNameInvoice + " count = " + count);
+
+                    contentValues = new ContentValues();
+                    contentValues.put("fk_purchases_kktRegId_stores_links", finalInvoiceData.fk_invoice_kktRegId_store_links);
+                    count = dbHelper.update(tableNamePurchases, contentValues, "fk_purchases_invoice=?", new String[]{finalInvoiceData.getId().toString()});
+                    Log.d(LOG_TAG, "updated rows in " + tableNamePurchases + " count = " + count);
+
+                    if (old_link != null && !old_link.equals(finalInvoiceData.fk_invoice_kktRegId_store_links)) {
+                        count = (int) dbHelper.delete(tableNameKktRegIdStoresLinks, "id=?", new String[]{old_link.toString()});
+                        Log.d(LOG_TAG, "deleted row in " + tableNameKktRegIdStoresLinks + " count = " + count);
+                    }
+
+            }
+        }
+        if(cur == null || !cur.moveToFirst())
+        {
+            long timeAdd = new Date().getTime();
+            ContentValues contentValues = new ContentValues();
+            Map<String, Object> fStore = new HashMap<>();
+
+            if (finalInvoiceData.fk_stores_links_google_id != null) {
+                contentValues.put("fk_stores_links_google_id", finalInvoiceData.fk_stores_links_google_id);
+                fStore.put("fk_stores_links_google_id", finalInvoiceData.fk_stores_links_google_id);
+            }
+            if (finalInvoiceData.kktRegId != null && finalInvoiceData.kktRegId.google_id != null) {
+                contentValues.put("fk_kktRegId_google_id", finalInvoiceData.kktRegId.google_id);
+                fStore.put("fk_kktRegId_google_id", finalInvoiceData.kktRegId.google_id);
+            }
+
+            if (finalInvoiceData.fk_stores_links != null && finalInvoiceData.fk_stores_links > 0)
+                contentValues.put("fk_stores_links", finalInvoiceData.fk_stores_links);
+            if (finalInvoiceData.kktRegId != null && finalInvoiceData.kktRegId.id != null)
+                contentValues.put("fk_kktRegId", finalInvoiceData.kktRegId.id);
+
+            if (finalInvoiceData.fk_invoice_kktRegId_store_links != null && finalInvoiceData.fk_invoice_kktRegId_store_links > 0)
+            {
+                //обновляем запись в таблице локальной и на сервере
+                if(finalInvoiceData.fk_invoice_kktRegId_store_links_google_id != null && On_line && user.google_id != null)
+                {
+                    mFirestore.collection(tableNameKktRegIdStoresLinks).document(finalInvoiceData.fk_invoice_kktRegId_store_links_google_id).update(fStore);
+                }
+                dbHelper.update(tableNameKktRegIdStoresLinks, contentValues, "id=?", new String[]{finalInvoiceData.fk_invoice_kktRegId_store_links.toString()});
+            } else {
+                contentValues.put("date_add", timeAdd);
+                fStore.put("date_add", timeAdd);
+                if(On_line && user.google_id != null)
+                {
+                    DocumentReference addedDocRef = mFirestore.collection(tableNameKktRegIdStoresLinks).document();
+                    finalInvoiceData.fk_invoice_kktRegId_store_links_google_id = addedDocRef.getId();
+                    contentValues.put("google_id", finalInvoiceData.fk_invoice_kktRegId_store_links_google_id);
+                    mFirestore.collection(tableNameKktRegIdStoresLinks).document(finalInvoiceData.fk_invoice_kktRegId_store_links_google_id).set(fStore);
+                }
+
+                finalInvoiceData.fk_invoice_kktRegId_store_links = dbHelper.insert(tableNameKktRegIdStoresLinks, null, contentValues);
+            }
+        }
+        if(cur != null)
+            cur.close();
+    }
+
+    private void tryToSaveStoreLinks(InvoiceData finalInvoiceData)
+    {
+        Log.d(LOG_TAG, "tryToSaveStoreLinks " + new Exception().getStackTrace()[0].getLineNumber());
+        Cursor cur = null;
+        Map<String, Object> fStore = new HashMap<>();
+        if(finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.google_id != null)
+            fStore.put("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id);
+        if(finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.google_id != null)
+            fStore.put("fk_stores_on_map_google_id", finalInvoiceData.store_on_map.google_id);
+
+
+        if(finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.id != null  && finalInvoiceData.store_on_map!=  null && finalInvoiceData.store_on_map.id != null) {
+            cur = dbHelper.query(tableNameStoresLinks, null, "fk_stores_from_fns=? AND fk_stores_on_map=?", new String[]{finalInvoiceData.store_from_fns.id.toString(),
+                    finalInvoiceData.store_on_map.id.toString()}, null, null, null, null);
+        }
+        else if(finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.id != null)
+        {
+            cur = dbHelper.query(tableNameStoresLinks, null, "fk_stores_from_fns=? AND fk_stores_on_map is NULL", new String[]{finalInvoiceData.store_from_fns.id.toString()}, null, null, null, null);
+        }
+        if(cur != null && cur.moveToFirst())
+        {
+            finalInvoiceData.fk_stores_links = cur.getLong(cur.getColumnIndex("id"));
+            cur.close();
+
+            if(On_line && user.google_id != null) {
+                //проверка наличия ссылок на сервере
+                Task<QuerySnapshot> result = mFirestore.collection(tableNameStoresLinks).whereEqualTo("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id)
+                        .whereEqualTo("fk_stores_on_map_google_id", finalInvoiceData.store_on_map.google_id).get(source);
+                while (!result.isComplete()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (result.isSuccessful()) {
+                    Log.d(LOG_TAG, "tryToSaveStoreLinks  result.isSuccessful() " + new Exception().getStackTrace()[0].getLineNumber());
+                    if (!result.getResult().getMetadata().isFromCache()) {
+                        List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                        if (documents.size() > 0) {
+                            finalInvoiceData.fk_stores_links_google_id = documents.get(0).getId();
+                        } else {
+                            DocumentReference addedDocRef = mFirestore.collection(tableNameStoresLinks).document();
+                            finalInvoiceData.fk_stores_links_google_id = addedDocRef.getId();
+                            mFirestore.collection(tableNameStoresLinks).document(finalInvoiceData.fk_stores_links_google_id).set(fStore);
+                        }
+                    }
+                } else {
+                    Log.d(LOG_TAG, "tryToSaveStoreLinks   !isSuccessful" + new Exception().getStackTrace()[0].getLineNumber());
+                }
+            }
+
+        }
+        else if (finalInvoiceData.fk_stores_links != null && finalInvoiceData.fk_stores_links > 0)
+        {
+            Log.d(LOG_TAG, "tryToSaveStoreLinks " + new Exception().getStackTrace()[0].getLineNumber());
+
+            //если есть ссылка на сервере
+            if(On_line && user.google_id != null && finalInvoiceData.fk_stores_links_google_id != null)
+            {
+                Task<DocumentSnapshot> result = mFirestore.collection(tableNameStoresLinks).document(finalInvoiceData.fk_stores_links_google_id).get(source);
+                while (!result.isComplete()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (result.isSuccessful()) {
+                    Log.d(LOG_TAG, "tryToSaveStoreLinks  result.isSuccessful() " + new Exception().getStackTrace()[0].getLineNumber());
+                    if (!result.getResult().getMetadata().isFromCache()) {
+                        String fk_stores_from_fns_google_id = result.getResult().getString("fk_stores_from_fns_google_id");
+                        String fk_stores_on_map_google_id = result.getResult().getString("fk_stores_on_map_google_id");
+                        //если в ссылке на сервере указания на другие данные по магазину - например указан другой магазин на карте - создаем новую ссылку
+                        //иначе обновляем текущую - когда магазин не был указан ранее.
+                        if((!finalInvoiceData.store_from_fns.google_id.equals(fk_stores_from_fns_google_id) && fk_stores_from_fns_google_id != null && fk_stores_from_fns_google_id.length()>0)
+                        || (!finalInvoiceData.store_on_map.google_id.equals(fk_stores_on_map_google_id) && fk_stores_on_map_google_id!= null && fk_stores_on_map_google_id.length()>0))
+                        {
+                            Log.d(LOG_TAG, "tryToSaveStoreLinks  create new link " + new Exception().getStackTrace()[0].getLineNumber() + "\n"+fk_stores_on_map_google_id+"\n"+fk_stores_from_fns_google_id);
+                            DocumentReference addedDocRef = mFirestore.collection(tableNameStoresLinks).document();
+                            finalInvoiceData.fk_stores_links_google_id = addedDocRef.getId();
+                        }
+
+                        mFirestore.collection(tableNameStoresLinks).document(finalInvoiceData.fk_stores_links_google_id).set(fStore);
+                    }
+                } else {
+                    Log.d(LOG_TAG, "tryToSaveStoreLinks   !isSuccessful" + new Exception().getStackTrace()[0].getLineNumber());
+                }
+            }
+
+            cur.close();
+            if(finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.id != null
+                    && finalInvoiceData.store_on_map!=  null && finalInvoiceData.store_on_map.id != null) {
+
+                Log.d(LOG_TAG, "tryToSaveStoreLinks " + new Exception().getStackTrace()[0].getLineNumber());
+                ContentValues contentValues = new ContentValues();
+
+                contentValues.put("fk_stores_from_fns", finalInvoiceData.store_from_fns.id);
+                contentValues.put("fk_stores_on_map", finalInvoiceData.store_on_map.id);
+                if (finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.google_id != null && finalInvoiceData.store_from_fns.google_id.length()>0) {
+                    contentValues.put("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id);
+                }
+                if (finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.google_id != null && finalInvoiceData.store_on_map.google_id.length()>0) {
+                    contentValues.put("fk_stores_on_map_google_id", finalInvoiceData.store_on_map.google_id);
+                }
+
+
+                cur = dbHelper.query(tableNameStoresLinks, null, "id=?",
+                        new String[]{finalInvoiceData.fk_stores_links.toString()}, null, null, null, null);
+                if (cur.moveToFirst()) {
+                    int fk_store_on_map = cur.getInt(cur.getColumnIndex("fk_stores_on_map"));
+                    int fk_store_from_fns = cur.getInt(cur.getColumnIndex("fk_stores_from_fns"));
+
+
+
+
+                    if(!finalInvoiceData.store_on_map.id.equals(fk_store_on_map) && fk_store_on_map > 0 || !finalInvoiceData.store_from_fns.id.equals(fk_store_from_fns))
+                    {
+                        finalInvoiceData.fk_stores_links = dbHelper.insert(tableNameStoresLinks, null, contentValues);
+                    }
+                    else if(fk_store_on_map == 0)
+                    {
+                        dbHelper.update(tableNameStoresLinks, contentValues, "id=?", new String[]{finalInvoiceData.fk_stores_links.toString()});
+                    }
+                }
+                else
+                {
+                    finalInvoiceData.fk_stores_links = dbHelper.insert(tableNameStoresLinks, null, contentValues);
+                }
+            }
+            else
+            {
+                Log.d(LOG_TAG, "tryToSaveStoreLinks " + new Exception().getStackTrace()[0].getLineNumber());
+                ContentValues contentValues = new ContentValues();
+                if (finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.id != null) {
+                    contentValues.put("fk_stores_from_fns", finalInvoiceData.store_from_fns.id);
+                }
+                if (finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.id != null) {
+                    contentValues.put("fk_stores_on_map", finalInvoiceData.store_on_map.id);
+                }
+
+                if (finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.google_id != null && finalInvoiceData.store_from_fns.google_id.length()>0) {
+                    contentValues.put("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id);
+                }
+                if (finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.google_id != null && finalInvoiceData.store_on_map.google_id.length()>0) {
+                    contentValues.put("fk_stores_on_map_google_id", finalInvoiceData.store_on_map.google_id);
+                }
+
+                if(On_line && user.google_id != null && finalInvoiceData.fk_stores_links_google_id != null)
+                {
+                    mFirestore.collection(tableNameStoresLinks).document(finalInvoiceData.fk_stores_links_google_id).update(fStore);
+                }
+
+                dbHelper.update(tableNameStoresLinks, contentValues, "id=?", new String[]{finalInvoiceData.fk_stores_links.toString()});
+            }
+        }
+        else
+        {
+            Log.d(LOG_TAG, "tryToSaveStoreLinks " + new Exception().getStackTrace()[0].getLineNumber());
+            ContentValues contentValues = new ContentValues();
+
+
+
+            if (finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.id != null) {
+                contentValues.put("fk_stores_from_fns", finalInvoiceData.store_from_fns.id);
+            }
+            if (finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.id != null) {
+                contentValues.put("fk_stores_on_map", finalInvoiceData.store_on_map.id);
+            }
+
+
+
+            if(On_line && user.google_id != null)
+            {
+                if (finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.google_id != null && finalInvoiceData.store_on_map.google_id.length()>0) {
+                    fStore.put("fk_stores_on_map_google_id", finalInvoiceData.store_on_map.google_id);
+                    contentValues.put("fk_stores_on_map_google_id", finalInvoiceData.store_on_map.google_id);
+                }
+                if (finalInvoiceData.store_from_fns != null && finalInvoiceData.store_from_fns.google_id != null && finalInvoiceData.store_from_fns.google_id.length()>0) {
+                    fStore.put("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id);
+                    contentValues.put("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id);
+
+                    Task<QuerySnapshot> result = mFirestore.collection(tableNameStoresLinks).whereEqualTo("fk_stores_from_fns_google_id", finalInvoiceData.store_from_fns.google_id).get(source);
+                    while(!result.isComplete())
+                    {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if(result.isSuccessful()) {
+                        Log.d(LOG_TAG, "tryToSaveStoreLinks  result.isSuccessful() "+ new Exception().getStackTrace()[0].getLineNumber());
+                        if (!result.getResult().getMetadata().isFromCache()) {
+                            List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                            Boolean saveLink = false;
+                            if (documents.size() > 0) {
+                                if (finalInvoiceData.store_on_map != null && finalInvoiceData.store_on_map.google_id != null && finalInvoiceData.store_on_map.google_id.length()>0) {
+                                    for (int i = 0; i < documents.size(); i++) {
+                                        if (finalInvoiceData.store_on_map.equals(documents.get(i).get("fk_stores_on_map_google_id"))) {
+                                            finalInvoiceData.fk_stores_links_google_id = documents.get(i).getId();
+                                            saveLink = true;
+                                            break;
+                                            //String fk_stores_on_map_google_id = documents.get(0).get("fk_stores_on_map_google_id");
+                                            //если id найден
+                                        }
+                                    }
+                                }
+                            }
+
+                            if(!saveLink)
+                            {
+                                DocumentReference addedDocRef = mFirestore.collection(tableNameStoresLinks).document();
+                                finalInvoiceData.fk_stores_links_google_id = addedDocRef.getId();
+                                mFirestore.collection(tableNameStoresLinks).document(finalInvoiceData.fk_stores_links_google_id).set(fStore);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log.d(LOG_TAG, "tryToSaveStoreLinks   !isSuccessful"+ new Exception().getStackTrace()[0].getLineNumber());
+                    }
+
+
+                }
+                contentValues.put("google_id", finalInvoiceData.fk_stores_links_google_id);
+
+            }
+
+            finalInvoiceData.fk_stores_links = dbHelper.insert(tableNameStoresLinks, null, contentValues);
+        }
+
+        if(cur != null)
+            cur.close();
+
+    }
+
+
+    private InvoiceData.KktRegId loadKKtRegIdLocal(Long kktRegId, String selection) {
+        Cursor cur_kktRegId=dbHelper.query(tableNameKktRegId, null, selection, new String[]{kktRegId.toString()}, null, null, null, null);
+        if(cur_kktRegId.moveToFirst()) {
+            InvoiceData.KktRegId kktRegId_data = new InvoiceData.KktRegId();
+
+            kktRegId_data.id = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("id"));
+            kktRegId_data.google_id = cur_kktRegId.getString(cur_kktRegId.getColumnIndex("google_id"));
+            kktRegId_data.kktRegId = cur_kktRegId.getLong(cur_kktRegId.getColumnIndex("kktRegId"));
+            kktRegId_data._status = cur_kktRegId.getInt(cur_kktRegId.getColumnIndex("_status"));
+
+            cur_kktRegId.close();
+            return kktRegId_data;
+        }
+        else {
+            cur_kktRegId.close();
+            return null;
+        }
     }
 
     private void updatePurchases(PurchasesListData purchasesListData, String where, String[] args)
@@ -1918,75 +2870,65 @@ public class Invoice {
 
         if(purchasesListData.invoice != null && purchasesListData.invoice.id != null)
             contentValues.put("fk_purchases_invoice", purchasesListData.invoice.id);
-        if(purchasesListData.store != null && purchasesListData.store.id != null)
-            contentValues.put("fk_purchases_stores", purchasesListData.store.id);
+
         if(purchasesListData.product != null && purchasesListData.product.id != null)
             contentValues.put("fk_purchases_products", purchasesListData.product.id);
 
-
         if(purchasesListData.product != null && purchasesListData.product.google_id != null)
             contentValues.put("fk_purchases_products_google_id", purchasesListData.product.google_id);
-        if(purchasesListData.store != null && purchasesListData.store.google_id != null)
-            contentValues.put("fk_purchases_stores_google_id", purchasesListData.store.google_id);
+        if(purchasesListData.fk_purchases_kktRegId_stores_links!= null)
+            contentValues.put("fk_purchases_kktRegId_stores_links", purchasesListData.fk_purchases_kktRegId_stores_links);
 
-
-        dbHelper.update(tableNamePurchases, contentValues, where, args);
+        if(contentValues.size()>0)
+            dbHelper.update(tableNamePurchases, contentValues, where, args);
 
     }
 
-    private boolean checkStoretoUpdate(InvoiceData finalInvoiceData)
+    public boolean checkStoreOnMaptoUpdate(InvoiceData finalInvoiceData)
     {
         //проверка что магазин можно обновить - изменить его положение на карте, если это магазин привязан только к одной кассе и одному чеку
-        finalInvoiceData.store.update = false;
-        if(finalInvoiceData.store.id!= null)
+        finalInvoiceData.store_on_map.update = false;
+        if(finalInvoiceData.store_on_map.id!= null)
         {
             //поиск чеков с текущим магазином
-            Cursor cur = dbHelper.query(tableNameInvoice, null, "fk_invoice_stores=?", new String[]{finalInvoiceData.store.id.toString()}, null, null, null, null);
+            Cursor cur = dbHelper.query(tableNameStoresLinks, null, "fk_stores_on_map=?",
+                    new String[]{finalInvoiceData.store_on_map.id.toString()}, null, null, null, null);
             if(cur.getCount()<=1)
             {
-                //если чеки не найдены - проверяем кассы с этим магазином отличные от текущей
-                // если не найдены обновляем данные по магазину
-                //если кассы нет? выдаст ли ошибку?
                 cur.close();
-                cur = dbHelper.query(tableNameKktRegId, null, "fk_kktRegId_stores=? AND id <>?", new String[]{finalInvoiceData.store.id.toString(), finalInvoiceData.kktRegId.id.toString()}, null, null, null, null);
-                if(!cur.moveToFirst())
-                {
-                    finalInvoiceData.store.update = true;
-                }
-            }
-            else
-            {
-                //если чеки найдены считаем количество
-                int invCount = cur.getCount();
-                cur.close();
-                //берем уникальные ссылки на кассы из чеков где указан текущий магазин
-                //если касса еще не привязана к чеку???  проверять
-                cur = dbHelper.rawQuery("SELECT DISTINCT fk_invoice_kktRegId FROM "+tableNameInvoice+" WHERE fk_invoice_stores=?", new String[]{finalInvoiceData.store.id.toString()});
-                int kktCount = cur.getCount();
-                if(kktCount == 1) {
-                    //если кассы найдены в количестве 1 шт - только текущий чек ссылается на эту кассу
-                    cur.close();
-                    //проверяем что статус текущего магазина не 1
-                    cur = dbHelper.query(tablenameStores, null, "id =? and _status <>?", new String[]{finalInvoiceData.store.id.toString(), "1"}, null, null, null, null);
-                    if (cur.moveToFirst())
-                        finalInvoiceData.store.update = true;
-                    else
-                    {
-                        cur.close();
-                        //если статус магазина == 1 проверяем количество касс привязанных к этому магазину - если одна - обновляем.
-                        cur = dbHelper.query(tableNameKktRegId, null, "fk_kktRegId_stores =?", new String[]{finalInvoiceData.store.id.toString()}, null, null, null, null);
-                        if (cur.getCount() == 1)
-                            finalInvoiceData.store.update = true;
+                if(finalInvoiceData.fk_stores_links != null) {
+                    cur = dbHelper.query(tableNameKktRegIdStoresLinks, null, "fk_stores_links=?",
+                            new String[]{finalInvoiceData.fk_stores_links.toString()}, null, null, null, null);
+                    if (cur.getCount() <= 1) {
+                        // если не найдены обновляем данные по магазину
+                        finalInvoiceData.store_on_map.update = true;
                     }
                 }
+                else if(cur.getCount() == 0)
+                    finalInvoiceData.store_on_map.update = true;
             }
+            /*else if (cur.getCount() == 1)
+            {
+                finalInvoiceData.store_on_map.update = true;
+            }*/
             cur.close();
         }
-        return finalInvoiceData.store.update;
+        return finalInvoiceData.store_on_map.update;
     }
 
     public String latinToKirillic(String string)
     {
+        String checkLatin ="QWRYUISDFGJLZVNqwryuisdfghjlzvbn";
+
+        for(int i=0; i<checkLatin.length(); i++)
+        {
+            if(string.indexOf(checkLatin.charAt(i))>-1)
+            {
+                Log.d(LOG_TAG, "latinToKirillic  string in EN! "+string);
+                return string;
+            }
+        }
+
         String latin ="ETOPAHKXCBMetopakxcm";
         String kirillic ="ЕТОРАНКХСВМеторакхсм";
         for(int i=0; i<latin.length(); i++)
@@ -1996,151 +2938,265 @@ public class Invoice {
         return string;
     }
 
-    private void saveStoreDataLocal(InvoiceData.Store store)
+    private void saveStoreDataLocal(InvoiceData.Store_from_fns store_from_fns, InvoiceData.Store_on_map store_on_map)
     {
 
-        final ContentValues data = new ContentValues();
-        if(store.name != null) {
-            data.put("name", store.name.trim());
-        }
-        if(store.address != null) {
-            data.put("address", store.address.trim());
-        }
-        if(store.latitude != null) {
-            data.put("latitude", store.latitude);
-        }
-        if(store.longitude != null) {
-            data.put("longitude", store.longitude);
-        }
-        if(store.inn != null) {
-            data.put("inn", store.inn);
-        }
-        if(store.name_from_fns != null) {
-            store.name_from_fns= latinToKirillic(store.name_from_fns);
-            data.put("name_from_fns", store.name_from_fns.trim());
-        }
-        if(store.address_from_fns != null) {
-            data.put("address_from_fns", store.address_from_fns.trim());
-        }
-        if(store.place_id != null)
+        if(store_from_fns != null)
         {
-            data.put("place_id", store.place_id);
-        }
-        if(store.store_type != null) {
-            data.put("store_type", store.store_type);
-        }
-        if(store.iconName != null) {
-            data.put("iconName", store.iconName);
-        }
-        if(store.photo_reference != null) {
-            data.put("photo_reference", store.photo_reference);
-        }
-        if(store._status != null) {
-            data.put("_status", store._status);
+            final ContentValues data_from_fns = new ContentValues();
+            String hashcode = "";
+            if(store_from_fns.inn != null) {
+                data_from_fns.put("inn", store_from_fns.inn);
+                hashcode+= store_from_fns.inn;
+            }
+            if(store_from_fns.name_from_fns != null) {
+                //store_from_fns.name_from_fns= latinToKirillic(store_from_fns.name_from_fns);
+                data_from_fns.put("name_from_fns", store_from_fns.name_from_fns.trim());
+                hashcode +=store_from_fns.name_from_fns;
+            }
+
+            if(store_from_fns.address_from_fns != null) {
+                data_from_fns.put("address_from_fns", store_from_fns.address_from_fns.trim());
+                hashcode+=store_from_fns.address_from_fns.trim();
+            }
+            if(store_from_fns._status != null) {
+                data_from_fns.put("_status", store_from_fns._status);
+            }
+            if(store_from_fns.date_add == null)
+                store_from_fns.date_add = new Date().getTime();
+            data_from_fns.put("date_add", store_from_fns.date_add);
+
+            if(store_from_fns.google_id!= null)
+                data_from_fns.put("google_id", store_from_fns.google_id);
+
+            if(store_from_fns.inn != null)
+                data_from_fns.put("hashcode", encryptPassword(hashcode));
+
+            if(store_from_fns.id!= null)
+            {
+                dbHelper.update(tableNameStoresFromFns, data_from_fns, "id=?", new String[]{store_from_fns.id.toString()});
+            }
+            else if(store_from_fns.inn != null)
+            {
+                store_from_fns.id = (int)dbHelper.insert(tableNameStoresFromFns, null, data_from_fns);
+            }
         }
 
-        if(store.date_add == null) {
-            data.put("date_add", new Date().getTime());
-        }
-        else
+        if(store_on_map!= null)
         {
-            data.put("date_add",store.date_add);
-        }
+            final ContentValues data_on_map = new ContentValues();
+            if(store_on_map.name != null) {
+                data_on_map.put("name", store_on_map.name.trim());
+            }
+            if(store_on_map.address != null) {
+                data_on_map.put("address", store_on_map.address.trim());
+            }
+            if(store_on_map.latitude != null) {
+                data_on_map.put("latitude", store_on_map.latitude);
+            }
+            if(store_on_map.longitude != null) {
+                data_on_map.put("longitude", store_on_map.longitude);
+            }
 
-        if(store.google_id!= null)
-            data.put("google_id", store.google_id);
+            if(store_on_map.fk_stores_from_fns != null) {
+                data_on_map.put("fk_stores_from_fns", store_on_map.fk_stores_from_fns);
+            }
 
-        if(store.update && store.id!= null)
-        {
-            dbHelper.update(tablenameStores, data, "id=?", new String[]{store.id.toString()});
-        }
-        else
-        {
-            store.id = (int)dbHelper.insert(tablenameStores, null, data);
+            if(store_on_map.place_id != null)
+            {
+                data_on_map.put("place_id", store_on_map.place_id);
+            }
+            if(store_on_map.store_type != null) {
+                data_on_map.put("store_type", store_on_map.store_type);
+            }
+            if(store_on_map.iconName != null) {
+                data_on_map.put("iconName", store_on_map.iconName);
+            }
+            if(store_on_map.photo_reference != null) {
+                data_on_map.put("photo_reference", store_on_map.photo_reference);
+            }
+            if(store_on_map.date_add == null)
+                store_on_map.date_add = new Date().getTime();
+            data_on_map.put("date_add", store_on_map.date_add);
+            if(store_on_map.google_id!= null)
+                data_on_map.put("google_id", store_on_map.google_id);
+
+
+            if(store_on_map.id!= null && store_on_map.update)
+            {
+                dbHelper.update(tableNameStoresOnMap, data_on_map, "id=?", new String[]{store_on_map.id.toString()});
+            }
+            else //if(store_on_map.id == null)
+            {
+                store_on_map.id = (int)dbHelper.insert(tableNameStoresOnMap, null, data_on_map);
+            }
         }
     }
 
-    private void saveStoreDataServer(InvoiceData.Store store)
-    {
-        Map<String, Object> fStore = new HashMap<>();
-
-        if(store.name != null) {
-            fStore.put("name", store.name.trim());
-        }
-        if(store.address != null) {
-            fStore.put("address", store.address.trim());
-        }
-        if(store.latitude != null) {
-            fStore.put("latitude", store.latitude);
-        }
-        if(store.longitude != null) {
-            fStore.put("longitude", store.longitude);
-        }
-        if(store.inn != null) {
-            fStore.put("inn", store.inn);
-        }
-        if(store.name_from_fns != null) {
-            store.name_from_fns= latinToKirillic(store.name_from_fns);
-            fStore.put("name_from_fns", store.name_from_fns.trim());
-        }
-        if(store.address_from_fns != null) {
-            fStore.put("address_from_fns", store.address_from_fns.trim());
-        }
-        if(store.place_id != null)
-        {
-            fStore.put("place_id", store.place_id);
-        }
-        if(store.store_type != null) {
-            fStore.put("store_type", store.store_type);
-        }
-        if(store.iconName != null) {
-            fStore.put("iconName", store.iconName);
-        }
-        if(store.photo_reference != null) {
-            fStore.put("photo_reference", store.photo_reference);
-        }
-        if(store._status != null) {
-            fStore.put("_status", store._status);
-        }
-
-        if(store.date_add == null) {
-            fStore.put("date_add", new Date().getTime());
-        }
-
-        if(store.update && store.google_id!= null)
-        {
-            mFirestore.collection(tablenameStores).document(store.google_id).update(fStore);
-
-            Map<String, Object> updateChildren = new HashMap<>();
-            updateChildren.put("/" + tablenameStores + "/" + store.google_id, fStore);
-            mFirebase.updateChildren(updateChildren);
-        }
-        else
-        {
-            DocumentReference addedDocRef = mFirestore.collection(tablenameStores).document();
-            store.google_id = addedDocRef.getId();
-            addedDocRef.set(fStore);
+    private void saveStoreDataServer(InvoiceData.Store_from_fns store_from_fns, InvoiceData.Store_on_map store_on_map, String fk_stores_links_google_id) {
+        if (store_from_fns != null) {
+            Map<String, Object> fStore = new HashMap<>();
 
 
-            //store.google_id = mFirebase.child(tablenameStores).push().getKey();
-            mFirebase.child(tablenameStores).child(store.google_id).setValue(fStore);
+            String hashcode = "";
+            if (store_from_fns.inn != null) {
+                fStore.put("inn", store_from_fns.inn);
+                hashcode += store_from_fns.inn;
+            }
+            if (store_from_fns.name_from_fns != null) {
+                //store_from_fns.name_from_fns= latinToKirillic(store_from_fns.name_from_fns);
+                fStore.put("name_from_fns", store_from_fns.name_from_fns.trim());
+                hashcode += store_from_fns.name_from_fns;
+            }
+
+            if (store_from_fns.address_from_fns != null) {
+                fStore.put("address_from_fns", store_from_fns.address_from_fns.trim());
+                hashcode += store_from_fns.address_from_fns.trim();
+            }
+
+            if (store_from_fns.inn != null)
+                fStore.put("hashcode", encryptPassword(hashcode));
+
+            if (store_from_fns._status != null) {
+                fStore.put("_status", store_from_fns._status);
+            }
+            if (store_from_fns.date_add == null)
+                store_from_fns.date_add = new Date().getTime();
+
+            fStore.put("date_add", store_from_fns.date_add);
 
 
-            ContentValues dataUpdate = new ContentValues();
-            dataUpdate.put("google_id", store.google_id);
-            dbHelper.update(tablenameStores, dataUpdate, "id=?", new String[]{store.id.toString()});
+            if (store_from_fns.google_id != null) {
+                mFirestore.collection(tableNameStoresFromFns).document(store_from_fns.google_id).update(fStore);
+                Map<String, Object> updateChildren = new HashMap<>();
+                updateChildren.put("/" + tableNameStoresFromFns + "/" + store_from_fns.google_id, fStore);
+                mFirebase.updateChildren(updateChildren);
+            } else {
+
+                Task<QuerySnapshot> result = mFirestore.collection(tableNameStoresFromFns).whereEqualTo("hashcode", fStore.get("hashcode")).get(source);
+                while (!result.isComplete()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if (result.isSuccessful()) {
+                    Log.d(LOG_TAG, "saveStoreDataServer  result.isSuccessful() " + new Exception().getStackTrace()[0].getLineNumber());
+                    if (!result.getResult().getMetadata().isFromCache()) {
+                        List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                        if (documents.size() <= 0) {
+                            Log.d(LOG_TAG, "saveStoreDataServer  not found on server " + new Exception().getStackTrace()[0].getLineNumber());
+                            DocumentReference addedDocRef = mFirestore.collection(tableNameStoresFromFns).document();
+                            addedDocRef.set(fStore);
+                            store_from_fns.google_id = addedDocRef.getId();
+                            mFirebase.child(tableNameStoresFromFns).child(store_from_fns.google_id).setValue(fStore);
+                        } else {
+                            store_from_fns.google_id = documents.get(0).getId();
+                            Log.d(LOG_TAG, "saveStoreDataServer  found on server " + store_from_fns.google_id + "\n" + new Exception().getStackTrace()[0].getLineNumber());
+                        }
+                    }
+                } else {
+                    Log.d(LOG_TAG, "saveStoreDataServer  repeat " + new Exception().getStackTrace()[0].getLineNumber());
+                    //saveStoreDataServer(store_from_fns, store_on_map);
+                    return;
+                }
+                if (store_from_fns.id != null) {
+                    ContentValues dataUpdate = new ContentValues();
+                    dataUpdate.put("google_id", store_from_fns.google_id);
+                    int count = dbHelper.update(tableNameStoresFromFns, dataUpdate, "id=?", new String[]{store_from_fns.id.toString()});
+                    Log.d(LOG_TAG, "updated in local db id=" + store_from_fns.id + "\n строк " + count);
+                }
+            }
+        }
+        if (store_on_map != null) {
+            Map<String, Object> data_on_map = new HashMap<>();
+
+            if (store_on_map.name != null) {
+                data_on_map.put("name", store_on_map.name.trim());
+            }
+            if (store_on_map.address != null) {
+                data_on_map.put("address", store_on_map.address.trim());
+            }
+            if (store_on_map.latitude != null) {
+                data_on_map.put("latitude", store_on_map.latitude);
+            }
+            if (store_on_map.longitude != null) {
+                data_on_map.put("longitude", store_on_map.longitude);
+            }
+            if (store_on_map.place_id != null) {
+                data_on_map.put("place_id", store_on_map.place_id);
+            }
+            if (store_on_map.store_type != null) {
+                data_on_map.put("store_type", store_on_map.store_type);
+            }
+            if (store_on_map.iconName != null) {
+                data_on_map.put("iconName", store_on_map.iconName);
+            }
+            if (store_on_map.photo_reference != null) {
+                data_on_map.put("photo_reference", store_on_map.photo_reference);
+            }
+            if (store_on_map.date_add == null)
+                store_on_map.date_add = new Date().getTime();
+            data_on_map.put("date_add", store_on_map.date_add);
+
+            Task<QuerySnapshot> result = mFirestore.collection(tableNameStoresOnMap).whereEqualTo("place_id", store_on_map.place_id).get(source);
+            while (!result.isComplete()) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (result.isSuccessful())
+            {
+                Log.d(LOG_TAG, "saveStoreDataServer  result.isSuccessful() " + new Exception().getStackTrace()[0].getLineNumber());
+                if (!result.getResult().getMetadata().isFromCache()) {
+                    List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                    if (documents.size() <= 0 && store_on_map.google_id != null) {
+                        DocumentReference addedDocRef = mFirestore.collection(tableNameStoresOnMap).document(store_on_map.google_id);
+                        addedDocRef.set(data_on_map);
+                        mFirebase.child(tableNameStoresOnMap).child(store_on_map.google_id).setValue(data_on_map);
+                    } else if (documents.size() <= 0) {
+                        DocumentReference addedDocRef = mFirestore.collection(tableNameStoresOnMap).document();
+                        addedDocRef.set(data_on_map);
+                        store_on_map.google_id = addedDocRef.getId();
+                        mFirebase.child(tableNameStoresOnMap).child(store_on_map.google_id).setValue(data_on_map);
+                    } else if (store_on_map.google_id != null) {
+                        tryToDeleteStoreOnMapFromServer(store_on_map, fk_stores_links_google_id);
+                        store_on_map.google_id = documents.get(0).getId();
+                    } else {
+                        store_on_map.google_id = documents.get(0).getId();
+                    }
+
+
+                }
+            } else {
+                Log.d(LOG_TAG, "saveStoreDataServer  repeat " + new Exception().getStackTrace()[0].getLineNumber());
+                //saveStoreDataServer(store_from_fns, store_on_map);
+                //return;
+            }
+
+            if (store_on_map.id != null) {
+                ContentValues dataUpdate = new ContentValues();
+                dataUpdate.put("google_id", store_on_map.google_id);
+                int count = dbHelper.update(tableNameStoresOnMap, dataUpdate, "id=?", new String[]{store_on_map.id.toString()});
+                Log.d(LOG_TAG, "updated in local db id=" + store_on_map.id + "\n строк " + count);
+            }
         }
     }
 
     public void setStoreData(InvoiceData invoiceData) throws Exception {
 
-        InvoiceData.Store store = invoiceData.store;
+        InvoiceData.Store_from_fns store_from_fns = invoiceData.store_from_fns;
+        InvoiceData.Store_on_map store_on_map = invoiceData.store_on_map;
+
         Boolean check_placeid = false;
-        if(On_line && user.google_id != null)
+        /*if(On_line && user.stores_from_fns_google_id != null)
         {
-            if(store.google_id!= null)
+            if(store.stores_from_fns_google_id!= null)
             {
-                Task<DocumentSnapshot> task = mFirestore.collection(tablenameStores).document(store.google_id).get(source);
+                Task<DocumentSnapshot> task = mFirestore.collection(tableNameStoresFromFns).document(store.stores_from_fns_google_id).get(source);
                 while (!task.isComplete()) {
                     try {
                         Thread.sleep(100);
@@ -2150,7 +3206,7 @@ public class Invoice {
                 }
                 if (task.isSuccessful()) {
                     if (task.getResult().exists()) {
-                        saveStoreDataLocal(store);
+                        saveStoreDataLocal(store, store);
                         saveStoreDataServer(store);
                     } else {
                         check_placeid = true;
@@ -2160,9 +3216,9 @@ public class Invoice {
                 }
             }
 
-            if((store.google_id != null && check_placeid) || (store.google_id == null && store.place_id!= null))
+            if((store.stores_from_fns_google_id != null && check_placeid) || (store.stores_from_fns_google_id == null && store.place_id!= null))
             {
-                Task<QuerySnapshot> task_pl_id = mFirestore.collection(tablenameStores).whereEqualTo("place_id", store.place_id).get(source);
+                Task<QuerySnapshot> task_pl_id = mFirestore.collection(tableNameStoresFromFns).whereEqualTo("place_id", store.place_id).get(source);
                 while(!task_pl_id.isComplete())
                 {
                     try {
@@ -2180,9 +3236,9 @@ public class Invoice {
                     }
                     else
                     {
-                        InvoiceData.Store storeDoc = task_pl_id.getResult().getDocuments().get(0).toObject(InvoiceData.Store.class);
+                        InvoiceData.Store_from_fns storeDoc = task_pl_id.getResult().getDocuments().get(0).toObject(InvoiceData.Store_from_fns.class);
                         storeDoc.id = store.id;
-                        saveStoreDataLocal(storeDoc);
+                        saveStoreDataLocal(storeDoc, store);
                     }
                 }
                 else
@@ -2190,48 +3246,39 @@ public class Invoice {
                     throw  new Exception(LOG_TAG +"\nsetStoreData()\n"+"Ошибка обращения к серверу");
                 }
             }
-            else if(store.google_id == null && store.place_id == null)
+            else if(store.stores_from_fns_google_id == null && store.place_id == null)
             {
-                saveStoreDataLocal(store);
+                saveStoreDataLocal(store, store);
                 saveStoreDataServer(store);
             }
         }
         else
         {
-            saveStoreDataLocal(store);
-        }
+            saveStoreDataLocal(store, store);
+        }*/
+        if(On_line && user.google_id != null)
+            saveStoreDataServer(store_from_fns, store_on_map, invoiceData.fk_stores_links_google_id);
+        saveStoreDataLocal(store_from_fns, store_on_map);
     }
 
-    private void deleteStoreLink(Integer Id, @Nullable String google_id)
+    private void deleteStoreOnMapLink(Integer Id, @Nullable String google_id)
     {
-        Cursor cur = dbHelper.query(tableNameInvoice, null, "fk_invoice_stores=?", new String[]{Id.toString()}, null, null, null, null);
         boolean delete = false;
-        if(!cur.moveToFirst())
-            delete = true;
-        else
-            delete = false;
-        cur = dbHelper.query(tableNamePurchases, null, "fk_purchases_stores=?", new String[]{Id.toString()}, null, null, null, null);
-        if(!cur.moveToFirst())
-            delete = true;
-        else
-            delete = false;
+        Cursor cur = null;
+        if(Id != null) {
+            cur = dbHelper.query(tableNameStoresLinks, null, "fk_stores_on_map=?", new String[]{Id.toString()}, null, null, null, null);
+            delete = cur.getCount() <=0;
 
-        cur = dbHelper.query(tableNameKktRegId, null, "fk_kktRegId_stores=?", new String[]{Id.toString()}, null, null, null, null);
-        if(!cur.moveToFirst())
-            delete = true;
-        else
-            delete = false;
-
-        cur.close();
-        if(delete)
-        {
-            dbHelper.delete(tablenameStores, "id=?", new String[]{Id.toString()});
+            if (cur != null)
+                cur.close();
+            if (delete) {
+                dbHelper.delete(tableNameStoresOnMap, "id=?", new String[]{Id.toString()});
+            }
         }
-
         if(On_line && user.google_id != null && google_id != null)
         {
             Boolean removeStore = false;
-            Task<QuerySnapshot> result = mFirestore.collection(tableNamePurchases).whereEqualTo("fk_purchases_stores_google_id", google_id).get(source);
+            Task<QuerySnapshot> result = mFirestore.collection(tableNamePurchases).whereEqualTo("fk_purchases_stores_on_map_google_id", google_id).get(source);
             while(!result.isComplete())
             {
                 try {
@@ -2243,16 +3290,9 @@ public class Invoice {
             if(result.isSuccessful())
             {
                 List<DocumentSnapshot> documents = result.getResult().getDocuments();
-                if(documents.size()==0)
-                {
-                    removeStore = true;
-                }
-                else
-                {
-                    removeStore = false;
-                }
+                removeStore = documents.size() == 0;
             }
-            result = mFirestore.collection(tableNameInvoice).whereEqualTo("fk_invoice_stores_google_id", google_id).get(source);
+            result = mFirestore.collection(tableNameInvoice).whereEqualTo("fk_invoice_stores_on_map_google_id", google_id).get(source);
             while(!result.isComplete())
             {
                 try {
@@ -2264,16 +3304,9 @@ public class Invoice {
             if(result.isSuccessful())
             {
                 List<DocumentSnapshot> documents = result.getResult().getDocuments();
-                if(documents.size()==0)
-                {
-                    removeStore = true;
-                }
-                else
-                {
-                    removeStore = false;
-                }
+                removeStore = documents.size() == 0;
             }
-            result = mFirestore.collection(tableNameKktRegId).whereEqualTo("fk_kktRegId_stores_google_id", google_id).get(source);
+            result = mFirestore.collection(tableNameKktRegId).whereEqualTo("fk_kktRegId_google_id", google_id).get(source);
             while(!result.isComplete())
             {
                 try {
@@ -2285,19 +3318,12 @@ public class Invoice {
             if(result.isSuccessful())
             {
                 List<DocumentSnapshot> documents = result.getResult().getDocuments();
-                if(documents.size()==0)
-                {
-                    removeStore = true;
-                }
-                else
-                {
-                    removeStore = false;
-                }
+                removeStore = documents.size() == 0;
             }
 
             if(removeStore)
             {
-                Task<Void> resultDelet = mFirestore.collection(tablenameStores).document(google_id).delete();
+                Task<Void> resultDelet = mFirestore.collection(tableNameStoresFromFns).document(google_id).delete();
                 while(!resultDelet.isComplete())
                 {
                     try {
@@ -2310,46 +3336,205 @@ public class Invoice {
         }
     }
 
-    private List<InvoiceData.Store> loadDataFromStore(Map<String, String> keyFields)
+    private void deleteStoreFromFnsLink(InvoiceData.Store_from_fns store_from_fns)
     {
-        List<InvoiceData.Store> listStore = new ArrayList<>();
+        boolean delete = false;
+        Cursor cur = null;
+        if(store_from_fns.id != null) {
+            if (!delete) {
+                cur = dbHelper.query(tableNameStoresLinks, null, "fk_stores_from_fns=?", new String[]{store_from_fns.id.toString()}, null, null, null, null);
+                delete = cur.moveToFirst();
+            }
+
+            if (cur != null)
+                cur.close();
+            if (!delete) {
+                dbHelper.delete(tableNameStoresFromFns, "id=?", new String[]{store_from_fns.id.toString()});
+            }
+        }
+
+        if(On_line && user.google_id != null && store_from_fns.google_id != null)
+        {
+            Boolean removeStore = false;
+            Task<QuerySnapshot> result = mFirestore.collection(tableNamePurchases).whereEqualTo("fk_purchases_stores_from_fns_google_id", store_from_fns.google_id).get(source);
+            while(!result.isComplete())
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(result.isSuccessful())
+            {
+                List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                removeStore = documents.size() == 0;
+            }
+            result = mFirestore.collection(tableNameInvoice).whereEqualTo("fk_invoice_stores_from_fns_google_id", store_from_fns.google_id).get(source);
+            while(!result.isComplete())
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(result.isSuccessful())
+            {
+                List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                removeStore = documents.size() == 0;
+            }
+            result = mFirestore.collection(tableNameKktRegId).whereEqualTo("fk_kktRegId_google_id", store_from_fns.google_id).get(source);
+            while(!result.isComplete())
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(result.isSuccessful())
+            {
+                List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                removeStore = documents.size() == 0;
+            }
+
+            if(removeStore)
+            {
+                Task<Void> resultDelet = mFirestore.collection(tableNameStoresFromFns).document(store_from_fns.google_id).delete();
+                while(!resultDelet.isComplete())
+                {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    private List<InvoiceData.Store_from_fns> loadDataFromStore_from_fns(Map<String, String> keyFields)
+    {
+        List<InvoiceData.Store_from_fns> listStore = new ArrayList<>();
 
 
         String selection="";
         List<String> listArgs = new ArrayList<>();
         for(Map.Entry<String, String> entry : keyFields.entrySet())
         {
-            selection+= entry.getKey()+"=? AND ";
-            listArgs.add(entry.getValue());
+            if(entry.getKey().equals("name_from_fns"))
+            {
+                selection +=entry.getKey()+" like ? AND ";
+                listArgs.add("%"+entry.getValue()+"%");
+            }
+            else
+            {
+                selection += entry.getKey() + "=? AND ";
+                listArgs.add(entry.getValue());
+            }
         }
 
         selection=selection.substring(0, selection.length() - 5);
         String[] args = listArgs.toArray(new String[listArgs.size()]);
-        Cursor cur_Store = dbHelper.query(tablenameStores, null, selection, args, null, null, null, null);
+        Cursor cur_Store = dbHelper.query(tableNameStoresFromFns, null, selection, args, null, null, null, null);
         if(cur_Store.moveToFirst())
         {
             do{
-                InvoiceData.Store store = new InvoiceData.Store();
-                store.address_from_fns = cur_Store.getString(cur_Store.getColumnIndex("address_from_fns"));
-                store.name_from_fns = cur_Store.getString(cur_Store.getColumnIndex("name_from_fns"));
-                store.latitude = cur_Store.getDouble(cur_Store.getColumnIndex("latitude"));
-                store.longitude = cur_Store.getDouble(cur_Store.getColumnIndex("longitude"));
-                store.name = cur_Store.getString(cur_Store.getColumnIndex("name"));
-                store.address = cur_Store.getString(cur_Store.getColumnIndex("address"));
-                store.inn = cur_Store.getLong(cur_Store.getColumnIndex("inn"));
-                store.place_id = cur_Store.getString(cur_Store.getColumnIndex("place_id"));
-                store.iconName = cur_Store.getString(cur_Store.getColumnIndex("iconName"));
-                store.photo_reference = cur_Store.getString(cur_Store.getColumnIndex("photo_reference"));
-                store._status = cur_Store.getInt(cur_Store.getColumnIndex("_status"));
-                store.id = cur_Store.getInt(cur_Store.getColumnIndex("id"));
-                store.google_id = cur_Store.getString(cur_Store.getColumnIndex("google_id"));
+                InvoiceData.Store_from_fns store_from_fns = new InvoiceData.Store_from_fns();
+                store_from_fns.id = cur_Store.getInt(cur_Store.getColumnIndex("id"));
+                store_from_fns.google_id = cur_Store.getString(cur_Store.getColumnIndex("google_id"));
+                store_from_fns.hashCode = cur_Store.getString(cur_Store.getColumnIndex("hashcode"));
 
-                listStore.add(store);
+                store_from_fns.address_from_fns = cur_Store.getString(cur_Store.getColumnIndex("address_from_fns"));
+                store_from_fns.name_from_fns = cur_Store.getString(cur_Store.getColumnIndex("name_from_fns"));
+                store_from_fns._status = cur_Store.getInt(cur_Store.getColumnIndex("_status"));
+                store_from_fns.inn = cur_Store.getLong(cur_Store.getColumnIndex("inn"));
+
+                listStore.add(store_from_fns);
             }
             while(cur_Store. moveToNext());
             cur_Store.close();
         }
+        cur_Store.close();
 
+
+        return listStore;
+    }
+    private List<InvoiceData.Store_on_map> loadDataFromStore_on_map(Map<String, List<String>> keyFields, @Nullable String key)
+    {
+        List<InvoiceData.Store_on_map> listStore = new ArrayList<>();
+
+
+        if(key == null)
+        {
+            key = "AND";
+        }
+
+        String selection="";
+        List<String> listArgs = new ArrayList<>();
+        for(Map.Entry<String, List<String>> entry : keyFields.entrySet())
+        {
+            if(entry.getKey().equals("name"))
+            {
+                selection += "(";
+                for(String item : entry.getValue()) {
+                    if(item.toLowerCase().equals("not null"))
+                    {
+                        selection += entry.getKey() + " " + item + " OR ";
+                    }
+                    else {
+                        selection += entry.getKey() + " like ? OR ";
+                        listArgs.add("%" + item + "%");
+                    }
+
+
+                }
+                selection = selection.substring(0, selection.length() - 4)+") AND ";
+            }
+            else {
+                selection += "(";
+                for(String item : entry.getValue()) {
+                    if(item.toLowerCase().equals("not null"))
+                    {
+                        selection += entry.getKey() + " " + item + " OR ";
+                    }
+                    else {
+                        selection += entry.getKey() + "=? OR ";
+                        listArgs.add(item);
+                    }
+                }
+                selection = selection.substring(0, selection.length() - 4)+") AND ";
+            }
+        }
+
+        selection=selection.substring(0, selection.length() - 5);
+        String[] args = listArgs.toArray(new String[listArgs.size()]);
+        Cursor cur_Store = dbHelper.query(tableNameStoresOnMap, null, selection, args, null, null, null, null);
+        if(cur_Store.moveToFirst())
+        {
+            do{
+                InvoiceData.Store_on_map store_on_map = new InvoiceData.Store_on_map();
+                store_on_map.id = cur_Store.getInt(cur_Store.getColumnIndex("id"));
+                store_on_map.google_id = cur_Store.getString(cur_Store.getColumnIndex("google_id"));
+
+                //store_on_map.fk_stores_from_fns = cur_Store.getInt(cur_Store.getColumnIndex("fk_stores_from_fns"));
+                //store_on_map.fk_stores_from_fns_google_id = cur_Store.getString(cur_Store.getColumnIndex("fk_stores_from_fns_google_id"));
+
+                store_on_map.latitude = cur_Store.getDouble(cur_Store.getColumnIndex("latitude"));
+                store_on_map.longitude = cur_Store.getDouble(cur_Store.getColumnIndex("longitude"));
+                store_on_map.name = cur_Store.getString(cur_Store.getColumnIndex("name"));
+                store_on_map.address = cur_Store.getString(cur_Store.getColumnIndex("address"));
+
+                store_on_map.place_id = cur_Store.getString(cur_Store.getColumnIndex("place_id"));
+                store_on_map.iconName = cur_Store.getString(cur_Store.getColumnIndex("iconName"));
+                store_on_map.photo_reference = cur_Store.getString(cur_Store.getColumnIndex("photo_reference"));
+
+                listStore.add(store_on_map);
+            }
+            while(cur_Store. moveToNext());
+        }
+        cur_Store.close();
 
         return listStore;
     }
@@ -2373,22 +3558,22 @@ public class Invoice {
         InvoiceData invoiceData = new InvoiceData();
 
         //invoiceData.setDateInvoice(receipt.);
-        if(finalInvoiceData.store == null)
-            finalInvoiceData.store = new InvoiceData.Store();
+        if(finalInvoiceData.store_from_fns == null)
+            finalInvoiceData.store_from_fns = new InvoiceData.Store_from_fns();
         if(receipt.user != null)
-            finalInvoiceData.store.name_from_fns= receipt.user;
+            finalInvoiceData.store_from_fns.name_from_fns= latinToKirillic(receipt.user).trim();
         if(receipt.retailPlaceAddress != null)
-            finalInvoiceData.store.address_from_fns = receipt.retailPlaceAddress.trim().replaceAll("\\s{2,}", "");
+            finalInvoiceData.store_from_fns.address_from_fns = receipt.retailPlaceAddress.trim().replaceAll("\\s{2,}", "");
 
-        if(finalInvoiceData.store.inn == null)
-            finalInvoiceData.store.update = true;
-        else if(finalInvoiceData.store.inn == 0)
-            finalInvoiceData.store.update = true;
+        if(finalInvoiceData.store_from_fns.inn == null)
+            finalInvoiceData.store_from_fns.update = true;
+        else if(finalInvoiceData.store_from_fns.inn == 0)
+            finalInvoiceData.store_from_fns.update = true;
 
-        if(finalInvoiceData.store._status == null)
-            finalInvoiceData.store._status = 0;
+        if(finalInvoiceData.store_from_fns._status == null)
+            finalInvoiceData.store_from_fns._status = 0;
         if(receipt.userInn != null)
-            finalInvoiceData.store.inn = Long.valueOf(receipt.userInn.trim());
+            finalInvoiceData.store_from_fns.inn = Long.valueOf(receipt.userInn.trim());
 
         if(finalInvoiceData.kktRegId == null)
             finalInvoiceData.kktRegId = new InvoiceData.KktRegId();
@@ -2430,27 +3615,13 @@ public class Invoice {
         fStore.put("fullPrice", updateData.get("fullPrice"));
         fStore.put("ecashTotalSum",updateData.get("ecashTotalSum") );
         fStore.put("cashTotalSum",updateData.get("cashTotalSum"));
-        if(finalInvoiceData.kktRegId.id != null) {
-            updateData.put("fk_invoice_kktRegId", finalInvoiceData.kktRegId.id);
-        }
-        if(finalInvoiceData.kktRegId.google_id != null) {
-            updateData.put("fk_invoice_kktRegId_google_id", finalInvoiceData.kktRegId.google_id);
 
-
-            fStore.put("fk_invoice_kktRegId_google_id", finalInvoiceData.kktRegId.google_id);
+        if(finalInvoiceData.fk_invoice_kktRegId_store_links!= null)
+        {
+            updateData.put("fk_invoice_kktRegId_store_links", finalInvoiceData.fk_invoice_kktRegId_store_links);
         }
-        if(finalInvoiceData.store.id != null) {
-            updateData.put("fk_invoice_stores", finalInvoiceData.store.id);
-        }
-        if(finalInvoiceData.store.google_id != null) {
-            updateData.put("fk_invoice_stores_google_id", finalInvoiceData.store.google_id);
 
-
-            fStore.put("fk_invoice_stores_google_id", finalInvoiceData.store.google_id);
-        }
         updateData.put("_status", finalInvoiceData.get_status());
-
-
         if(finalInvoiceData.get_status() != null && finalInvoiceData.get_status()==1 && finalInvoiceData.server_status == null)
             fStore.put("server_status",1);
         else if(finalInvoiceData.server_status!= null)
@@ -2458,8 +3629,6 @@ public class Invoice {
         else
             fStore.put("server_status", 0);
 
-
-        fStore.put("jsonData", finalInvoiceData.jsonData);
         if(On_line && user.google_id != null && finalInvoiceData.google_id != null && (finalInvoiceData.server_status == null || finalInvoiceData.server_status != 1))
         {
             mFirestore.collection(tableNameInvoice).document(finalInvoiceData.google_id).update(fStore);
@@ -2467,13 +3636,15 @@ public class Invoice {
             updateChildren.put("/"+tableNameInvoice+"/"+finalInvoiceData.google_id, fStore);
             mFirebase.updateChildren(updateChildren);
         }
-        dbHelper.update(tableNameInvoice, updateData, "id=?", new String[]{finalInvoiceData.getId().toString()});
+        //dbHelper.update(tableNameInvoice, updateData, "id=?", new String[]{finalInvoiceData.getId().toString()});
+        updateInvoice(finalInvoiceData);
+        log.info(LOG_TAG+" updated invoice id " +finalInvoiceData.getId());
         Log.d(LOG_TAG, "updated invoice id " +finalInvoiceData.getId());
 
 
         //Start adding purchases and prod
         ArrayList<GetFnsData.Items> items = receipt.items;
-        if(finalInvoiceData.store.id != null && finalInvoiceData.kktRegId.id != null) {
+        if(finalInvoiceData.store_from_fns.id != null && finalInvoiceData.kktRegId.id != null) {
             for (GetFnsData.Items item : items) {
                 int fk_purchases_products = -1;
                 String google_item_id = null;
@@ -2485,7 +3656,7 @@ public class Invoice {
 
                     if(On_line && user.google_id != null)
                     {
-                        Task<QuerySnapshot> result_product = mFirestore.collection("Products").whereEqualTo("nameFromBill", item.name).get(source);
+                        Task<QuerySnapshot> result_product = mFirestore.collection(tableNameProducts).whereEqualTo("nameFromBill", item.name).get(source);
                         while (!result_product.isComplete()) {
                             try {
                                 Thread.sleep(100);
@@ -2507,7 +3678,6 @@ public class Invoice {
                     if (cur_products.moveToFirst()) {
                         fk_purchases_products = cur_products.getInt(cur_products.getColumnIndex("id"));
                         fk_purchases_products_google_id = cur_products.getString(cur_products.getColumnIndex("google_id"));
-                        add_to_google = false;
                     }
                     cur_products.close();
                 }
@@ -2536,12 +3706,8 @@ public class Invoice {
                 ContentValues values = new ContentValues();
                 final Map<String, Object> fPurchases = new HashMap<>();
 
-                if (finalInvoiceData.store.id != null)
-                    values.put("fk_purchases_stores", finalInvoiceData.store.id);
-
-                if (finalInvoiceData.store.google_id != null) {
-                    fPurchases.put("fk_purchases_stores_google_id", finalInvoiceData.store.google_id);
-                }
+                if (finalInvoiceData.fk_invoice_kktRegId_store_links != null)
+                    values.put("fk_purchases_kktRegId_stores_links", finalInvoiceData.fk_invoice_kktRegId_store_links);
 
 
                 values.put("fk_purchases_products", fk_purchases_products);
@@ -2579,47 +3745,49 @@ public class Invoice {
                 Log.d(LOG_TAG, "added purchase id " + tmp);
                 if (On_line && user.google_id != null) {
 
-                    if (add_to_google) {
+                    if (google_item_id == null) {
 
-                        if(google_item_id == null) {
-                            Map<String, Object> fProducts = new HashMap<>();
-                            fProducts.put("nameFromBill", item.name);
-                            DocumentReference addedDocRef_product = mFirestore.collection("products").document();
-                            google_item_id = addedDocRef_product.getId();
-                            addedDocRef_product.set(fProducts);
+                        Map<String, Object> fProducts = new HashMap<>();
+                        ContentValues val = new ContentValues();
+                        fProducts.put("nameFromBill", item.name);
+                        DocumentReference addedDocRef_product = mFirestore.collection(tableNameProducts).document();
+                        google_item_id = addedDocRef_product.getId();
+                        addedDocRef_product.set(fProducts);
+                        Log.d(LOG_TAG, "added in google product "+google_item_id + " name from bill " + item.name + "\n"+ new Exception().getStackTrace()[0].getLineNumber());
+                        mFirebase.child(tableNameProducts).child(google_item_id).setValue(fProducts);
 
-                            Log.d(LOG_TAG, "added in google product "+google_item_id + " name from bill " + item.name);
-                            //String google_id = mFirebase.child("products").push().getKey();
-                            mFirebase.child("products").child(google_item_id).setValue(fProducts);
+                        val.put("google_id", google_item_id);
+                        dbHelper.update(tableNameProducts, val, "id =?", new String[]{String.valueOf(fk_purchases_products)});
 
-
-                            ContentValues val = new ContentValues();
-                            val.put("google_id", google_item_id);
-                            dbHelper.update("Products", val, "id =?", new String[]{String.valueOf(fk_purchases_products)});
-                        }
                         fPurchases.put("fk_purchases_products_google_id", google_item_id);
-                        DocumentReference addedDocRef_purchase = mFirestore.collection("purchases").document();
-                        addedDocRef_purchase.set(fPurchases);
-                        String google_id = addedDocRef_purchase.getId();
-
-                        //String google_id = mFirebase.child("purchases").push().getKey();
-                        mFirebase.child("purchases").child(google_id).setValue(fPurchases);
-
-                        ContentValues valuesUpdate = new ContentValues();
-                        valuesUpdate.put("google_id", google_id);
-                        dbHelper.update("purchases", valuesUpdate, "id=?", new String[]{tmp.toString()});
-                    } else {
-                        DocumentReference addedDocRef_purchase = mFirestore.collection("purchases").document();
-                        addedDocRef_purchase.set(fPurchases);
-                        String google_id = addedDocRef_purchase.getId();
-
-                        //String google_id = mFirebase.child("purchases").push().getKey();
-                        mFirebase.child("purchases").child(google_id).setValue(fPurchases);
-
-                        ContentValues valuesUpdate = new ContentValues();
-                        valuesUpdate.put("google_id", google_id);
-                        dbHelper.update("purchases", valuesUpdate, "id=?", new String[]{tmp.toString()});
                     }
+
+                    Task<QuerySnapshot> result_product = mFirestore.collection(tableNamePurchases).whereEqualTo("fk_purchases_invoice_google_id",finalInvoiceData.google_id)
+                            .whereEqualTo("fk_purchases_products_google_id", google_item_id).get(source);
+                    while (!result_product.isComplete()) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    List<DocumentSnapshot> documents = result_product.getResult().getDocuments();
+                    String google_id = null;
+                    ContentValues valuesUpdate = new ContentValues();
+                    if(documents.size() <=0)
+                    {
+                        DocumentReference addedDocRef_purchase = mFirestore.collection(tableNamePurchases).document();
+                        addedDocRef_purchase.set(fPurchases);
+                        google_id = addedDocRef_purchase.getId();
+                        Log.d(LOG_TAG, "added in google Purchas "+google_id +  "\n"+ new Exception().getStackTrace()[0].getLineNumber());
+                        mFirebase.child(tableNamePurchases).child(google_id).setValue(fPurchases);
+                    }
+                    else
+                    {
+                        google_id = documents.get(0).getId();
+                    }
+                    valuesUpdate.put("google_id", google_id);
+                    dbHelper.update(tableNamePurchases, valuesUpdate, "id=?", new String[]{tmp.toString()});
                 }
 
 
@@ -2636,7 +3804,7 @@ public class Invoice {
     private Integer saveKktRegId(InvoiceData.KktRegId kktRegId) throws Exception {
         //check kkt exist in base
 
-        Log.d(LOG_TAG, "saveKktRegId "+kktRegId.kktRegId);
+        Log.d(LOG_TAG, "saveKktRegId "+kktRegId.kktRegId + " line "+new Exception().getStackTrace()[0].getLineNumber());
         String tableName ="kktRegId";
         int id;
 
@@ -2644,15 +3812,6 @@ public class Invoice {
         Map<String, Object> fStore = new HashMap<>();
 
 
-        if(kktRegId.fk_kktRegId_stores != null) {
-            data.put("fk_kktRegId_stores", kktRegId.fk_kktRegId_stores.toString());
-        }
-        if(kktRegId.fk_kktRegId_stores_google_id != null)
-        {
-            data.put("fk_kktRegId_stores_google_id", kktRegId.fk_kktRegId_stores_google_id);
-
-            fStore.put("fk_kktRegId_stores_google_id", kktRegId.fk_kktRegId_stores_google_id);
-        }
         if(kktRegId.kktRegId != null) {
             data.put("kktRegId", kktRegId.kktRegId.toString());
 
@@ -2660,8 +3819,13 @@ public class Invoice {
         }
         else
             throw new Exception("Error kktRegId is null");
+
         data.put("_status", kktRegId._status != null ? kktRegId._status : 0);
-        data.put("date_add", new Date().getTime());
+
+        if(kktRegId.date_add==null)
+            kktRegId.date_add = new Date().getTime();
+
+        data.put("date_add", kktRegId.date_add);
 
         fStore.put("_status", kktRegId._status != null ? kktRegId._status : 0);
         fStore.put("date_add", new Date().getTime());
@@ -2678,12 +3842,36 @@ public class Invoice {
             }
             else
             {
-                DocumentReference addedDocRef = mFirestore.collection(tableNameKktRegId).document();
-                addedDocRef.set(fStore);
-                kktRegId.google_id = addedDocRef.getId();
-
-                //kktRegId.google_id = mFirebase.child(tableNameKktRegId).push().getKey();
-                mFirebase.child(tableNameKktRegId).child(kktRegId.google_id).setValue(fStore);
+                Task<QuerySnapshot> result = mFirestore.collection(tableNameKktRegId).whereEqualTo("kktRegId", kktRegId.kktRegId).get(source);
+                while(!result.isComplete())
+                {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                if(result.isSuccessful()) {
+                    Log.d(LOG_TAG, "saveKktRegId  result.isSuccessful() "+ new Exception().getStackTrace()[0].getLineNumber());
+                    if (!result.getResult().getMetadata().isFromCache()) {
+                        List<DocumentSnapshot> documents = result.getResult().getDocuments();
+                        if (documents.size() <= 0) {
+                            DocumentReference addedDocRef = mFirestore.collection(tableNameKktRegId).document();
+                            addedDocRef.set(fStore);
+                            kktRegId.google_id = addedDocRef.getId();
+                            mFirebase.child(tableNameKktRegId).child(kktRegId.google_id).setValue(fStore);
+                        }
+                        else
+                        {
+                            kktRegId.google_id = documents.get(0).getId();
+                        }
+                    }
+                }
+                else
+                {
+                    Log.d(LOG_TAG, "saveKktRegId  repeat "+ new Exception().getStackTrace()[0].getLineNumber());
+                    return saveKktRegId(kktRegId);
+                }
             }
         }
 
@@ -2693,7 +3881,7 @@ public class Invoice {
         }
 
         if(kktRegId.id != null) {
-            id =(int) dbHelper.update(tableName, data, "id=?", new String[]{kktRegId.id.toString()});
+            id = dbHelper.update(tableName, data, "id=?", new String[]{kktRegId.id.toString()});
         }
         else {
             id = (int) dbHelper.insert(tableName, null, data);
@@ -2722,9 +3910,9 @@ public class Invoice {
         Map<String, Object> fStore = new HashMap<>();
 
 
-        if(kktRegId.fk_kktRegId_stores_google_id != null)
+        if(kktRegId.fk_kktRegId_google_id != null)
         {
-            fStore.put("fk_kktRegId_stores_google_id", kktRegId.fk_kktRegId_stores_google_id);
+            fStore.put("fk_kktRegId_google_id", kktRegId.fk_kktRegId_google_id);
         }
         if(kktRegId.kktRegId != null) {
             fStore.put("kktRegId", kktRegId.kktRegId);
@@ -2733,7 +3921,12 @@ public class Invoice {
             throw new Exception("Error kktRegId is null");
 
         fStore.put("_status", kktRegId._status != null ? kktRegId._status : 0);
-        fStore.put("date_add", new Date().getTime());
+
+        if(kktRegId.date_add==null)
+            kktRegId.date_add = new Date().getTime();
+
+
+        fStore.put("date_add", kktRegId.date_add);
 
         if(On_line && user.google_id != null)
         {
@@ -2748,17 +3941,23 @@ public class Invoice {
             else
             {
                 DocumentReference addedDocRef = mFirestore.collection(tableNameKktRegId).document();
-                addedDocRef.set(fStore);
+                //addedDocRef.set(fStore);
                 kktRegId.google_id = addedDocRef.getId();
+                mFirestore.collection(tableNameKktRegId).document(kktRegId.google_id).set(fStore);
 
-                //kktRegId.google_id = mFirebase.child(tableNameKktRegId).push().getKey();
+                //kktRegId.stores_from_fns_google_id = mFirebase.child(tableNameKktRegId).push().getKey();
                 mFirebase.child(tableNameKktRegId).child(kktRegId.google_id).setValue(fStore);
 
 
                 if(kktRegId.id!= null) {
                     ContentValues dataUpdate = new ContentValues();
-                    dataUpdate.put("google_id", kktRegId.google_id);
-                    dbHelper.update(tablenameStores, dataUpdate, "id=?", new String[]{kktRegId.id.toString()});
+                    dataUpdate.put("stores_from_fns_google_id", kktRegId.google_id);
+                    if(kktRegId.fk_kktRegId_google_id != null)
+                    {
+                        dataUpdate.put("fk_kktRegId_google_id", kktRegId.fk_kktRegId_google_id);
+                    }
+                    int count = dbHelper.update(tableNameKktRegId, dataUpdate, "id=?", new String[]{kktRegId.id.toString()});
+                    Log.d(LOG_TAG, "updated in local db id="+kktRegId.id+"\n строк "+count);
                 }
             }
         }
@@ -2774,12 +3973,10 @@ public class Invoice {
 
         ContentValues data = new ContentValues();
 
-        if(kktRegId.fk_kktRegId_stores != null) {
-            data.put("fk_kktRegId_stores", kktRegId.fk_kktRegId_stores.toString());
-        }
-        if(kktRegId.fk_kktRegId_stores_google_id != null)
+
+        if(kktRegId.fk_kktRegId_google_id != null)
         {
-            data.put("fk_kktRegId_stores_google_id", kktRegId.fk_kktRegId_stores_google_id);
+            data.put("fk_kktRegId_google_id", kktRegId.fk_kktRegId_google_id);
         }
         if(kktRegId.kktRegId != null) {
             data.put("kktRegId", kktRegId.kktRegId.toString());
@@ -2787,15 +3984,19 @@ public class Invoice {
         else
             throw new Exception("Error kktRegId is null");
         data.put("_status", kktRegId._status != null ? kktRegId._status : 0);
-        data.put("date_add", new Date().getTime());
+
+        if(kktRegId.date_add==null)
+            kktRegId.date_add = new Date().getTime();
+
+        data.put("date_add", kktRegId.date_add);
 
         if(kktRegId.google_id != null)
         {
-            data.put("google_id", kktRegId.google_id);
+            data.put("stores_from_fns_google_id", kktRegId.google_id);
         }
 
         if(kktRegId.id != null) {
-            id =(int) dbHelper.update(tableName, data, "id=?", new String[]{kktRegId.id.toString()});
+            id = dbHelper.update(tableName, data, "id=?", new String[]{kktRegId.id.toString()});
         }
         else {
             id = (int) dbHelper.insert(tableName, null, data);
@@ -2841,13 +4042,20 @@ public class Invoice {
 
         if(invoiceData.google_id != null) {
             data.put("google_id", invoiceData.google_id);
-
-            fStore.put("google_id", invoiceData.google_id);
         }
         if(invoiceData.get_status() != null) {
             data.put("_status", invoiceData.get_status());
         }
 
+        if(invoiceData.fk_invoice_kktRegId_store_links!= null)// !=0
+        {
+            data.put("fk_invoice_kktRegId_store_links", invoiceData.fk_invoice_kktRegId_store_links.toString());
+        }
+        if(invoiceData.fk_invoice_kktRegId_store_links_google_id != null )
+        {
+            data.put("fk_invoice_kktRegId_store_links_google_id", invoiceData.fk_invoice_kktRegId_store_links_google_id);
+            fStore.put("fk_invoice_kktRegId_store_links_google_id", invoiceData.fk_invoice_kktRegId_store_links_google_id);
+        }
 
 
         if(invoiceData.get_order()!=null) {
@@ -2855,9 +4063,8 @@ public class Invoice {
 
             fStore.put("_order", invoiceData.get_order());
         }
-        if(invoiceData.getFk_invoice_accountinglist() !=null) {
-            data.put("fk_invoice_accountinglist", invoiceData.getFk_invoice_accountinglist().toString());
-        }
+
+        insertNewAccountingList(invoiceData);
 
         if(invoiceData.get_status() != null && invoiceData.get_status()==1 ) {
             fStore.put("server_status", 1);
@@ -2872,12 +4079,7 @@ public class Invoice {
             data.put("server_status", 0);
         }
 
-        if(invoiceData.store!= null && invoiceData.store.id != null) {
-            data.put("fk_invoice_stores", invoiceData.store.id);
-        }
-        if (invoiceData.kktRegId!= null && invoiceData.kktRegId.id!= null) {
-            data.put("fk_invoice_kktRegId", invoiceData.kktRegId.id);
-        }
+
 
         if (invoiceData.latitudeAdd != null) {
             data.put("latitudeAdd", invoiceData.latitudeAdd);
@@ -2890,17 +4092,6 @@ public class Invoice {
             fStore.put("longitudeAdd", invoiceData.longitudeAdd);
         }
 
-        if (invoiceData.fk_invoice_kktRegId_google_id != null) {
-            data.put("fk_invoice_kktRegId_google_id", invoiceData.fk_invoice_kktRegId_google_id);
-
-            fStore.put("fk_invoice_kktRegId_google_id", invoiceData.fk_invoice_kktRegId_google_id);
-        }
-
-        if (invoiceData.fk_invoice_stores_google_id != null) {
-            data.put("fk_invoice_stores_google_id", invoiceData.fk_invoice_stores_google_id);
-
-            fStore.put("fk_invoice_stores_google_id", invoiceData.fk_invoice_stores_google_id);
-        }
 
         if (invoiceData.fk_invoice_accountinglist_google_id != null) {
             data.put("fk_invoice_accountinglist_google_id", invoiceData.fk_invoice_accountinglist_google_id);
@@ -2924,6 +4115,85 @@ public class Invoice {
         int count = dbHelper.update(tableNameInvoice, data, "id=?", new String[]{id + ""});
         Log.d(LOG_TAG, "updated rows "+count+" with id "+id);
         
+    }
+
+    public void updateInvoiceLocal (InvoiceData invoiceData)
+    {
+        Long dateInvoice = Long.valueOf(invoiceData.getDateInvoice(1));
+
+        ContentValues data = new ContentValues();
+        data.put("FP", invoiceData.FP);
+        data.put("FD", invoiceData.FD);
+        data.put("FN", invoiceData.FN);
+        if(dateInvoice > 0)
+            data.put("dateInvoice", dateInvoice);
+        data.put("fullPrice", invoiceData.getFullPrice());
+        data.put("in_basket", invoiceData.isIn_basket()==null ? 0: invoiceData.isIn_basket());
+
+
+
+        if(invoiceData.repeatCount != null) {
+            data.put("repeatCount", invoiceData.repeatCount);
+        }
+
+        if(invoiceData.google_id != null) {
+            data.put("stores_from_fns_google_id", invoiceData.google_id);
+        }
+        if(invoiceData.get_status() != null) {
+            data.put("_status", invoiceData.get_status());
+        }
+
+
+
+        if(invoiceData.get_order()!=null) {
+            data.put("_order", invoiceData.get_order());
+        }
+        if(invoiceData.getFk_invoice_accountinglist() !=null) {
+            data.put("fk_invoice_accountinglist", invoiceData.getFk_invoice_accountinglist().toString());
+        }
+
+        if(invoiceData.get_status() != null && invoiceData.get_status()==1 ) {
+            data.put("server_status", 1);
+        }
+        else if(invoiceData.server_status!= null) {
+            data.put("server_status", invoiceData.server_status);
+        }
+        else {
+            data.put("server_status", 0);
+        }
+
+        if(invoiceData.store_from_fns != null && invoiceData.store_from_fns.id != null) {
+            data.put("fk_invoice_stores", invoiceData.store_from_fns.id);
+        }
+        if (invoiceData.kktRegId!= null && invoiceData.kktRegId.id!= null) {
+            data.put("fk_invoice_kktRegId", invoiceData.kktRegId.id);
+        }
+
+        if (invoiceData.latitudeAdd != null) {
+            data.put("latitudeAdd", invoiceData.latitudeAdd);
+        }
+        if (invoiceData.longitudeAdd != null) {
+            data.put("longitudeAdd", invoiceData.longitudeAdd);
+        }
+
+        if (invoiceData.fk_invoice_kktRegId_google_id != null) {
+            data.put("fk_invoice_kktRegId_google_id", invoiceData.fk_invoice_kktRegId_google_id);
+        }
+
+        if (invoiceData.fk_invoice_stores_from_fns_google_id != null) {
+            data.put("fk_invoice_stores_from_fns_google_id", invoiceData.fk_invoice_stores_from_fns_google_id);
+        }
+
+        if (invoiceData.fk_invoice_accountinglist_google_id != null) {
+            data.put("fk_invoice_accountinglist_google_id", invoiceData.fk_invoice_accountinglist_google_id);
+        }
+
+        Integer id = invoiceData.getId();
+
+
+        int count = dbHelper.update(tableNameInvoice, data, "id=?", new String[]{id + ""});
+        Log.d(LOG_TAG, "updated rows "+count+" with id "+id);
+
     }
 
     public void insertInvoiceData ()
@@ -3055,6 +4325,9 @@ public class Invoice {
             }
             count = dbHelper.delete("purchases", "fk_purchases_invoice=?", new String[]{invoiceData.getId().toString()});
             count = dbHelper.delete("linked_objects", "fk_name=? AND fk_id=?", new String[]{tableNameInvoice, invoiceData.getId().toString()});
+            tryToDeleteStoreOnMap(invoiceData.store_on_map);
+            
+
             /*for (int i = 0; i < invoices.size(); i++) {
                 InvoiceData invoiceData = invoices.get(i);
                 if (invoiceData.getId() == id)
@@ -3068,10 +4341,84 @@ public class Invoice {
         
     }
 
+    private boolean tryToDeleteStoreFromFns(InvoiceData.Store_from_fns store_from_fns) {
+        if(store_from_fns.id != null)
+        {
+            Cursor cursor = dbHelper.query(tableNameStoresLinks, null, "fk_stores_from_fns=?",
+                    new String[]{store_from_fns.id.toString()}, null, null, null, null);
+            if (!cursor.moveToFirst()) {
+                long count = dbHelper.delete(tableNameStoresOnMap, "id=?", new String[]{store_from_fns.id.toString()});
+                return count>0;
+            }
+        }
+        return false;
+    }
+
+    private boolean tryToDeleteStoreOnMap(InvoiceData.Store_on_map store_on_map) {
+        if(store_on_map != null && store_on_map.place_id == null && store_on_map.id != null) {
+            Cursor cursor = dbHelper.query(tableNameStoresLinks, null, "fk_stores_on_map=?",
+                    new String[]{store_on_map.id.toString()}, null, null, null, null);
+            if (!cursor.moveToFirst()) {
+                long count = dbHelper.delete(tableNameStoresOnMap, "id=?", new String[]{store_on_map.id.toString()});
+                ContentValues contentValues = new ContentValues();
+                contentValues.putNull("fk_stores_on_map");
+                dbHelper.update(tableNameStoresLinks, contentValues,"fk_stores_on_map=?", new String[]{store_on_map.id.toString()});
+                return count>0;
+            }
+        }
+        return false;
+    }
+    private void tryToDeleteStoreOnMapFromServer(InvoiceData.Store_on_map store_on_map, String fk_stores_links_google_id)
+    {
+        Task<QuerySnapshot> result = mFirestore.collection(tableNameStoresLinks).whereEqualTo("fk_stores_on_map_google_id", store_on_map.place_id).get(source);
+        while(!result.isComplete())
+        {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if(result.isSuccessful())
+        {
+            try {
+                String id = result.getResult().getDocuments().get(0).getId();
+                if (id != null && id.equals(fk_stores_links_google_id))
+                    mFirestore.collection(tableNameStoresOnMap).document(store_on_map.place_id).delete();
+            }
+            catch (Exception ex){}
+        }
+    }
+
     public int getCount(Map<String, String[]> filter) {
+
         Cursor cur = null;
         if(filter == null) {
             cur = dbHelper.query(tableNameInvoice, null, null, null, null, null, null, null);
+        }
+        else if(filter.containsKey("place_id"))
+        {
+            String selection="";
+            String[] args;
+            int count=0;
+            Integer fk_stores_links = 0;
+
+
+            if(filter.get("place_id")[0]. equals("not null")) {
+                selection = "select * from " + tableNameInvoice + " where fk_invoice_kktRegId_store_links in" +
+                        "(select id from " + tableNameKktRegIdStoresLinks + " where fk_stores_links in" +
+                        "(select id from " + tableNameStoresLinks + " where  fk_stores_on_map in (" +
+                        "select id from " + tableNameStoresOnMap + " where place_id " + filter.get("place_id")[0] + ")))";
+            }
+            else
+            {
+                selection = "select * from " + tableNameInvoice + " where fk_invoice_kktRegId_store_links in" +
+                        "(select id from " + tableNameKktRegIdStoresLinks + " where fk_stores_links in" +
+                        "(select id from " + tableNameStoresLinks + " where  fk_stores_on_map is null or fk_stores_on_map in (" +
+                        "select id from " + tableNameStoresOnMap + " where place_id " + filter.get("place_id")[0] + ")))";
+            }
+            cur = dbHelper.rawQuery(selection, null);
+
         }
         else
         {
@@ -3107,46 +4454,153 @@ public class Invoice {
             return 0;
     }
 
-    public Double[] findBestLocation(InvoiceData.Store store) {
+    public Double[] findBestLocation(InvoiceData.Store_from_fns store) {
         Double[] latLng = new Double[2];
         String selection="";
         String[] args;
         int count=0;
-        if(store.name_from_fns!= null&& store.address_from_fns != null && store.address_from_fns != "" && store.inn != null)
-        {
-            selection = "name_from_fns=? AND address_from_fns=? AND inn=? AND _status=? AND (latitude notnull AND longitude notnull)";
-            args = new String[]{store.name_from_fns, store.address_from_fns, store.inn.toString(), "1"};
-        }
-        else if (store.name_from_fns!= null && store.inn != null)
-        {
-            selection = "name_from_fns=? AND inn=? AND _status=? AND (latitude notnull AND longitude notnull)";
-            args = new String[]{store.name_from_fns, store.inn.toString(), "1"};
-        }
-        else if(store.inn != null)
-        {
-            selection = "inn=? AND _status=? AND (latitude notnull AND longitude notnull)";
-            args = new String[]{ store.inn.toString(), "1"};
-        }
-        else
-        {
-            return  null;
-        }
-        Cursor cur = dbHelper.query(tablenameStores, null, selection, args,null, null, null, null);
+        Integer fk_stores_links = 0;
+
+        selection ="select * from "+tableNameKktRegIdStoresLinks+" where fk_stores_links in"+
+                "(select id from "+tableNameStoresLinks+" where fk_stores_on_map in (" +
+                "select fk_stores_on_map from "+tableNameStoresLinks+" where fk_stores_from_fns in (select id from "+tableNameStoresFromFns+" where hashcode =?))" +
+                "and fk_stores_on_map in" +
+                "(select id from "+tableNameStoresOnMap+" where place_id NOT NULL))";
+        args = new String[]{encryptPassword(store.inn+ store.name_from_fns+ store.address_from_fns)};
+        Cursor cur = dbHelper.rawQuery(selection, args);
 
         if(cur.moveToFirst())
         {
-            int id = cur.getInt(cur.getColumnIndex("id"));
+
+            Map<Integer, Integer> countFkStores = new HashMap<>();
             do {
-                Cursor curInvoice = dbHelper.query(tableNameInvoice, null, "fk_invoice_stores=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))}, null, null, null, null);
+                int new_fk_stores_links = cur.getInt(cur.getColumnIndex("fk_stores_links"));
+
+                //запрос с писокм количества чеков привяза
+                Cursor curInvoice = dbHelper.query(tableNameInvoice, null, "fk_invoice_kktRegId_store_links=?", new String[]{String.valueOf(cur.getInt(cur.getColumnIndex("id")))}, null, null, null, null);
                 int tmp = curInvoice.getCount();
-                if(count< tmp) {
-                    count = tmp;
-                    latLng[0] = cur.getDouble(cur.getColumnIndex("latitude"));
-                    latLng[1] = cur.getDouble(cur.getColumnIndex("longitude"));
+                if(countFkStores.get(new_fk_stores_links)!= null)
+                {
+                    countFkStores.put(new_fk_stores_links,tmp + countFkStores.get(new_fk_stores_links));
                 }
+                else
+                    countFkStores.put(new_fk_stores_links,tmp);
+                curInvoice.close();
             }
             while(cur.moveToNext());
+            cur.close();
+            if(countFkStores.size()>0)
+            {
+                for(Map.Entry<Integer, Integer> entry : countFkStores.entrySet())
+                {
+                    if(count< entry.getValue()) {
+                        count = entry.getValue();
+                        fk_stores_links = entry.getKey();
+                    }
+                }
+                if(fk_stores_links>0)
+                {
+                    String query = "select * from "+tableNameStoresOnMap+" where id in (Select fk_stores_on_map from "+tableNameStoresLinks+" where id =? limit 1)";
+                    args = new String[]{fk_stores_links.toString()};
+                    cur = dbHelper.rawQuery(query, args);
+                    if(cur.moveToFirst())
+                    {
+                        latLng[0] = cur.getDouble(cur.getColumnIndex("latitude"));
+                        latLng[1] = cur.getDouble(cur.getColumnIndex("longitude"));
+                    }
+
+                }
+            }
         }
+        cur.close();
         return  latLng;
+    }
+
+
+    public List<InvoiceData.Store_on_map> findBestLocation(InvoiceData invoiceData) {
+        List<InvoiceData.Store_on_map> store_on_mapList = new ArrayList<>();
+
+        if(invoiceData.store_from_fns != null && invoiceData.store_from_fns.id!= null)
+        {
+            Cursor cur = dbHelper.query(tableNameStoresLinks, null, "fk_stores_from_fns=? AND fk_stores_on_map not null ", new String[]{invoiceData.store_from_fns.id.toString()}, null, null, null, null);
+            if(cur.moveToFirst())
+            {
+                List<String> map_tmp = new ArrayList<>();
+                do {
+                    map_tmp.add(String.valueOf(cur.getInt(cur.getColumnIndex("fk_stores_on_map"))));
+                }
+                while(cur.moveToNext());
+                Map<String, List<String>> map = new HashMap<>();
+                map.put("id", map_tmp);
+                map.put("place_id", Arrays.asList("not null"));
+                store_on_mapList = loadDataFromStore_on_map(map, "OR");
+            }
+            cur.close();
+        }
+
+
+
+        return store_on_mapList;
+    }
+
+
+    public void clearPrivatInvoicesOnServer() {
+        if(On_line && user.google_id != null)
+        {
+            Log.d(LOG_TAG, "start deleting from server clearPrivatInvoicesOnServer"  + new Exception().getStackTrace()[0].getLineNumber());
+            Task<QuerySnapshot> task = mFirestore.collection(tableNameInvoice).whereEqualTo("user_google_id", user.google_id).get(source);
+            while(!task.isComplete())
+            {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(task.isSuccessful())
+            {
+                if (!task.getResult().getMetadata().isFromCache()) {
+                    List<DocumentSnapshot> documents = task.getResult().getDocuments();
+                    if (documents.size() > 0) {
+                        for (int i = 0; i<documents.size(); i++)
+                        {
+                            String currentGoogleId = documents.get(i).getId();
+                            deleteFromServerCollection(tableNamePurchases, "fk_purchases_invoice_google_id", currentGoogleId);
+                            deleteFromServerCollection(tableNameCollectedData, "fk_collectedData_invoice_google_id", currentGoogleId);
+                            mFirestore.collection(tableNameInvoice).document(currentGoogleId).delete();
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private  void deleteFromServerCollection(String collectionName, String whereField, String whereFieldData)
+    {
+        Log.d(LOG_TAG, " deleteFromServerCollection \nstart deleting from server " + collectionName + " whereField " +whereField + " whereFieldData "+whereFieldData + new Exception().getStackTrace()[0].getLineNumber());
+        Task<QuerySnapshot> task = mFirestore.collection(collectionName).whereEqualTo(whereField, whereFieldData).get(source);
+        while(!task.isComplete())
+        {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if(task.isSuccessful())
+        {
+            Log.d(LOG_TAG, "deleteFromServerCollection \n task.isSuccessful " + collectionName + " whereField " +whereField + " whereFieldData "+whereFieldData + new Exception().getStackTrace()[0].getLineNumber());
+            if (!task.getResult().getMetadata().isFromCache()) {
+                List<DocumentSnapshot> documents = task.getResult().getDocuments();
+                if (documents.size() > 0) {
+                    for (int i = 0; i<documents.size(); i++)
+                    {
+                        Log.d(LOG_TAG, "deleteFromServerCollection \n task.isSuccessful " + collectionName + " document " +documents.get(i).getId() + new Exception().getStackTrace()[0].getLineNumber());
+                        mFirestore.collection(collectionName).document(documents.get(i).getId()).delete();
+                    }
+                }
+            }
+        }
     }
 }

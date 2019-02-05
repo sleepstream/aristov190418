@@ -26,7 +26,7 @@ public class PersonalData {
     public boolean signIn= false;
 
     private Map<String, String> data;
-    private String tableName="PersonalData";
+    private String tableName_personalData ="personalData";
 
 
     final String LOG_TAG = "PersonalData";
@@ -40,7 +40,7 @@ public class PersonalData {
         this.context = context;
         data = new HashMap();
         
-        Cursor cur = dbHelper.query(tableName, null, null, null, null, null, null, "1");
+        Cursor cur = dbHelper.query(tableName_personalData, null, null, null, null, null, null, "1");
         if(cur.getCount() >0)
         {
             cur.moveToFirst();
@@ -91,14 +91,14 @@ public class PersonalData {
             data.put("mPhotoUrl",mPhotoUrl);
         else
             data.putNull("mPhotoUrl");
-        int count = dbHelper.update(tableName, data, "id=?", new String[]{id+""});
+        int count = dbHelper.update(tableName_personalData, data, "id=?", new String[]{id+""});
         Log.d(LOG_TAG, "Updated records: "+count);
         
     }
     public long deletePersonalData()
     {
         if(this.id != null)
-            return dbHelper.delete(tableName, "id=?", new String[]{id.toString()});
+            return dbHelper.delete(tableName_personalData, "id=?", new String[]{id.toString()});
         else
             return -1;
     }
@@ -113,6 +113,9 @@ public class PersonalData {
         {
             updatePersonalData();
         }
+
+        //сохраняем учетку на сервере
+        //проверить надо ли сохарянть или нет?
         if(google_id != null)
             mFirestore.collection("users").document(google_id).set(this);
     }
@@ -143,9 +146,9 @@ public class PersonalData {
 
         if(telephone_number!= null)
         {
-            Cursor cur =dbHelper.query(tableName, null, "telephone_number=?", new String[]{telephone_number}, null, null, null, null);
+            Cursor cur =dbHelper.query(tableName_personalData, null, "telephone_number=?", new String[]{telephone_number}, null, null, null, null);
             if (cur.getCount() == 0) {
-                long count = dbHelper.insert(tableName, null, data);
+                long count = dbHelper.insert(tableName_personalData, null, data);
                 if (count > -1)
                     this.id = (int) count;
                 Log.d(LOG_TAG, "Inserted record id: " + count);

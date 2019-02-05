@@ -5,12 +5,17 @@ import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.sleepstream.checkkeeper.qrmanager.QRManager;
+import com.squareup.okhttp.FormEncodingBuilder;
 import okhttp3.*;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GetFnsData {
@@ -32,14 +37,33 @@ public class GetFnsData {
     private String android_id;
     public Obj dataFromReceipt;
     private String phoneNumber;
+    private CookieJar cookieJar;
     private static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
+    private okhttp3.RequestBody requestBody;
 
 
 
     public GetFnsData(String android_id)
     {
-        client = new OkHttpClient.Builder().retryOnConnectionFailure(true).build();
+        cookieJar = new CookieJar() {
+            private final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
+
+            @Override
+            public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                cookieStore.put(url.host(), cookies);
+            }
+
+            @Override
+            public List<Cookie> loadForRequest(HttpUrl url) {
+                List<Cookie> cookies = cookieStore.get(url.host());
+                return cookies != null ? cookies : new ArrayList<Cookie>();
+            }
+        };
+
+        client = new OkHttpClient.Builder().retryOnConnectionFailure(true)
+                .cookieJar(cookieJar)
+                .build();
         this.android_id=android_id;
     }
 
@@ -48,15 +72,28 @@ public class GetFnsData {
         //constract for get ticket
         headerGet= new HashMap();
         headerGet.put("Authorization","Basic "+MainActivity.user.password+"");
-        headerGet.put("Device-Id", android_id);
+        headerGet.put("Device-Id", "fhyAcINu8VA:APA91bF4QLf6NlcGvchdUuxQD0CSEBP4UfuBUz_z4gcA9nPDlY6Zvmxx63PnJioK4En2f1drC-TSpEK3cShmBBjB4aT9t8xTdxxxtijUzutvWbey3bbR0X3eeunoC9weEseFWskAC3OS");
         headerGet.put("Device-OS", "Adnroid 7.0");
-        headerGet.put("Version", "2");
-        headerGet.put("ClientVersion","1.4.4.1");
-        headerGet.put("Host","proverkacheka.nalog.ru:9999");
-        headerGet.put("Connection","Keep-Alive");
-        headerGet.put("Accept-Encoding","gzip");
-        headerGet.put("User-Agent","okhttp/3.0.1");
-        this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/inns/*/kkts/*/fss/"+QrObject.FN+"/tickets/"+QrObject.FD+"?fiscalSign="+QrObject.FP+"&sendToEmail=no";
+        //headerGet.put("Version", "2");
+        headerGet.put("ClientVersion","1.4.4.4");
+        //headerGet.put("Host","proverkacheka.nalog.ru:9999");
+        //headerGet.put("Connection","Keep-Alive");
+        //headerGet.put("Accept-Encoding","gzip");
+        //headerGet.put("User-Agent","okhttp/3.0.1");
+        //this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/inns/*/kkts/*/fss/"+QrObject.FN+"/tickets/"+QrObject.FD+"?fiscalSign="+QrObject.FP+"&sendToEmail=no";
+        this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/ofds/*/inns/*/fss/"+QrObject.FN+"/operations/1/tickets/"+QrObject.FD+"?fiscalSign="+QrObject.FP+"&date="+QrObject.date+"&sum="+QrObject.totalSum.replaceAll("[.]", "")+"0";
+    }
+
+    public void setHeaders( QRManager QrObject, int key)
+    {
+        //constract for get ticket from 1-ofd
+        this.urlGet = "https://consumer.1-ofd.ru/api/tickets/find-ticket";
+        JsonObject json = new JsonObject();
+        json.addProperty("fiscalDriveId", QrObject.FN);
+        json.addProperty("fiscalDocumentNumber", QrObject.FD);
+        json.addProperty("fiscalId", QrObject.FP);
+        requestBody = okhttp3.RequestBody.create(JSON, json.toString());
+
     }
     public void setHeaders( int key)
     {
@@ -68,7 +105,7 @@ public class GetFnsData {
                 headerRestorePsw.put("Device-Id",new String("fhyAcINu8VA:APA91bF4QLf6NlcGvchdUuxQD0CSEBP4UfuBUz_z4gcA9nPDlY6Zvmxx63PnJioK4En2f1drC-TSpEK3cShmBBjB4aT9t8xTdxxxtijUzutvWbey3bbR0X3eeunoC9weEseFWskAC3OS"));
                 headerRestorePsw.put("Device-OS", new String("Adnroid 7.0"));
                 headerRestorePsw.put("Version", new String("2"));
-                headerRestorePsw.put("ClientVersion",new String("1.4.4.1"));
+                headerRestorePsw.put("ClientVersion",new String("1.4.4.4"));
                 headerRestorePsw.put("Host",new String("proverkacheka.nalog.ru:9999"));
                 headerRestorePsw.put("Connection",new String("Keep-Alive"));
                 headerRestorePsw.put("Accept-Encoding",new String("gzip"));
@@ -83,7 +120,7 @@ public class GetFnsData {
                 headerRegistorUser.put("Device-Id",new String("fhyAcINu8VA:APA91bF4QLf6NlcGvchdUuxQD0CSEBP4UfuBUz_z4gcA9nPDlY6Zvmxx63PnJioK4En2f1drC-TSpEK3cShmBBjB4aT9t8xTdxxxtijUzutvWbey3bbR0X3eeunoC9weEseFWskAC3OS"));
                 headerRegistorUser.put("Device-OS", new String("Adnroid 7.0"));
                 headerRegistorUser.put("Version", new String("2"));
-                headerRegistorUser.put("ClientVersion",new String("1.4.4.1"));
+                headerRegistorUser.put("ClientVersion",new String("1.4.4.4"));
                 headerRegistorUser.put("Host",new String("proverkacheka.nalog.ru:9999"));
                 headerRegistorUser.put("Connection",new String("Keep-Alive"));
                 headerRegistorUser.put("Accept-Encoding",new String("gzip"));
@@ -91,6 +128,8 @@ public class GetFnsData {
                 headerRegistorUser.put("Content-Type",new String("application/json; charset=UTF-8"));
                 //headerRestorePsw.put("Content-Length",new String("24"));
                 this.urlRegisterUser = "https://proverkacheka.nalog.ru:9999/v1/mobile/users/signup";
+                break;
+            case 3:
                 break;
         }
 
@@ -110,13 +149,44 @@ public class GetFnsData {
     }
     public Response  runGet() throws IOException {
 
-        Headers geaderBuild=Headers.of(headerGet);
+        Headers headerBuild=Headers.of(headerGet);
         okhttp3.Request request = new okhttp3.Request.Builder()
                 .url(urlGet)
-                .headers(geaderBuild)
+                .headers(headerBuild)
                 .build();
-        requestStr = request.headers().toString();
+        requestStr = urlGet+"\n"+request.headers().toString();
 
+/*
+        okhttp3.Request request2 = new okhttp3.Request.Builder()
+                .url("https://consumer.1-ofd.ru/api/user/providers")
+                .build();
+        Response response = client.newCall(request2).execute();
+
+        HttpUrl test = HttpUrl.get(URI.create("https://consumer.1-ofd.ru"));
+        List<Cookie> tmp = cookieJar.loadForRequest(test);
+
+        String XSRF_TOKEN = "";
+        for(Cookie cookie : tmp)
+        {
+            if(cookie.name().equals("XSRF-TOKEN"))
+            {
+                XSRF_TOKEN = cookie.value();
+                break;
+            }
+        }
+
+        request2 = new okhttp3.Request.Builder()
+                .url(this.urlGet)
+                .post(requestBody)
+                .addHeader("X-XSRF-TOKEN",XSRF_TOKEN)
+                .addHeader("Accept","application/json, text/plain, *///*")
+           /*     .addHeader("Origin","https://consumer.1-ofd.ru")
+                .addHeader("Content-Type","application/json;charset=UTF-8")
+                .build();
+        //response = client.newCall(request2).execute();
+
+        //String jsonData = response.body().string();
+*/
         return client.newCall(request).execute();
     }
     public void resetPassword(Callback callback) {

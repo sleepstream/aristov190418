@@ -20,12 +20,12 @@
                 android:id="@+id/icon_layout"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_alignParentTop="true"
-                android:layout_alignBottom="@+id/body_layout"
-                android:layout_alignParentStart="true">
+                android:layout_alignParentStart="true"
+                android:layout_centerInParent="true"
+                android:gravity="center">
             <ImageView
-                    android:id="@+id/product_category_icon"
                     android:layout_centerInParent="true"
+                    android:id="@+id/store_icon"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
         </RelativeLayout>
@@ -51,7 +51,7 @@
                     android:layout_height="wrap_content">
 
                 <TextView
-                        android:id="@+id/invoiceName"
+                        android:id="@+id/storeName"
                         android:background="@android:color/transparent"
                         android:layout_gravity="start|center_vertical"
                         android:layout_width="match_parent"
@@ -91,7 +91,7 @@
                         android:gravity="top"
                 />
                 <TextView
-                        android:id="@+id/priceForItem"
+                        android:id="@+id/storeAddress"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_marginStart="10dp"

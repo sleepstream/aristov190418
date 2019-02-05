@@ -48,7 +48,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
 
     public PurchasesListAdapter(Context context, OnStartDragListener dragStartListener, TextView invsNumber, PurchasesList purchasesList, View view) {
         this.invsNumber = invsNumber;
-        this.purchasesList = purchasesList;
+        PurchasesListAdapter.purchasesList = purchasesList;
         this.context = context;
         this.dragStartListener=dragStartListener;
         this.parrentView = view;
@@ -160,7 +160,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
         itemViewHolder.quantity.setText(item.quantity.toString());
         itemViewHolder.sumPerPosition.setText(item.sum.toString());
         if(item.product.category != null && item.product.category.icon_name!= null)
-            itemViewHolder.product_cutegory_icon.setImageResource(getDrawable(context,item.product.category.icon_name+"_24"));
+            itemViewHolder.product_cutegory_icon.setImageResource(getDrawable(context,item.product.category.icon_name+"_24dp"));
         else
             itemViewHolder.product_cutegory_icon.setImageResource(android.R.color.transparent);
         /*itemViewHolder.container.setOnClickListener(new View.OnClickListener() {
@@ -275,17 +275,17 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
 
         public ItemViewHolder(final View v) {
             super(v);
-            container = (RelativeLayout) v.findViewById(R.id.container);
-            itemName = (TextView) v.findViewById(R.id.invoiceName);
-            ivReorder = (ImageView) v.findViewById(R.id.ivReorder);
-            relativeReorder = (RelativeLayout) v.findViewById(R.id.relativeReorder);
+            container = v.findViewById(R.id.container);
+            itemName = v.findViewById(R.id.storeName);
+            ivReorder = v.findViewById(R.id.ivReorder);
+            relativeReorder = v.findViewById(R.id.relativeReorder);
 
-            sign =(TextView)v.findViewById(R.id.sign);
-            quantity = (TextView) v.findViewById(R.id.quantity);
-            priceForItem = (TextView) v.findViewById(R.id.priceForItem);
-            sumPerPosition = (TextView) v.findViewById(R.id.sumPerPosition);
+            sign = v.findViewById(R.id.sign);
+            quantity = v.findViewById(R.id.quantity);
+            priceForItem = v.findViewById(R.id.storeAddress);
+            sumPerPosition = v.findViewById(R.id.sumPerPosition);
             sign.setText(fromHtml("&#xd7"));
-            product_cutegory_icon = v.findViewById(R.id.product_category_icon);
+            product_cutegory_icon = v.findViewById(R.id.store_icon);
 
         }
 
@@ -299,7 +299,7 @@ public class PurchasesListAdapter extends RecyclerView.Adapter<PurchasesListAdap
         @Override
         public void onItemSelected(Context context) {
             //container.setBackgroundColor(ContextCompat.getColor(context, R.color.colorAccent));
-            //itemName.setTextColor(ContextCompat.getColor(context, R.color.white));
+            //storeName.setTextColor(ContextCompat.getColor(context, R.color.white));
             //ivReorder.setColorFilter(ContextCompat.getColor(context, R.color.white), PorterDuff.Mode.SRC_IN);
         }
 

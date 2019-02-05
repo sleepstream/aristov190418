@@ -1,6 +1,7 @@
 package com.sleepstream.checkkeeper.modules;
 
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.BitmapFactory;
@@ -33,13 +34,11 @@ import com.sleepstream.checkkeeper.linkedListObjects.LinkedListData;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 
-import static com.sleepstream.checkkeeper.MainActivity.getThemeColor;
-import static com.sleepstream.checkkeeper.MainActivity.linkedListClass;
+import static com.sleepstream.checkkeeper.MainActivity.*;
+import static com.sleepstream.checkkeeper.MainActivity.currentInvoice;
+import static com.sleepstream.checkkeeper.invoiceObjects.Invoice.tableNameInvoice;
 
 
 public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.ItemViewHolder> implements ItemTouchHelperAdapter, SectionTitleProvider {
@@ -74,9 +73,9 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
         this.context = context;
         this.dragStartListener=dragStartListener;
         this.invsNumber = invsNumber;
-        this.invoice = invoice;
-        this.accountingList = accountingList;
-        this.itemList = invoice.invoices;
+        InvoiceListAdapter.invoice = invoice;
+        InvoiceListAdapter.accountingList = accountingList;
+        itemList = invoice.invoices;
         this.navigation = navigation;
 
     }
@@ -87,19 +86,19 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
 
     public void swap(List<InvoiceData> itemList)
     {
-        if(this.itemList != null && itemList != null)
+        if(InvoiceListAdapter.itemList != null && itemList != null)
         {
-            this.itemList.clear();
-            this.itemList = null;
-            this.itemList = itemList;
+            InvoiceListAdapter.itemList.clear();
+            InvoiceListAdapter.itemList = null;
+            InvoiceListAdapter.itemList = itemList;
         }
-        else if(this.itemList != null && itemList == null)
+        else if(InvoiceListAdapter.itemList != null && itemList == null)
         {
             //this.itemList.clear();
         }
         else
         {
-            this.itemList = itemList;
+            InvoiceListAdapter.itemList = itemList;
         }
         notifyDataSetChanged();
     }
@@ -139,8 +138,8 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
 
         View snackBarView = snackbar.getView();
         snackBarView.setBackgroundResource(R.color.colorAccent);
-        TextView tvSnack = (TextView) snackBarView.findViewById(android.support.design.R.id.snackbar_text);
-        TextView tvSnackAction = (TextView) snackbar.getView().findViewById( android.support.design.R.id.snackbar_action );
+        TextView tvSnack = snackBarView.findViewById(android.support.design.R.id.snackbar_text);
+        TextView tvSnackAction = snackbar.getView().findViewById( android.support.design.R.id.snackbar_action );
         tvSnack.setTextColor(Color.WHITE);
         tvSnack.setTypeface(Typefaces.getRobotoMedium(context));
         tvSnackAction.setTypeface(Typefaces.getRobotoMedium(context));
@@ -240,23 +239,30 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
 
         try {
             itemViewHolder.imageIcon.setImageBitmap(null);
-            if (itemList.get(position).store!= null && itemList.get(position).store.iconName != null && itemList.get(position).store.iconName != "") {
+            if (itemList.get(position).store_on_map != null && itemList.get(position).store_on_map.iconName != null && itemList.get(position).store_on_map.iconName != "") {
                 String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/icons/";
-                File imageFile = new File(filepath,itemList.get(position).store.iconName);
+                File imageFile = new File(filepath,itemList.get(position).store_on_map.iconName);
                 if ( imageFile.exists()) {
-                    Log.d(LOG_TAG, "onBindViewHolder set icon  " + itemList.get(position).store.iconName);
+                    Log.d(LOG_TAG, "onBindViewHolder set icon  " + itemList.get(position).store_on_map.iconName);
                     itemViewHolder.imageIcon.setImageBitmap(BitmapFactory.decodeFile(imageFile.getPath()));
                 }
             }
         }
         catch(NullPointerException ex)
         {
-            Log.d(LOG_TAG, "onBindViewHolder set icon - Store is empty\n");
+            Log.d(LOG_TAG, "onBindViewHolder set icon - Store_from_fns is empty\n");
             ex.printStackTrace();
 
         }
         try {
             final InvoiceData item = itemList.get(position);
+
+            if(item.get_status()> 900) {
+                item.set_status(item.get_status()-999);
+                ContentValues contentValues = new ContentValues();
+                contentValues.put("_status", item.get_status());
+                dbHelper.update(tableNameInvoice, contentValues, "id=?" , new String[]{item.getId().toString()});
+            }
 
             itemViewHolder.invoiceSum.setText(String.valueOf(item.getFullPrice()));
 
@@ -265,10 +271,10 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
             else
                 itemViewHolder.quantity.setText("");
 
-            if (item.store != null && item.store.name != null) {
-                itemViewHolder.storeName.setText(item.store.name);
-            } else if (item.store != null && item.store.name == null && item.store.name_from_fns != null) {
-                itemViewHolder.storeName.setText(item.store.name_from_fns);
+            if (item.store_on_map != null && item.store_on_map.name != null) {
+                itemViewHolder.storeName.setText(item.store_on_map.name);
+            } else if (item.store_from_fns != null && item.store_from_fns.name_from_fns != null) {
+                itemViewHolder.storeName.setText(item.store_from_fns.name_from_fns);
             } else {
                 itemViewHolder.storeName.setText(MainActivity.setInvoiceNameByStatus(item.get_status()));
             }
@@ -406,12 +412,15 @@ public class InvoiceListAdapter extends RecyclerView.Adapter<InvoiceListAdapter.
                         LinkedListData linkedListData = new LinkedListData();
                         linkedListData.setFk_name(invoice.getTableNameInvoice());
                         linkedListData.setFk_id(invoice.invoices.get(position).getId());
-                        linkedListClass.addLinkedObject(linkedListData);
+                        Integer id = linkedListClass.addLinkedObject(linkedListData);
+                        if(id!= null && id>0)
+                            item.setPinId((Integer) id);
                         itemViewHolder.fixImage.setImageResource(R.drawable.ic_star_black_24dp);
                     }
                     else
                     {
-                        linkedListClass.deleteLinkedObject(item.getId(), invoice.getTableNameInvoice());
+                        linkedListClass.deleteLinkedObject(item.getPinId());
+                        item.setPinId(null);
                         itemViewHolder.fixImage.setImageResource(R.drawable.ic_star_border_black_24dp);
                     }
                 }

@@ -17,18 +17,21 @@ public class Navigation {
     private final Context context;
     public PurchasesPageFragment purchasesPageFragment;
     public MainActivity.Page currentPage = null;
-    private android.app.FragmentTransaction fTrans;
+    public android.app.FragmentTransaction fTrans;
     public ArrayList<Date> filterDates;
     public  Map<String, String[]> filterParam = new LinkedHashMap<>();
     private TextView toolbar_title;
     public NavigableMap<MainActivity.Page, Map<String, String[]>> pageBackList = new TreeMap<>();
     private boolean backpressed;
     public MainActivity.Page page;
-    public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
+    public static Map<String, String[]> statusInvoices = new LinkedHashMap<>();
+
 
     public Navigation(Context context, TextView toolbar_title) {
         statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
-        statusInvoices.put("in_basket", new String[]{"1"});
+        statusInvoices.put("loaded", new String[]{"1"});
+        //statusInvoices.put("in_basket", new String[]{"1"});
+        statusInvoices.put("confirmed", new String[]{"2"});
         this.context = context;
         this.toolbar_title=toolbar_title;
     }
@@ -51,6 +54,8 @@ public class Navigation {
         }
         else {
             if (currentPage != null) {
+                if(page.positionInList != null)
+                    currentPage.positionInList = page.positionInList;
                 if (pageBackList.size() > 0)
                 {
                     boolean exist = false;
@@ -69,9 +74,8 @@ public class Navigation {
                         pageBackList.put(currentPage, Tmp);
                     }
                 }
-                else if (pageBackList.size() == 0 && currentPage.position >0) {
-                    if(page.positionInList != null)
-                        currentPage.positionInList =page.positionInList;
+                else //if (pageBackList.size() == 0 && currentPage.position >0)
+                {
                     currentPage.setId();
                     Map<String, String[]> filterTmp = new LinkedHashMap<>();
                     for(Map.Entry<String, String[]> item: filterParam.entrySet())
@@ -86,6 +90,8 @@ public class Navigation {
             case 0: {
                 currentPage = page;
                 clearFilter("");
+                //setFilter("place_id", new String[]{"not null"});
+                setFilter("_status", statusInvoices.get("confirmed"));
                 InvoicesPageFragment fragment = InvoicesPageFragment.newInstance(page);
                 fragment.InvoicesPageFragmentSet(this);
 
@@ -94,6 +100,22 @@ public class Navigation {
                     toolbar_title.setText(InvoicesPageFragment.page_title);
                 else
                     toolbar_title.setText(context.getString(R.string.invoicesListTitle));
+
+                break;
+            }
+            case 7: {
+                currentPage = page;
+                clearFilter("");
+                //setFilter("place_id", new String[]{"is null"});
+                setFilter("_status", statusInvoices.get("loaded"));
+                InvoicesPageFragment fragment = InvoicesPageFragment.newInstance(page);
+                fragment.InvoicesPageFragmentSet(this);
+
+                fTrans.replace(R.id.pager, fragment);
+                if(InvoicesPageFragment.page_title != "")
+                    toolbar_title.setText(InvoicesPageFragment.page_title);
+                else
+                    toolbar_title.setText(context.getString(R.string.invoicesShowOnMapTitle));
 
                 break;
             }
@@ -159,6 +181,18 @@ public class Navigation {
                     toolbar_title.setText(context.getString(R.string.invoicesNOTitleTitle));
                 break;
             }
+            /*case 8:
+            {
+                currentPage = page;
+                PlaceChooserActivity fragment = PlaceChooserActivity.newInstance(page);
+                fragment.PlaceChooserFragmentSet(this);
+                fTrans.replace(R.id.pager, fragment);
+                if(InvoicesPageFragment.page_title != "")
+                    toolbar_title.setText(InvoicesPageFragment.page_title);
+                else
+                    toolbar_title.setText(context.getString(R.string.placeChooserTitle));
+                break;
+            }*/
             default: {
                 currentPage = page;
                 fTrans.replace(R.id.pager, InvoicesPageFragment.newInstance(page));
@@ -228,11 +262,11 @@ public class Navigation {
     }
 
     public void backPress() {
-        if(purchasesPageFragment!= null)
+        /*if(purchasesPageFragment!= null)
         {
             purchasesPageFragment.onDestroy();
             purchasesPageFragment = null;
-        }
+        }*/
         backpressed = true;
         if(pageBackList.size()>0)
         {

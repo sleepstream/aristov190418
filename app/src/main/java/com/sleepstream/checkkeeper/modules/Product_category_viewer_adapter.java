@@ -1,8 +1,6 @@
 package com.sleepstream.checkkeeper.modules;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.content.res.Resources;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -20,7 +18,6 @@ import java.util.List;
 
 import static com.sleepstream.checkkeeper.MainActivity.currentNumber;
 import static com.sleepstream.checkkeeper.MainActivity.getDrawable;
-import static com.sleepstream.checkkeeper.MainActivity.getThemeColor;
 
 public class Product_category_viewer_adapter extends RecyclerView.Adapter<Product_category_viewer_adapter.ItemViewHolder>  {
     private PurchasesPageFragment purchasesPageFragment;
@@ -58,6 +55,7 @@ public class Product_category_viewer_adapter extends RecyclerView.Adapter<Produc
                 }
             }
         }
+
     }
 
     private Integer findeCategory(List<PurchasesListData.Category> categories, PurchasesListData.Category category)
@@ -83,13 +81,14 @@ public class Product_category_viewer_adapter extends RecyclerView.Adapter<Produc
     @Override
     public void onBindViewHolder(@NonNull final ItemViewHolder itemViewHolder, final int i) {
         Log.d(LOG_TAG, "onBindViewHolder\n");
-        itemViewHolder.fab_cart.setCount(categoriesSelected.get(i).count);
-        itemViewHolder.fab_cart.setImageResource(getDrawable(context,categoriesSelected.get(i).icon_name+"_48"));
+        if(categoriesSelected.get(i).count != null)
+            itemViewHolder.fab_cart.setCount(categoriesSelected.get(i).count);
+        itemViewHolder.fab_cart.setImageResource(getDrawable(context,categoriesSelected.get(i).icon_name+"_48dp"));
         itemViewHolder.fab_cart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                purchasesList.reloadPurchasesList(categoriesSelected.get(i).category_id == null ? null : categoriesSelected.get(i).category_id);
+                purchasesList.reloadPurchasesList(categoriesSelected.get(i).category_id);
                 currentNumber.setText(String.valueOf(purchasesList.purchasesListData.size()));
                 PurchasesPageFragment.purchasesListAdapter.notifyDataSetChanged();
                 PurchasesPageFragment.mainView.setVisibility(View.VISIBLE);

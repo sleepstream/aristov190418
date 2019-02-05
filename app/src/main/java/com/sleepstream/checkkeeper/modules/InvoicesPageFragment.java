@@ -3,6 +3,7 @@ package com.sleepstream.checkkeeper.modules;
 import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,6 +20,7 @@ import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
+import com.sleepstream.checkkeeper.userModule.PersonalData;
 import com.squareup.timessquare.CalendarPickerView;
 
 import java.util.Random;
@@ -141,11 +143,7 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
                 super.onScrolled(recyclerView, dx, dy);
             }
         });
-        if(navigation!= null && navigation.page!= null && navigation.page.positionInList != null) {
-            llm.scrollToPosition(navigation.page.positionInList);
-            invoiceListAdapter.row_index = navigation.page.positionInList;
-            navigation.page.positionInList = null;
-        }
+
         return view;
     }
 
@@ -164,9 +162,8 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
         /*if(invoice.lastIDCollection > 0) {
             llm.smoothScrollToPosition(recyclerViewInvList, null, invoice.lastIDCollection);
         }*/
-        invoice.reLoadInvoice();
-        MainActivity.currentNumber.setText(String.valueOf(invoice.invoices.size()));
-        invoiceListAdapter.notifyDataSetChanged();
+        new ReloadNewAsyncTask().execute();
+
 
 
     }
@@ -177,9 +174,47 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
 
     @Override
     public void onRefresh() {
-        invoice.reLoadInvoice();
-        invoiceListAdapter.notifyDataSetChanged();
-        swipe_container.setRefreshing(false);
+        new ReloadNewAsyncTask().execute();
+
+    }
+
+
+    private class ReloadNewAsyncTask extends AsyncTask<Void, Void, Void>
+    {
+
+        @Override
+        protected void onPreExecute() {
+            Log.d(LOG_TAG, "invoices size !!!! " + invoice.invoices.size());
+            invoice.invoices.clear();
+            Log.d(LOG_TAG, "invoices size !!!! " + invoice.invoices.size());
+            Log.d(LOG_TAG, "invoices clear !!!! ");
+            invoiceListAdapter.notifyDataSetChanged();
+            swipe_container.setRefreshing(true);
+            super.onPreExecute();
+        }
+
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            swipe_container.setRefreshing(false);
+            MainActivity.currentNumber.setText(String.valueOf(invoice.invoices.size()));
+            invoiceListAdapter.notifyDataSetChanged();
+
+            if(navigation!= null && navigation.currentPage!= null && navigation.currentPage.positionInList != null) {
+                llm.scrollToPosition(navigation.currentPage.positionInList);
+                invoiceListAdapter.row_index = navigation.currentPage.positionInList;
+                navigation.currentPage.positionInList = null;
+            }
+            super.onPostExecute(aVoid);
+        }
+
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            invoice.reLoadInvoice();
+            return null;
+        }
+
 
     }
 }

@@ -109,7 +109,7 @@ public class InvoicesBasketPageFragment extends Fragment {
                 if(selectedCount > 0)
                 {
 
-                    for(InvoiceData tmp : invoiceBasketListAdapter.itemList)
+                    for(InvoiceData tmp : InvoiceBasketListAdapter.itemList)
                     {
                         if(tmp.selected)
                         {
@@ -124,7 +124,7 @@ public class InvoicesBasketPageFragment extends Fragment {
                         fabShowHide();
                     }
                     invoice.reLoadInvoice();
-                    invoiceBasketListAdapter.itemList.clear();
+                    InvoiceBasketListAdapter.itemList.clear();
                     invoiceBasketListAdapter.notifyDataSetChanged();
                 }
             }
@@ -133,7 +133,7 @@ public class InvoicesBasketPageFragment extends Fragment {
         fabSelectAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                for(InvoiceData tmp : invoiceBasketListAdapter.itemList)
+                for(InvoiceData tmp : InvoiceBasketListAdapter.itemList)
                 {
                     if(!selectAll) {
                         tmp.selected = true;
@@ -162,7 +162,7 @@ public class InvoicesBasketPageFragment extends Fragment {
             public void onClick(View view) {
                 if(selectedCount > 0)
                 {
-                    for(InvoiceData tmp : invoiceBasketListAdapter.itemList)
+                    for(InvoiceData tmp : InvoiceBasketListAdapter.itemList)
                     {
                         if(tmp.selected)
                         {

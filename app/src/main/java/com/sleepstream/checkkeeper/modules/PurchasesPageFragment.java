@@ -5,6 +5,7 @@ import android.app.Fragment;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -32,10 +33,7 @@ import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.sleepstream.checkkeeper.IOnBackPressed;
-import com.sleepstream.checkkeeper.MainActivity;
-import com.sleepstream.checkkeeper.Navigation;
-import com.sleepstream.checkkeeper.R;
+import com.sleepstream.checkkeeper.*;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
@@ -92,7 +90,6 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
     public static PurchasesListAdapter purchasesListAdapter;
     public Product_category_viewer_adapter product_category_viewer_adapter;
-    private final int PLACE_PICKER_REQUEST = 3000;
     public static String subTitle="";
     private RelativeLayout placeImageLayout;
     private Context context;
@@ -127,7 +124,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if(settings.settings.containsKey("map_offset")) {
+        if(settings != null && settings.settings.containsKey("map_offset")) {
             map_offset = Double.valueOf(settings.settings.get("map_offset"));
         }
         try {
@@ -138,7 +135,20 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             pageNumber = null;
         }
 
-        if ((currentInvoice.store != null && currentInvoice.store._status != 1) || currentInvoice.store == null){ //|| (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
+
+        //block invoice to update from FNS while checking on MAP
+        //status 999
+        //reset this block on restart
+
+
+
+        if (currentInvoice!= null && (currentInvoice.store_on_map == null || currentInvoice.store_on_map.place_id == null)){ //|| (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)) {
+
+            if(currentInvoice.get_status()!= 1 && currentInvoice.get_status()!= 2) {
+                currentInvoice.set_status(999+currentInvoice.get_status());
+                invoice.updateInvoice(currentInvoice);
+            }
+
             final AlertDialog builder = new AlertDialog.Builder(context).create();
             builder.setTitle(context.getString(R.string.finde_store_on_map));
             builder.setButton(AlertDialog.BUTTON_NEGATIVE, context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
@@ -150,14 +160,20 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             builder.setButton(AlertDialog.BUTTON_POSITIVE,context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-                    PlacePicker.IntentBuilder builderMap = placeBuilder();
+                    //Page page = new Page("", 8);
+                    //navigation.openCurrentPage(page);
+                    Intent intent = new Intent(context, PlaceChooserActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+                    startActivity(intent);
+                    /*PlacePicker.IntentBuilder builderMap = placeBuilder();
                     //Context context = getApplicationContext();
                     try {
+
                         getActivity().startActivityForResult(builderMap.build(getActivity()), PLACE_PICKER_REQUEST);
                     } catch (Exception e) {
                         log.info(LOG_TAG + "\n"+ e.getMessage() + "\nError starting map");
                         e.printStackTrace();
-                    }
+                    }*/
                 }
             });
             builder.setCancelable(false);
@@ -173,15 +189,15 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             //currentDate.setText(currentInvoice.getDateInvoice(null));
             //currentName.setText(String.valueOf((float) Math.round(currentInvoice.getFullPrice() * 100) / 100 ));
 
-            if(currentInvoice.store != null && currentInvoice.store.place_id != null) {
-                String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/IMG_" + currentInvoice.store.place_id + ".png";
+            if(currentInvoice.store_on_map != null && currentInvoice.store_on_map.place_id != null) {
+                String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/IMG_" + currentInvoice.store_on_map.place_id + ".png";
                 File imgFile = new File(filepath);
 
                 if (imgFile.exists()) {
                     Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
                     placeImage.setImageBitmap(myBitmap);
                 } else {
-                    filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/MAP_" + currentInvoice.store.place_id + ".png";
+                    filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/MAP_" + currentInvoice.store_on_map.place_id + ".png";
                     imgFile = new File(filepath);
 
                     if (imgFile.exists()) {
@@ -190,7 +206,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     }
                 }
                 //PhotoTaskSaver photoTask = new PhotoTaskSaver(500, 500);
-                //photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
+                //photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store_from_fns.place_id, currentInvoice.store_from_fns.latitude.toString(), currentInvoice.store_from_fns.longitude.toString());
             }
             String[] date = currentInvoice.getDateInvoice(null).split(" ");
             invoice_date_text.setText(date[0]+"\n"+date[1]);
@@ -220,6 +236,20 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
     }
 
+   
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == RESULT_OK)
+        {
+            if(category_chooser_list_adapter!= null) {
+                category_chooser_list_adapter.loadCategories();
+                category_chooser_list_adapter.notifyDataSetChanged();
+            }
+        }
+        Log.d(LOG_TAG, requestCode +" request code");
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -234,32 +264,29 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
             if (currentInvoice != null) {
                 try {
-                    if (currentInvoice.store.name == null || (currentInvoice.store.name != null && currentInvoice.store.name == "")) {
-                        if (currentInvoice.store.name_from_fns != null && currentInvoice.store.name_from_fns != "")
-                            store_name.setText(currentInvoice.store.name_from_fns);
-                    } else if (currentInvoice.store.name != null && currentInvoice.store.name != "") {
-                        store_name.setText(currentInvoice.store.name);
-                    } else
-                        store_name.setText("");
-
-
-                    if (currentInvoice.store.address == null || (currentInvoice.store.address != null && currentInvoice.store.address == "")) {
-                        if (currentInvoice.store.address_from_fns != null && currentInvoice.store.address_from_fns != "")
-                            strore_adress.setText(currentInvoice.store.address_from_fns);
-                    } else if (currentInvoice.store.address != null && currentInvoice.store.address != "") {
-                        strore_adress.setText(currentInvoice.store.address);
+                    if (currentInvoice.store_on_map == null || currentInvoice.store_on_map.name == null || currentInvoice.store_on_map.name == "") {
+                        if (currentInvoice.store_from_fns != null && currentInvoice.store_from_fns.name_from_fns != null && currentInvoice.store_from_fns.name_from_fns != "")
+                            store_name.setText(currentInvoice.store_from_fns.name_from_fns);
                     } else {
-                        strore_adress.setText("");
+                        store_name.setText(currentInvoice.store_on_map.name);
+                    }
+
+
+                    if (currentInvoice.store_on_map == null || currentInvoice.store_on_map.address == null || currentInvoice.store_on_map.address == "") {
+                        if (currentInvoice.store_from_fns != null && currentInvoice.store_from_fns.address_from_fns != null && currentInvoice.store_from_fns.address_from_fns != "")
+                            strore_adress.setText(currentInvoice.store_from_fns.address_from_fns);
+                    } else {
+                        strore_adress.setText(currentInvoice.store_on_map.address);
                     }
                 } catch (Exception e) {
                     store_name.setText("");
                     strore_adress.setText("");
 
-                    Log.d(LOG_TAG, e.getMessage() + " Error no store name/address");
+                    Log.d(LOG_TAG, e.getMessage() + " Error no store_from_fns name/address");
                 }
             }
 
-            //change name of store
+            //change name of store_from_fns
             //if(MainActivity.pageNow == "purchasesList")
             //   fab.hide();
         }
@@ -273,22 +300,24 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     private PlacePicker.IntentBuilder placeBuilder()
     {
         PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
-        if(currentInvoice.store != null) {
+        if(currentInvoice.store_from_fns != null) {
             //find best location
-            Double[] latLng = invoice.findBestLocation(currentInvoice.store);
+            Double[] latLng = invoice.findBestLocation(currentInvoice.store_from_fns);
             if(latLng != null && latLng.length==2 && latLng[0] != null && latLng[1] != null)
             {
                 builder.setLatLngBounds(new LatLngBounds(new LatLng(latLng[0]-map_offset, latLng[1]-map_offset), new LatLng(latLng[0]+map_offset, latLng[1]+map_offset)));
             }
-            else if (currentInvoice.store.latitude > 0 && currentInvoice.store.longitude > 0)
-                builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store.latitude-map_offset,  currentInvoice.store.longitude-map_offset),
-                        new LatLng(currentInvoice.store.latitude+map_offset, currentInvoice.store.longitude+map_offset)));
+            else if (currentInvoice.store_on_map!= null && currentInvoice.store_on_map.latitude > 0 && currentInvoice.store_on_map.longitude > 0)
+                builder.setLatLngBounds(new LatLngBounds(new LatLng( currentInvoice.store_on_map.latitude-map_offset,  currentInvoice.store_on_map.longitude-map_offset),
+                        new LatLng(currentInvoice.store_on_map.latitude+map_offset, currentInvoice.store_on_map.longitude+map_offset)));
             else if(currentInvoice.latitudeAdd != null && currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd != null && currentInvoice.longitudeAdd > 0)
             {
                 builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd-map_offset,currentInvoice.longitudeAdd-map_offset),new LatLng(currentInvoice.latitudeAdd+map_offset,currentInvoice.longitudeAdd+map_offset)));
             }
-
-
+        }
+        else if(currentInvoice.latitudeAdd != null && currentInvoice.latitudeAdd >0 && currentInvoice.longitudeAdd != null && currentInvoice.longitudeAdd > 0)
+        {
+            builder.setLatLngBounds(new LatLngBounds(new LatLng(currentInvoice.latitudeAdd-map_offset,currentInvoice.longitudeAdd-map_offset),new LatLng(currentInvoice.latitudeAdd+map_offset,currentInvoice.longitudeAdd+map_offset)));
         }
         return builder;
     }
@@ -357,13 +386,13 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
 
         recyclerViewPurList =  view.findViewById(R.id.cardList);
-        cardList_view = view.findViewById(R.id.cardList_view);;
+        cardList_view = view.findViewById(R.id.cardList_view);
         products_category_list = view.findViewById(R.id.products_category_list);
         category_chooser_list = view.findViewById(R.id.category_chooser_list);
 
 
         category_chooser_list.setHasFixedSize(true);
-        category_chooser_list_adapter = new Product_category_chooser_adapter(context, purchasesList, currentInvoice, view);
+        category_chooser_list_adapter = new Product_category_chooser_adapter(context,  purchasesList, currentInvoice, this);
         final GridLayoutManager category_chooser_list_adapterGLM = new GridLayoutManager(context,4);
         category_chooser_list_adapterGLM.setOrientation(LinearLayoutManager.VERTICAL);
         category_chooser_list.setLayoutManager(category_chooser_list_adapterGLM);
@@ -493,6 +522,10 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         if(photoTask!= null)
             photoTask.cancel(true);
         googleFotoListAdapter = null;
+        if(currentInvoice.get_status()> 900) {
+            currentInvoice.set_status(currentInvoice.get_status()-999);
+            invoice.updateInvoice(currentInvoice);
+        }
     }
 
     @Override
@@ -671,16 +704,16 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                                 //blurPlotter.setVisibility(View.VISIBLE);
                                 //progressBar.setVisibility(View.VISIBLE);
                                 photoTask = new PhotoTask(500, 500);
-                                photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store.place_id, currentInvoice.store.latitude.toString(), currentInvoice.store.longitude.toString());
+                                photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, currentInvoice.store_on_map.place_id, currentInvoice.store_on_map.latitude.toString(), currentInvoice.store_on_map.longitude.toString());
                                 break;
                             }
                             case R.id.removePhoto: {
                                 String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/";
-                                File file = new File(filepath, "IMG_" + currentInvoice.store.place_id + ".png");
+                                File file = new File(filepath, "IMG_" + currentInvoice.store_on_map.place_id + ".png");
                                 if (file.exists())
                                     file.delete();
                                 else {
-                                    file = new File(filepath, "MAP_" + currentInvoice.store.place_id + ".png");
+                                    file = new File(filepath, "MAP_" + currentInvoice.store_on_map.place_id + ".png");
                                     if (file.exists())
                                         file.delete();
                                 }
@@ -696,17 +729,19 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                                 final EditText Name = v.findViewById(R.id.name);
                                 //final EditText storeType = v.findViewById(R.id.storeType);
 
-                                Name.setText(MainActivity.currentInvoice.store.name);
-                                //storeType.setText(MainActivity.currentInvoice.store.store_type);
+                                Name.setText(MainActivity.currentInvoice.store_on_map.name);
+                                //storeType.setText(MainActivity.currentInvoice.store_from_fns.store_type);
 
                                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
                                         blurPlotter.setVisibility(View.GONE);
-                                        MainActivity.currentInvoice.store.name = Name.getText().toString().trim();
-                                        MainActivity.currentInvoice.store.update = true;
+                                        final InvoiceData invoiceData = MainActivity.currentInvoice;
+
+                                        invoiceData.store_on_map.name = Name.getText().toString().trim();
                                         try {
-                                            invoice.setStoreData(MainActivity.currentInvoice);
+                                            invoiceData.store_on_map.update = true;
+                                            invoice.setStoreData(invoiceData);
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
@@ -786,15 +821,17 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
 
         @Override
         protected void onPostExecute(Void aVoid) {
+            Log.d(LOG_TAG, "onPostExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
             super.onPostExecute(aVoid);
             onResume();
         }
 
         @Override
         protected void onPreExecute() {
+            Log.d(LOG_TAG, "onPreExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
             super.onPreExecute();
             filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
-            file = new File(filepath, "IMG_"+currentInvoice.store.place_id + ".png");
+            file = new File(filepath, "IMG_"+currentInvoice.store_on_map.place_id + ".png");
             try {
                 this.invoiceData = (InvoiceData) currentInvoice.clone();
             } catch (CloneNotSupportedException e) {
@@ -811,10 +848,14 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         }
         @Override
         protected void onProgressUpdate(String... values) {
+            Log.d(LOG_TAG, "onProgressUpdate  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
             super.onProgressUpdate(values);
             if(googleFotoListAdapter != null) {
                 progressBar.setVisibility(View.GONE);
-                googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
+                if(googleFotoListAdapter.placePhotoMetadataList != null)
+                    googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
+                else
+                    cancel(true);
                 googleFotoListAdapter.photoData.put(values[1], values[0]);
                 googleFotoListAdapter.notifyDataSetChanged();
             }
@@ -826,6 +867,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
          */
         @Override
         protected Void doInBackground(String... params) {
+            Log.d(LOG_TAG, "doInBackground  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
             if (params.length != 3) {
                 return null;
             }
@@ -834,6 +876,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             GooglePlace googlePlace = new GooglePlace(placeId, context);
                 Bitmap image = null;
                 if (googlePlace.photos != null) {
+                    Log.d(LOG_TAG, "doInBackground  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
                     for (int count = 0; count < googlePlace.photos.size(); count++) {
                         GooglePlace.Photo photo = googlePlace.photos.get(count);
                         File file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");

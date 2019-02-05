@@ -139,8 +139,8 @@ public class AccountingListAdapter extends RecyclerView.Adapter<AccountingListAd
         });
         View snackBarView = snackbar.getView();
         snackBarView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorAccent));
-        TextView tvSnack = (TextView) snackBarView.findViewById(android.support.design.R.id.snackbar_text);
-        TextView tvSnackAction = (TextView) snackbar.getView().findViewById( android.support.design.R.id.snackbar_action );
+        TextView tvSnack = snackBarView.findViewById(android.support.design.R.id.snackbar_text);
+        TextView tvSnackAction = snackbar.getView().findViewById( android.support.design.R.id.snackbar_action );
         tvSnack.setTextColor(Color.WHITE);
         tvSnack.setTypeface(Typefaces.getRobotoMedium(context));
         tvSnackAction.setTypeface(Typefaces.getRobotoMedium(context));
@@ -178,7 +178,7 @@ public class AccountingListAdapter extends RecyclerView.Adapter<AccountingListAd
 
                 //row_index =-1;
                 //notifyDataSetChanged();
-                //InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                //InvoicesPageFragment.placeChooserAdapter.notifyDataSetChanged();
 
                 //currentNumber.setText("12");
                 //MainActivity.pageNow = "invoicesLists";
@@ -213,7 +213,7 @@ public class AccountingListAdapter extends RecyclerView.Adapter<AccountingListAd
                 }
                 if (MotionEventCompat.getActionMasked(event) ==
                         MotionEvent.ACTION_BUTTON_PRESS) {
-                    Toast.makeText(view.getContext(), "Load invoice page "+view.findViewById(R.id.invoiceName).getTransitionName(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(view.getContext(), "Load invoice page "+view.findViewById(R.id.storeName).getTransitionName(), Toast.LENGTH_LONG).show();
                 }
                 return false;
             }
@@ -267,7 +267,7 @@ public class AccountingListAdapter extends RecyclerView.Adapter<AccountingListAd
         public ItemViewHolder(final View v) {
             super(v);
             container = v.findViewById(R.id.container);
-            itemName = v.findViewById(R.id.invoiceName);
+            itemName = v.findViewById(R.id.storeName);
             ivReorder =  v.findViewById(R.id.ivReorder);
             relativeReorder =  v.findViewById(R.id.relativeReorder);
         }

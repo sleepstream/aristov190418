@@ -18,6 +18,7 @@ import com.sleepstream.checkkeeper.R;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,7 +118,11 @@ public class ImagePicker {
 
         Log.d(TAG, options.inSampleSize + " sample method bitmap ... " +
                 actuallyUsableBitmap.getWidth() + " " + actuallyUsableBitmap.getHeight());
-
+        try {
+            fileDescriptor.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return actuallyUsableBitmap;
     }
 

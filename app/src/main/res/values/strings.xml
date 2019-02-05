@@ -38,7 +38,7 @@
     <string name="delete_btn">Удалить</string>
     <string name="showAccountingLists">Списки покупок</string>
     <string name="accountingListTitle">Списки затрат</string>
-    <string name="invoicesListTitle">Все чеки</string>
+    <string name="invoicesListTitle">Учтеные чеки</string>
     <string name="addBtn">Добавить</string>
     <string name="purchasListTitle">Покупка</string>
     <string name="title_activity_maps">Map</string>
@@ -179,5 +179,27 @@
     <string name="settings_On_lineNav_manu_text">On-Line</string>
     <string name="settings_OFF_lineNav_manu_text">Off-Line</string>
     <string name="add_new_invoice">Проверка чека</string>
+    <string name="loading_invoice_from_Server">Синхронизация с сервером</string>
+    <string name="add_new_product_category">Добавить</string>
+    <string name="create_new_category">Создание категории</string>
+    <string name="create_new_category_name">Введите название категори</string>
+    <string name="hint_text_search">Поиск по названию</string>
+    <string name="requested_field_data_error">проверьте корректность ввода данных</string>
+    <string name="requested_field_length_error">Превышена допустимая длина</string>
+    <string name="invoicesShowOnMapListTitle">Неподтвержденные</string>
+    <string name="invoicesShowOnMapTitle">Неподтвержденные</string>
+    <string name="settings_clearServerData_text">Очистить данные на сервере</string>
+    <string name="settings_clearServerData_summary">Будут удалены загруженные вами чеки</string>
+    <string name="clearServerDataAlert">Отмена этого действия невозможна, продолжить?</string>
+    <string name="clearServerDataAlertTitle">Удаление личных чеков на сервере!</string>
+    <string name="change_store_name_in_all_invoices">Изменить название магазина для всех чеков?</string>
+    <string name="btnOkForAll">Для всех</string>
+    <string name="btnCancelForCurrent">Для текущего</string>
+    <string name="placeChooserTitle">Выбор магазина</string>
+    <string name="search_store_text">Поиск по магазинам</string>
+    <string name="search_store_text_message">Начните вводить название магазина или адрес</string>
+    <string name="button_find_on_map">Укажите на карте</string>
+    <string name="select_place_confurm">Выбрать это место?</string>
+    <string name="placeSelectFromList">Возможно это одно из предложенных мест:</string>
 
 </resources>

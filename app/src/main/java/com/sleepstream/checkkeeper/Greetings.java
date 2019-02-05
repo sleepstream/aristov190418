@@ -16,17 +16,20 @@ import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import com.firebase.ui.auth.AuthUI;
+import com.firebase.ui.auth.IdpResponse;
 import com.google.android.gms.auth.api.Auth;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.*;
 
-import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.SuccessContinuation;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.maps.errors.ApiException;
+import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import okhttp3.Response;
 
@@ -79,6 +82,7 @@ public class Greetings extends Activity {
     Context context;
     private final int RC_SIGN_IN = 100;
     private FirebaseUser googleUser;
+    private boolean registration_layout_active = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -134,6 +138,7 @@ public class Greetings extends Activity {
         show_registration_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                registration_layout_active = true;
                 registration_layout.setVisibility(View.VISIBLE);
                 greetings_layout.setVisibility(View.GONE);
             }
@@ -148,6 +153,11 @@ public class Greetings extends Activity {
                     {
                         personalData_layout.setError(getString(R.string.requested_field_error));
                         personalData_layout.setErrorEnabled(true);
+                    }
+                    else if(!e_mail.getText().toString().matches("(?i)[a-zа-я0-9  ]"))
+                    {
+                        e_mail_layout.setError(getString(R.string.requested_field_data_error));
+                        e_mail_layout.setErrorEnabled(true);
                     }
                 }
                 else
@@ -166,6 +176,11 @@ public class Greetings extends Activity {
                     if(e_mail.getText().length()==0)
                     {
                         e_mail_layout.setError(getString(R.string.requested_field_error));
+                        e_mail_layout.setErrorEnabled(true);
+                    }
+                    else if(!e_mail.getText().toString().matches("^((([!#$%&'*+\\-/=?^_`{|}~\\w])|([!#$%&'*+\\-/=?^_`{|}~\\w][!#$%&'*+\\-/=?^_`{|}~\\.\\w]{0,}[!#$%&'*+\\-/=?^_`{|}~\\w]))[@]\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*)$"))
+                    {
+                        e_mail_layout.setError(getString(R.string.requested_field_data_error));
                         e_mail_layout.setErrorEnabled(true);
                     }
                 }
@@ -224,14 +239,14 @@ public class Greetings extends Activity {
                 if(isChecked)
                 {
                     password_fns_layout.setVisibility(View.GONE);
-                    e_mail_layout.setVisibility(View.VISIBLE);
+                    //e_mail_layout.setVisibility(View.VISIBLE);
                     personalData_layout.setVisibility(View.VISIBLE);
 
                 }
                 else
                 {
                     password_fns_layout.setVisibility(View.VISIBLE);
-                    e_mail_layout.setVisibility(View.GONE);
+                    //e_mail_layout.setVisibility(View.GONE);
                     personalData_layout.setVisibility(View.GONE);
                 }
             }
@@ -276,11 +291,17 @@ public class Greetings extends Activity {
                     if(!phone_number_layout.isErrorEnabled() && !password_fns_layout.isErrorEnabled())
                     {
                         user.telephone_number = phone_number.getText().toString();
+                        user.e_mail = e_mail.getText().toString();
                         user.generateAuth(password_fns.getText().toString());
                         user._status = 1;
                         user.setPersonalData();
-                        Toast.makeText(context, getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
-                        finish();
+                        if(user.id>0) {
+                            Toast.makeText(context, getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
+                            finish();
+                        }
+                        else
+                            Toast.makeText(context, getString(R.string.personal_data_request_BadRequest), Toast.LENGTH_LONG).show();
+
                     }
                     else
                     {
@@ -311,6 +332,8 @@ public class Greetings extends Activity {
     protected void onStart() {
         super.onStart();
 
+        Log.e(LOG_TAG, "onStart");
+
 
         if(On_line) {
             googleUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -322,7 +345,7 @@ public class Greetings extends Activity {
                 loadUserData(googleUser.getUid());
             }
         }
-        else if(user.id==null)
+        else if(user.id==null && !registration_layout_active)
         {
             greetings_layout.setVisibility(View.VISIBLE);
             progressBar.setVisibility(View.GONE);
@@ -351,7 +374,8 @@ public class Greetings extends Activity {
                         new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build()))
                 .setIsSmartLockEnabled(false)
                 .build();
-        startActivityForResult(intent, RC_SIGN_IN);
+          startActivityForResult(intent, RC_SIGN_IN);
+
 
     }
     private void signIn_Email() {
@@ -370,15 +394,13 @@ public class Greetings extends Activity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         //super.onActivityResult(requestCode, resultCode, data);
-
+        Log.e(LOG_TAG, "onActivityResult");
         // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
         if (requestCode == RC_SIGN_IN) {
             //mFirestore = FirebaseFirestore.getInstance();
-            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-            if (result != null && result.isSuccess()) {
-                loadUserData(result.getSignInAccount().getId());
-            }
-            else if(result == null)
+            IdpResponse response = IdpResponse.fromResultIntent(data);
+
+            if(resultCode == RESULT_OK)
             {
                 googleUser = FirebaseAuth.getInstance().getCurrentUser();
                 if(googleUser!= null)
@@ -388,6 +410,16 @@ public class Greetings extends Activity {
                     tmp.put("on_line", String.valueOf(On_line));
                     settings.setSettings(tmp);
                     loadUserData(googleUser.getUid());
+
+                    if(user.google_id != null)
+                    {
+                        //SettingsActivity.AsyncLoadToServerInvoices asyncLoadToServerInvoices = new SettingsActivity.AsyncLoadToServerInvoices();
+                        //asyncLoadToServerInvoices.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    }
+                    else
+                        signIn_Google();
+
+                    Log.d(LOG_TAG, "user_google_id "+ user.google_id );
                 }
                 else
                 {
@@ -418,20 +450,73 @@ public class Greetings extends Activity {
 
     private void loadUserData(final String id) {
 
-        Task<DocumentSnapshot> docRef = mFirestore.collection("users").document(id).get();
-        docRef.addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+         /*Task<DocumentSnapshot> task = mFirestore.collection("users").document(id).get(Invoice.source);
+        while(!task.isComplete())
+        {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if (task.isSuccessful()) {
+            DocumentSnapshot document = task.getResult();
+            if (document != null) {
+                Integer id_tmp = null;
+                if(user.id != null)
+                    id_tmp = user.id;
+                user = document.toObject(PersonalData.class);
+
+                if(user != null) {
+                    user.id = id_tmp;
+                    user.signIn = true;
+                    user.setPersonalData();
+                    if ((user.telephone_number != null ) && (user.password != null )) {
+                        finish();
+                        return;
+                    }
+                }
+            }
+
+            if(user == null && googleUser != null)
+            {
+                user = new PersonalData();
+                user.google_id = googleUser.getUid();
+                user.e_mail = googleUser.getEmail();
+                user.name = googleUser.getDisplayName();
+                user.telephone_number = googleUser.getPhoneNumber();
+                user._status = 0;
+                user.signIn = true;
+                user.mPhotoUrl = googleUser.getPhotoUrl().toString();
+                mFirestore.collection("users").document(id).set(user);
+                //DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+                user.setPersonalData();
+            }
+            registration_layout.setVisibility(View.VISIBLE);
+            progressBar.setVisibility(View.GONE);
+        } else {
+            progressBar.setVisibility(View.GONE);
+            Log.d(LOG_TAG, "get failed with ", task.getException());
+            Toast.makeText(context, getString(R.string.connectionError), Toast.LENGTH_LONG).show();
+            if(from != null)
+                finish();
+        }
+        */
+
+        mFirestore.collection("users").document(id).get(Invoice.source).addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                Log.d(LOG_TAG, "try toload user data");
                 if (task.isSuccessful()) {
                     DocumentSnapshot document = task.getResult();
                     if (document != null) {
-                        Integer id = null;
+                        Integer id_tmp = null;
                         if(user.id != null)
-                            id = user.id;
+                            id_tmp = user.id;
                         user = document.toObject(PersonalData.class);
 
                         if(user != null) {
-                            user.id = id;
+                            user.id = id_tmp;
                             user.signIn = true;
                             user.setPersonalData();
                             if ((user.telephone_number != null ) && (user.password != null )) {
@@ -454,8 +539,22 @@ public class Greetings extends Activity {
                         mFirestore.collection("users").document(id).set(user);
                         //DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
                         user.setPersonalData();
+
+
+
+                    }
+                    if(user!= null)
+                    {
+                            if(user.e_mail != null)
+                                e_mail.setText(user.e_mail);
+                            if(user.name != null)
+                                personalData.setText(user.name);
+                            if(user.telephone_number != null)
+                                phone_number.setText(user.telephone_number);
+
                     }
                     registration_layout.setVisibility(View.VISIBLE);
+                    greetings_layout.setVisibility(View.GONE);
                     progressBar.setVisibility(View.GONE);
                 } else {
                     progressBar.setVisibility(View.GONE);
@@ -464,10 +563,10 @@ public class Greetings extends Activity {
                     if(from != null)
                         finish();
                 }
-
-
             }
         });
+
+
     }
 
 

@@ -91,8 +91,8 @@ public class LinkedListAdapter extends RecyclerView.Adapter<LinkedListAdapter.It
         });
         View snackBarView = snackbar.getView();
         snackBarView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorAccent));
-        TextView tvSnack = (TextView) snackBarView.findViewById(android.support.design.R.id.snackbar_text);
-        TextView tvSnackAction = (TextView) snackbar.getView().findViewById( android.support.design.R.id.snackbar_action );
+        TextView tvSnack = snackBarView.findViewById(android.support.design.R.id.snackbar_text);
+        TextView tvSnackAction = snackbar.getView().findViewById( android.support.design.R.id.snackbar_action );
         tvSnack.setTextColor(Color.WHITE);
         tvSnack.setTypeface(Typefaces.getRobotoMedium(context));
         tvSnackAction.setTypeface(Typefaces.getRobotoMedium(context));
@@ -125,8 +125,10 @@ public class LinkedListAdapter extends RecyclerView.Adapter<LinkedListAdapter.It
                         itemViewHolder.quantity.setText(String.valueOf(item.invoiceData.quantity));
                     else
                         itemViewHolder.quantity.setText("");
-                    if (item.invoiceData.store != null && item.invoiceData.store.name != null)
-                        itemViewHolder.itemName.setText(item.invoiceData.store.name);
+                    if (item.invoiceData.store_on_map != null && item.invoiceData.store_on_map.name != null)
+                        itemViewHolder.itemName.setText(item.invoiceData.store_on_map.name);
+                    else if(item.invoiceData.store_from_fns != null && item.invoiceData.store_from_fns.name_from_fns != null)
+                        itemViewHolder.itemName.setText(item.invoiceData.store_from_fns.name_from_fns);
                     else {
                         itemViewHolder.itemName.setText(MainActivity.setInvoiceNameByStatus(item.invoiceData.get_status()));
                     }

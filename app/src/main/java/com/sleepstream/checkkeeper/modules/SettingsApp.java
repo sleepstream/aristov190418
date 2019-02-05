@@ -28,6 +28,7 @@ public class SettingsApp {
                 settings.put(cur.getString(cur.getColumnIndex("name")), cur.getString(cur.getColumnIndex("value")));
             }while(cur.moveToNext());
         }
+        cur.close();
     }
 
     private void updateSettings(Map<String, String> settings)
@@ -62,6 +63,7 @@ public class SettingsApp {
                 int id = (int)dbHelper.insert(tableName, null, contentValues);
                 Log.d("", id+"");
             }
+            cur.close();
         }
         reloadSettings();
     }

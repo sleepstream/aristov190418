@@ -9,8 +9,8 @@ import android.os.Bundle;
 
 public class SingleShotLocationProvider {
 
-    public static interface LocationCallback {
-        public void onNewLocationAvailable(GPSCoordinates location);
+    public interface LocationCallback {
+        void onNewLocationAvailable(GPSCoordinates location);
     }
 
     // calls back to calling thread, note this is for low grain: if you want higher precision, swap the

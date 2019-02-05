@@ -96,7 +96,7 @@ public class AccountingListPageFragment extends Fragment implements AccountingLi
         Log.d(LOG_TAG, " Reload accountingListData size "+ accountingList.accountingListData.size());
 
 
-        recyclerViewAccList = (RecyclerView) view.findViewById(R.id.cardList);
+        recyclerViewAccList = view.findViewById(R.id.cardList);
         assert recyclerViewAccList != null;
         recyclerViewAccList.setHasFixedSize(true);
         final LinearLayoutManager llmAccList = new LinearLayoutManager(context);

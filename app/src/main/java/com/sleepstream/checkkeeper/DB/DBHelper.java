@@ -5,12 +5,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.os.Environment;
 import android.widget.Toast;
-import com.sleepstream.checkkeeper.R;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
@@ -40,7 +38,7 @@ public class DBHelper extends SQLiteOpenHelper{
         backUpDataBase(false);
     }
 
-    public void createDataBase() throws IOException {
+    public void createDataBase() {
 
         boolean dbExist = checkDataBase();
 
@@ -90,7 +88,7 @@ public class DBHelper extends SQLiteOpenHelper{
 
         }
 
-        return checkDB != null ? true : false;
+        return checkDB != null;
     }
 
     /**
@@ -98,7 +96,7 @@ public class DBHelper extends SQLiteOpenHelper{
      * system folder, from where it can be accessed and handled.
      * This is done by transfering bytestream.
      * */
-    private void copyDataBase(Uri input) throws IOException{
+    public void copyDataBase(Uri input) throws IOException{
 
         //Open your local db as the input stream
         InputStream myInput;

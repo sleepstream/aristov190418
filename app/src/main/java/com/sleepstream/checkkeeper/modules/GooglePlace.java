@@ -34,11 +34,12 @@ public class GooglePlace {
                 .build();
 
         JSONObject jResults = null;
+        Response response = null;
         try {
-            Response response = okHttpClient.newCall(request).execute();
+            response = okHttpClient.newCall(request).execute();
             //System.out.println(urlGet+"\n" + response.body().string().toString());
 
-            JSONObject jObject = new JSONObject(response.body().string().toString());
+            JSONObject jObject = new JSONObject(response.body().string());
             jResults = jObject.getJSONObject("result");
             JSONArray jPhotos = jResults.getJSONArray("photos");
             for(int i =0; i<jPhotos.length(); i++)
@@ -53,7 +54,6 @@ public class GooglePlace {
                 photos.add(photo);
             }
             icon = jResults.getString("icon");
-            response.close();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -69,6 +69,10 @@ public class GooglePlace {
                 }
             }
             e.printStackTrace();
+        }
+        finally {
+            if(response != null)
+                response.close();
         }
 
     }

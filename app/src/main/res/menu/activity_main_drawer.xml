@@ -7,6 +7,11 @@
           android:checkable="true"
           app:actionViewClass="android.widget.TextView"
           android:enabled="true"/>
+    <item android:title="@string/invoicesShowOnMapListTitle"
+          android:id="@+id/showOnMap"
+          android:checkable="true"
+          app:actionViewClass="android.widget.TextView"
+          android:enabled="true"/>
     <item android:title="@string/invoicesLoadingListTitle"
           android:checkable="true"
           android:id="@+id/invoicesLoadingPage"

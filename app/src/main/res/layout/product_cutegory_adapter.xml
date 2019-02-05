@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:id="@+id/fab_layout"
                 xmlns:app="http://schemas.android.com/apk/res-auto"
                 xmlns:tools="http://schemas.android.com/tools"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="center">
-    <RelativeLayout
-            android:id="@+id/fab_name_layout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-        <TextView
-                android:id="@+id/fab_name_title"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                style="?TextAppeareance_onDark"
-                android:textSize="18sp"/>
-    </RelativeLayout>
+                android:orientation="vertical">
     <RelativeLayout
             android:id="@+id/fab_cart_layout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/fab_name_layout"
-            android:gravity="center">
+            android:layout_alignParentTop="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
         <com.sleepstream.checkkeeper.modules.CounterCheckedFab
                 android:id="@+id/fab_cart"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
     </RelativeLayout>
+    <RelativeLayout
+            android:id="@+id/fab_name_layout"
+            android:layout_below="@+id/fab_cart_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center">
+        <TextView
+                android:id="@+id/fab_name_title"
+                android:textAlignment="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="?TextAppeareance_onDark"
+                android:textSize="18sp"/>
+    </RelativeLayout>
+
 </RelativeLayout>

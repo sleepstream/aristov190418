@@ -16,8 +16,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.Typeface;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.*;
@@ -30,6 +28,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
+import android.support.design.widget.TextInputLayout;
 import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
@@ -42,14 +41,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.text.Html;
-import android.text.InputType;
-import android.text.Spanned;
+import android.text.*;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.*;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -62,8 +60,7 @@ import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 import com.google.firebase.database.*;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreSettings;
+import com.google.firebase.firestore.*;
 import com.sleepstream.checkkeeper.DB.DBHelper;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingList;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
@@ -86,7 +83,9 @@ import java.io.*;
 import java.lang.Process;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URL;
+import java.security.MessageDigest;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -96,8 +95,11 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.sleepstream.checkkeeper.Navigation.statusInvoices;
 import static com.sleepstream.checkkeeper.invoiceObjects.Invoice.tableNameInvoice;
+import static com.sleepstream.checkkeeper.modules.InvoicesPageFragment.invoiceListAdapter;
 import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
+import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.photoTask;
 
 
 public class MainActivity extends AppCompatActivity implements InvoiceListAdapter.OnStartDragListener, AccountingListAdapter.OnStartDragListener, GoogleApiClient.OnConnectionFailedListener, NavigationView.OnNavigationItemSelectedListener {
@@ -143,13 +145,14 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private final int cameraRequest = 1000;
     private final int personalDataShow = 2001;
     private final int personalDataRequestFull = 2000;
-    private final int PLACE_PICKER_REQUEST = 3000;
+    public static final int PLACE_PICKER_REQUEST = 3000;
     public static final int CALENDAR_PICKER_REQUEST = 4000;
     public static final int PICK_IMAGE_ID = 234;
     public static final int SetImageFromGoogle_REQUEST = 5000;
     public static final int PICK_INVOICE_FROM_IMAGE = 6000;
     public static final int CAPTURE_FROM_PDF_QR = 7000;
     public static final int restoreFromBackUp = 8000;
+    public static final int REQUEST_FOR_PRODUCT_CATEGORY_ICON_CODE = 9000;
 
     private SmsReceiver smsReceiver = new SmsReceiver();
 
@@ -191,6 +194,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
 
     private Toolbar toolbar;
+    private RelativeLayout searchLayout;
     private NavigationView navigationView;
     private boolean statusDateFilter;
     public static ArrayList<? extends Date> filterDates;
@@ -198,6 +202,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public static TextView currentNumber;
     public Navigation navigation;
     public TextView invoiceCount;
+    public TextView invoiceShowOnMapCount;
     public TextView accountingListCount;
     public TextView linkedListCount;
     public TextView invoicesLoadingPage;
@@ -205,24 +210,36 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     public TextView user_e_mail_nav_menu;
     public TextView on_line_system_nav_menu;
     private ImageView mPhotoUrl_nav_menu;
+    private TextInputLayout text_search;
+    private EditText text_search_text;
 
-    public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
+    //public Map<String, String[]> statusInvoices = new LinkedHashMap<>();
 
     public static SettingsApp settings;
     private int backCount=0;
 
     public static boolean On_line = false;
     public static DatabaseReference mFirebase;
+    public static GoogleSignInOptions gso;
 
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        if (BuildConfig.DEBUG) {
+            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
+                    .detectLeakedSqlLiteObjects()
+                    .detectLeakedClosableObjects()
+                    .penaltyLog()
+                    .penaltyDeath()
+                    .build());
+        }
         super.onCreate(savedInstanceState);
         MultiDex.install(this);
 
 
-        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
                 .requestIdToken(getString(R.string.Firebase_default_web_client_id))
                 .build();
 
@@ -241,7 +258,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         hasGPSPermission = RuntimePermissionUtil.checkPermissonGranted(this, MapPerm);
         if (!hasSmsPermission || !hasCameraPermission || !hasSDPermission || !hasGPSPermission) {
             RuntimePermissionUtil.requestPermission(MainActivity.this, permisions, 200);
-        } else {
+        } else
+        {
             permChecked = true;
             context = this;
 
@@ -249,7 +267,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             TestInternet testInternet = new TestInternet();
             testInternet.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
-            FirebaseDatabase.getInstance().setLogLevel(com.google.firebase.database.Logger.Level.DEBUG);
+            if(mFirestore == null)
+                FirebaseDatabase.getInstance().setLogLevel(com.google.firebase.database.Logger.Level.DEBUG);
             mFirestore = FirebaseFirestore.getInstance();
 
             FirebaseFirestoreSettings fireBaseSettings = new FirebaseFirestoreSettings.Builder()
@@ -257,16 +276,21 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     .setTimestampsInSnapshotsEnabled(true)
                     .build();
             mFirestore.setFirestoreSettings(fireBaseSettings);
-            mFirestore.setLoggingEnabled(true);
+            FirebaseFirestore.setLoggingEnabled(true);
 
             mFirebase = FirebaseDatabase.getInstance().getReference();
+
+
+
+
 
 
             //check and create DB if nessesary
             dbHelper = new DBHelper(this);
             try {
                 dbHelper.createDataBase();
-            } catch (IOException ioe) {
+            } catch (Exception e) {
+                log.info(e.toString());
                 throw new Error("Unable to create database");
             }
             try {
@@ -346,7 +370,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                                     }
 
                                     @Override
-                                    public void onResponse(Call call, Response response) throws IOException {
+                                    public void onResponse(Call call, Response response) {
                                         //do nothing
                                     }
                                 });
@@ -364,14 +388,73 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             //status 2 - confirmed by user
             //status -4 - Status Not Acceptable from Server
             //-3 - Status Not Found from Server
-            statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
-            statusInvoices.put("in_basket", new String[]{"1"});
+            //statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
+            //statusInvoices.put("confirmed", new String[]{"2"});
+            //statusInvoices.put("in_basket", new String[]{"1"});
 
             setContentView(R.layout.activity_main);
 
-            toolbar = findViewById(R.id.toolbar);
+            toolbar = (Toolbar) findViewById(R.id.toolbar);
 
-            DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            searchLayout = (RelativeLayout) findViewById(R.id.searchLayout);
+
+            toolbar.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if(searchLayout.getVisibility() == View.GONE)
+                    {
+                        searchLayout.setVisibility(View.VISIBLE);
+                    }
+                    else
+                    {
+                        View view = getCurrentFocus();
+                        text_search_text.clearFocus();
+                        if (view != null) {
+                            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                            if (imm != null) {
+                                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                            }
+                        }
+
+
+                        searchLayout.setVisibility(View.GONE);
+
+                    }
+                }
+            });
+            text_search_text = (EditText) findViewById(R.id.text_search_text);
+            text_search = (TextInputLayout) findViewById(R.id.text_search);
+
+            text_search_text.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    String text = text_search_text.getText().toString();
+                    if(text.length()>1) {
+                        navigation.filterParam.put("text_search", new String[]{text});
+                        invoice.reLoadInvoice();
+                        if (invoiceListAdapter != null)
+                            invoiceListAdapter.notifyDataSetChanged();
+                    }
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if(text_search_text.getText().toString().length() == 0)
+                    {
+                        navigation.clearFilter("text_search");
+                        invoice.reLoadInvoice();
+                        if (invoiceListAdapter != null)
+                            invoiceListAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
+
+                    DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
             navigationView = (NavigationView) findViewById(R.id.nav_view);
             navigationView.setNavigationItemSelectedListener(this);
             View headerLayout = navigationView.getHeaderView(0);
@@ -409,10 +492,15 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             };
             drawer.addDrawerListener(toggle);
             toggle.syncState();
-            progressBar = findViewById(R.id.progressBar);
+            progressBar = (RelativeLayout) findViewById(R.id.progressBar);
 
-            currentNumber = findViewById(R.id.currentNumber);
-            ivFilter = findViewById(R.id.ivFilter);
+            currentNumber = (TextView) findViewById(R.id.currentNumber);
+
+
+
+
+
+            ivFilter = (ImageView) findViewById(R.id.ivFilter);
             ivFilter.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -429,10 +517,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     }
                 }
             });
-            toolbar_title = findViewById(R.id.action_bar_title);
+            toolbar_title = (TextView) findViewById(R.id.action_bar_title);
+
 
 
             invoiceCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesPage));
+            invoiceShowOnMapCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.showOnMap));
             accountingListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.accountingListPAge));
             linkedListCount = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.linkedListPage));
             invoicesLoadingPage = (TextView) MenuItemCompat.getActionView(navigationView.getMenu().findItem(R.id.invoicesLoadingPage));
@@ -441,7 +531,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             getFnsData = new GetFnsData(android_id);
 
             invoice = new Invoice(navigation);
-            invoice.reLoadInvoice();
+            //invoice.reLoadInvoice();
             accountingList = new AccountingList();
             purchasesList = new PurchasesList(context);
             linkedListClass = new LinkedListClass();
@@ -450,6 +540,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 FileInputStream fis = new FileInputStream("resources.properties");
                 LogManager.getLogManager().readConfiguration(fis);
             } catch (IOException e) {
+                log.info(e.toString());
                 System.err.println("Could not setup logger configuration: " + e.toString());
             }
             String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/log/";
@@ -460,6 +551,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             try {
                 fh = new FileHandler(filepath + "application_log.txt");
             } catch (IOException e) {
+                log.info(e.toString());
                 e.printStackTrace();
             }
             if (fh != null)
@@ -469,11 +561,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
             cacheDir = context.getCacheDir().getAbsolutePath() + "/";
 
-            recyclerViewFotoList = findViewById(R.id.imagelist);
-            blurPlotter = findViewById(R.id.blurPlotter);
-            progressBar = findViewById(R.id.progressBar);
-            addMyPhoto = findViewById(R.id.addMyPhoto);
-            addMyPhotoContainer = findViewById(R.id.addMyPhotoContainer);
+            recyclerViewFotoList = (RecyclerView) findViewById(R.id.imagelist);
+            blurPlotter = (RelativeLayout) findViewById(R.id.blurPlotter);
+            progressBar = (RelativeLayout) findViewById(R.id.progressBar);
+            addMyPhoto = (RelativeLayout) findViewById(R.id.addMyPhoto);
+            addMyPhotoContainer = (RelativeLayout) findViewById(R.id.addMyPhotoContainer);
 
             blurPlotter.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -499,7 +591,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
 
             intentService = new Intent(context, LoadingFromFNS.class);
-            if (!isMyServiceRunning(LoadingFromFNS.class)) {
+           if (!isMyServiceRunning(LoadingFromFNS.class)) {
                 startService(intentService);
             }
 
@@ -511,7 +603,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     */
 
 
-            smsReceiver.bindListener(new SmsListener() {
+            SmsReceiver.bindListener(new SmsListener() {
                 @Override
                 public void messageReceived(String messageText) {
                     Pattern p = Pattern.compile("[0-9]{6,10}");
@@ -533,10 +625,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             initializeCountDrawer();
 
 
-            fab = findViewById(R.id.fab);
-            fab_file = findViewById(R.id.fab_file);
-            fab_manual = findViewById(R.id.fab_manual);
-            fab_pdf = findViewById(R.id.fab_pdf);
+            fab = (FloatingActionButton) findViewById(R.id.fab);
+            fab_file = (FloatingActionButton) findViewById(R.id.fab_file);
+            fab_manual = (FloatingActionButton) findViewById(R.id.fab_manual);
+            fab_pdf = (FloatingActionButton) findViewById(R.id.fab_pdf);
 
 
             fab.setOnLongClickListener(new View.OnLongClickListener() {
@@ -617,6 +709,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    Log.d(LOG_TAG, "fab.setOnClickListener 710");
                     closeFABMenu();
                     log.info(LOG_TAG + "\n" + "page Now +" + pageNow);
                     Intent intent = new Intent(MainActivity.this, CameraActivity.class);
@@ -679,6 +772,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
     }
 
+
+
     private void setAvatAR()
     {
         Thread thread = new Thread(new Runnable() {
@@ -686,7 +781,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             public void run() {
                 if(user.mPhotoUrl!= null)
                 {
-                    String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/"+user.google_id+".jpg";
+                    String dir = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+                    String path = dir+user.google_id+".jpg";
                     File avatar = new File(path);
                     if(avatar.exists())
                     {
@@ -703,27 +799,35 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     }
                     else
                     {
-                        final Bitmap bitmap = getBitmapFromUrl(user.mPhotoUrl);
-                        if(bitmap != null)
-                        {
-                            FileOutputStream out = null;
-                            try {
-                                out = new FileOutputStream(avatar);
-                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-                                out.flush();
-                                out.close();
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        RoundedBitmapDrawable dr = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
-                                        dr.setCornerRadius(50);
-                                        mPhotoUrl_nav_menu.setImageDrawable(dr);
+                        try {
+                            File fDir = new File(dir);
+                            if(fDir.mkdirs()) {
+                                avatar.createNewFile();
+                                final Bitmap bitmap = getBitmapFromUrl(user.mPhotoUrl);
+                                if (bitmap != null) {
+                                    FileOutputStream out = null;
+                                    try {
+                                        out = new FileOutputStream(avatar);
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                                        out.flush();
+                                        out.close();
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                RoundedBitmapDrawable dr = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
+                                                dr.setCornerRadius(50);
+                                                mPhotoUrl_nav_menu.setImageDrawable(dr);
+                                            }
+                                        });
+                                    } catch (Exception e) {
+                                        log.info(e.toString());
+                                        e.printStackTrace();
                                     }
-                                });
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
 
+                                }
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
                 }
@@ -794,17 +898,30 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     public void initializeCountDrawer() {
         Map<String, String[]> filter = new ArrayMap<>();
-        //все чеки
+        //все чеки отмеченные на карте
         invoiceCount.setGravity(Gravity.CENTER_VERTICAL);
         invoiceCount.setTypeface(null, Typeface.BOLD);
         invoiceCount.setTextColor(getThemeColor(context, R.attr.colorNewAccentLink));
         filter.clear();
         filter.put("in_basket", new String[]{"0"});
+        //filter.put("place_id", new String[]{"not null"});
+        filter.put("_status", statusInvoices.get("confirmed"));
         if (navigation.filterDates != null && navigation.filterDates.size() > 0) {
             filter.put("date_day", dateFilterToString());
         }
         invoiceCount.setText(String.valueOf(invoice.getCount(filter)));
 
+        //все чеки не отмеченные на карте
+        invoiceShowOnMapCount.setGravity(Gravity.CENTER_VERTICAL);
+        invoiceShowOnMapCount.setTypeface(null, Typeface.BOLD);
+        invoiceShowOnMapCount.setTextColor(getThemeColor(context, R.attr.colorNewAccentLink));
+        filter.clear();
+        filter.put("in_basket", new String[]{"0"});
+        //filter.put("place_id", new String[]{"is null"});
+        filter.put("_status", statusInvoices.get("loaded"));
+        invoiceShowOnMapCount.setText(String.valueOf(invoice.getCount(filter)));
+
+        //
         //список покупок
         accountingListCount.setGravity(Gravity.CENTER_VERTICAL);
         accountingListCount.setTypeface(null, Typeface.BOLD);
@@ -867,6 +984,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 closeDrawer();
                 navigation.openCurrentPage(new Page("", 0));
                 return true;
+            case R.id.showOnMap:
+                menuItem.setChecked(true);
+                closeDrawer();
+                navigation.openCurrentPage(new Page("", 7));
+                return true;
             case R.id.accountingListPAge:
                 menuItem.setChecked(true);
                 closeDrawer();
@@ -925,7 +1047,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     }
 
     private void closeDrawer() {
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
     }
 
@@ -973,12 +1095,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     private boolean showMap(InvoiceData currentInvoice) {
         if (currentInvoice.kktRegId != null && currentInvoice.kktRegId._status == 0)
             return true;
-        else if (currentInvoice.kktRegId == null && currentInvoice.store != null && currentInvoice.store._status == 0)
+        else if (currentInvoice.kktRegId == null && currentInvoice.store_from_fns != null && currentInvoice.store_from_fns._status == 0)
             return true;
-        else if (currentInvoice.kktRegId == null && currentInvoice.store == null)
-            return true;
-        else
-            return false;
+        else return currentInvoice.kktRegId == null && currentInvoice.store_from_fns == null;
     }
 
     @Override
@@ -1149,17 +1268,25 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-
+        Log.d(LOG_TAG, "onActivityResult 1268");
         switch (requestCode) {
             case restoreFromBackUp:
+                Log.d(LOG_TAG, "onActivityResult restoreFromBackUp 1271");
                 Uri uri = null;
                 if (data != null) {
                     uri = data.getData();
                     String mimeType = getApplicationContext().getContentResolver().getType(uri);
                     Log.d(LOG_TAG, mimeType);
+                    //if(mimeType.contains())
+                    try {
+                        dbHelper.copyDataBase(uri);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
                 }
             case CAPTURE_FROM_PDF_QR: {
+                Log.d(LOG_TAG, "onActivityResult CAPTURE_FROM_PDF_QR 1286");
                 if (data == null) {
                     return;
                 }
@@ -1170,6 +1297,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             break;
             case PICK_INVOICE_FROM_IMAGE: {
+                Log.d(LOG_TAG, "onActivityResult PICK_INVOICE_FROM_IMAGE 1297");
                 if (data == null) {
                     return;
                 }
@@ -1192,6 +1320,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                             InputStream inputStream = context.getContentResolver().openInputStream(data.getData());
                             myBitmap = BitmapFactory.decodeStream(inputStream);
                         } catch (FileNotFoundException e) {
+                            log.info(e.toString());
                             e.printStackTrace();
                         }
 
@@ -1221,10 +1350,12 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 catch (Exception ex)
                 {
                     ex.printStackTrace();
+                    log.info(ex.toString());
                 }
             }
             break;
             case CALENDAR_PICKER_REQUEST:
+                Log.d(LOG_TAG, "onActivityResult CALENDAR_PICKER_REQUEST 1355");
                 if (data == null) {
                     return;
                 }
@@ -1240,6 +1371,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 }
                 break;
             case cameraRequest: {
+                Log.d(LOG_TAG, "onActivityResult cameraRequest 1371");
                 if (data == null) {
                     return;
                 }
@@ -1259,6 +1391,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 break;
             }
             case personalDataShow: {
+                Log.d(LOG_TAG, "onActivityResult personalDataShow 1391");
                 if (data == null) {
                     return;
                 }
@@ -1303,6 +1436,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 break;
             }
             case personalDataRequestFull: {
+                Log.d(LOG_TAG, "onActivityResult personalDataRequestFull 1436");
                 if (data == null) {
                     return;
                 }
@@ -1311,6 +1445,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     result = data.getExtras().getString("error");
                 } catch (Exception ex) {
                     result = "";
+                    log.info(ex.toString());
                 }
                 if (result == null)
                     result = "";
@@ -1336,7 +1471,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                                             }
 
                                             @Override
-                                            public void onResponse(Call call, Response response) throws IOException {
+                                            public void onResponse(Call call, Response response) {
                                                 log.info(LOG_TAG + "\n" + response.message() + "\n" + getFnsData.requestStr);
                                             }
                                         });
@@ -1377,48 +1512,65 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             //confitm place on google map
             case PLACE_PICKER_REQUEST: {
+                //navigation.backPress();
+                Log.d(LOG_TAG, "onActivityResult PLACE_PICKER_REQUEST "+new Exception().getStackTrace()[0].getLineNumber());
                 if (data == null) {
                     return;
                 }
                 Place place = PlacePicker.getPlace(this, data);
-                log.info(LOG_TAG + "\n" + "you finde store " + place.getName() + " address " + place.getAddress());
+                log.info(LOG_TAG + "\n" + "you finde store_from_fns " + place.getName() + " address " + place.getAddress());
                 InvoiceData invoiceData = currentInvoice;
-                if (invoiceData.store == null) {
-                    invoiceData.store = new InvoiceData.Store();
+                if (invoiceData.store_on_map == null) {
+                    invoiceData.store_on_map = new InvoiceData.Store_on_map();
                 }
                 //if(place.getName().toString().contains(place.getLatLng().))
 
                 if (!Pattern.matches(".*[-]?\\d{1,2}.\\d{1,2}.\\d{1,2}[.,]{1}\\d{1,2}.\\w.*", place.getName().toString()))
-                    invoiceData.store.name = place.getName().toString();
-                invoiceData.store.address = place.getAddress().toString();
-                invoiceData.store.longitude = place.getLatLng().longitude;
-                invoiceData.store.latitude = place.getLatLng().latitude;
-                invoiceData.store.place_id = place.getId();
-                invoiceData.store._status = 1;
-                invoiceData.store.store_type = place.getPlaceTypes().toString();
+                    invoiceData.store_on_map.name = place.getName().toString();
+                invoiceData.store_on_map.address = place.getAddress().toString();
+                invoiceData.store_on_map.longitude = place.getLatLng().longitude;
+                invoiceData.store_on_map.latitude = place.getLatLng().latitude;
+                invoiceData.store_on_map.place_id = place.getId();
+                if(invoiceData.store_from_fns == null)
+                    invoiceData.store_from_fns = new InvoiceData.Store_from_fns();
+                invoiceData.store_from_fns._status = 1;
+                invoiceData.store_on_map.store_type = place.getPlaceTypes().toString();
                 if (invoiceData.kktRegId != null)
                     invoiceData.kktRegId._status = 1;
-                try {
+                /*try {
+
+                    //перенести в асинхронный поток
                     invoice.setStoreDataFull(invoiceData);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    log.info(e.toString());
                 }
+                if(invoiceData.get_status() > 900)
+                    invoiceData.set_status(invoiceData.get_status()-999);
+                //обновляем статус чека на подтвержденный если в текущем чеке есть гугл метка
+                invoiceData.set_status(2);
                 invoice.updateInvoice(invoiceData);
                 invoice.reLoadInvoice();
-                InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
-                if (invoiceData.store.place_id != null) {
+                placeChooserAdapter.notifyDataSetChanged();
+                */
+
+                AsyncSecondAddInvoice asyncSecondAddInvoice = new AsyncSecondAddInvoice();
+                asyncSecondAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, invoiceData);
+
+                if (invoiceData.store_on_map.place_id != null) {
                     PhotoTask photoTask = new PhotoTask(500, 500);
-                    photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, invoiceData.store.place_id, invoiceData.store.latitude.toString(), invoiceData.store.longitude.toString());
+                    photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, invoiceData.store_on_map.place_id, invoiceData.store_on_map.latitude.toString(), invoiceData.store_on_map.longitude.toString());
                 }
                 break;
             }
             //set oun image
             case PICK_IMAGE_ID: {
+                Log.d(LOG_TAG, "onActivityResult PICK_IMAGE_ID 1557");
 
                 String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
 
                 Bitmap bitmap = ImagePicker.getImageFromResult(this, resultCode, data);
-                saveImages(bitmap, null, null, currentInvoice.store.place_id+"_tmp");
+                saveImages(bitmap, null, null, currentInvoice.store_on_map.place_id+"_tmp");
                 /*
 
                 File dir = new File(path);
@@ -1426,7 +1578,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 final File[] files = dir.listFiles(new FileFilter() {
                     @Override
                     public boolean accept(File pathname) {
-                        return pathname.getName().matches("IMG_"+currentInvoice.store.place_id+"_[0-9]{1,}.png");
+                        return pathname.getName().matches("IMG_"+currentInvoice.store_from_fns.place_id+"_[0-9]{1,}.png");
                     }
                 });
 
@@ -1451,8 +1603,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     }
                 }
                 */
-                File dest = new File(path, "IMG_" + currentInvoice.store.place_id + ".png");
-                File src = new File(path, "IMG_" + currentInvoice.store.place_id + "_tmp.png");
+                File dest = new File(path, "IMG_" + currentInvoice.store_on_map.place_id + ".png");
+                File src = new File(path, "IMG_" + currentInvoice.store_on_map.place_id + "_tmp.png");
 
                 Uri destinationUri = Uri.parse(dest.toURI().toString());
                 Uri sourceUri = Uri.parse(src.toURI().toString());
@@ -1469,9 +1621,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 /*
                 Intent intent = new Intent(context, CropActivity.class);
                 intent.putExtra("photo_reference", filepath);
-                intent.putExtra("place_id", currentInvoice.store.place_id);
+                intent.putExtra("place_id", currentInvoice.store_from_fns.place_id);
                 intent.putExtra("key", "1");
-                intent.putExtra("store_id", currentInvoice.store.id);
+                intent.putExtra("store_id", currentInvoice.store_from_fns.id);
                 blurPlotter.setVisibility(View.GONE);
                 progressBar.setVisibility(View.GONE);
                 addMyPhotoContainer.setVisibility(View.GONE);
@@ -1487,8 +1639,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
             case UCrop.REQUEST_CROP:
             {
+                Log.d(LOG_TAG, "onActivityResult REQUEST_CROP 1631");
                 String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
-                File tmp = new File(path, "IMG_" + currentInvoice.store.place_id + "_tmp.png");
+                File tmp = new File(path, "IMG_" + currentInvoice.store_on_map.place_id + "_tmp.png");
                 if(tmp.exists())
                 {
                     tmp.delete();
@@ -1497,8 +1650,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             }
             case UCrop.RESULT_ERROR:
             {
+                Log.d(LOG_TAG, "onActivityResult RESULT_ERROR 1642");
                 String path = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
-                File tmp = new File(path, "IMG_" + currentInvoice.store.place_id + "_tmp.png");
+                File tmp = new File(path, "IMG_" + currentInvoice.store_on_map.place_id + "_tmp.png");
                 if(tmp.exists())
                 {
                     tmp.delete();
@@ -1506,14 +1660,16 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 break;
             }
             case SetImageFromGoogle_REQUEST: {
+                Log.d(LOG_TAG, "onActivityResult SetImageFromGoogle_REQUEST 1652");
                 if (data != null) {
                     String imgUrl = data.getExtras().getString("url");
-                    copyfile(imgUrl, Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/" + "IMG_" + currentInvoice.store.place_id + ".png");
+                    copyfile(imgUrl, Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/" + "IMG_" + currentInvoice.store_on_map.place_id + ".png");
                 }
                 break;
             }
 
             default:
+                Log.d(LOG_TAG, "onActivityResult default 1661");
                 break;
         }
 
@@ -1540,11 +1696,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             in.close();
             out.close();
             System.out.println("File copied.");
-        } catch (FileNotFoundException ex) {
+        } catch (Exception ex) {
             System.out.println(ex.getMessage() + " in the specified directory.");
             System.exit(0);
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
+            log.info(ex.toString());
         }
     }
 
@@ -1568,10 +1723,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             try {
                 addresses = geocoder.getFromLocationName(getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress, 1);
                 if (addresses.size() > 0) {
-                    finalInvoiceData.store = new InvoiceData.Store();
-                    finalInvoiceData.store.address = addresses.get(0).getAddressLine(0);
-                    finalInvoiceData.store.latitude = addresses.get(0).getLatitude();
-                    finalInvoiceData.store.longitude = addresses.get(0).getLongitude();
+                    finalInvoiceData.store_from_fns = new InvoiceData.Store_from_fns();
+                    finalInvoiceData.store_from_fns.address = addresses.get(0).getAddressLine(0);
+                    finalInvoiceData.store_from_fns.latitude = addresses.get(0).getLatitude();
+                    finalInvoiceData.store_from_fns.longitude = addresses.get(0).getLongitude();
 
                     if (getFnsData.dataFromReceipt.document.receipt.retailPlaceAddress == getFnsData.dataFromReceipt.document.receipt.user)
                         getFnsData.dataFromReceipt.document.receipt.user = null;
@@ -1662,9 +1817,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         Intent intent = new Intent(MainActivity.this, MainActivity.class);
         intent.putExtra("permChecked", true);
         isActive = true;
-        startActivity(intent);
-
         finish();
+        startActivity(intent);
     }
 
     public static void setPageBack(Integer back, Integer newPage) {
@@ -1701,12 +1855,21 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
     @Override
     protected void onDestroy() {
+        try{
+            if(smsReceiver!=null && smsReceiver.isOrderedBroadcast())
+                unregisterReceiver(smsReceiver);
+
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
         super.onDestroy();
         if (!isActive)
             dbHelper.close();
 
         isActive = false;
-        //unregisterReceiver(smsReceiver);
+
+
     }
 
     public class AsyncFirstAddInvoice extends AsyncTask<String, InvoiceData, InvoiceData> {
@@ -1726,7 +1889,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
                 QRitem = new QRManager(resultQR[0]);//место редактирования полученного кода. стоит сразу создать объект
                 //save QR data to DB
-                Pattern p = Pattern.compile("t=[0-9]*[Tt]{1}[0-9]*&s=[0-9.]*&fn=[0-9]{16,}&i=[0-9]{1,}&fp=[0-9]{8,}");
+                Pattern p = Pattern.compile("t=[0-9]*[Tt]{1}[0-9]*&s=[0-9.]*&fn=[0-9]{16,}&i=[0-9]{1,}&fp=[0-9]{2,}");
                 Matcher m = p.matcher(QRitem.resultQR);
                 if(m.find()) {
 
@@ -1745,9 +1908,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                         }
                     } catch (ParseException e) {
                         e.printStackTrace();
+                        log.info(e.toString());
                     }
                     //Toast.makeText(context, QRitem.totalSum, Toast.LENGTH_LONG).show();
-                    invoiceData.setAll(QRitem.FP, QRitem.FD, QRitem.FN, invoiceDate, QRitem.totalSum, null, null, resultQR[1] == null ? null : Integer.valueOf(resultQR[1]), null);
+                    invoiceData.setAll(QRitem.FP, QRitem.FD, QRitem.FN, invoiceDate, QRitem.totalSum, null, null);//, resultQR[1] == null ? null : Integer.valueOf(resultQR[1]));
 
                     //just add data from QR - first time to save and check already exist
                     invoiceData.date_day = invoiceDate_day;
@@ -1755,14 +1919,17 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     //новое сохрание пока не обрабатывать сервисом
                     invoiceData.set_status(-5);
                     String existInvoice = invoice.addInvoice(null, invoiceData, this);
-                    //invoiceData.set_status(0);
-                    //invoice.updateInvoice(invoiceData);
-                    currentInvoiceData = invoice.invoices.get(invoice.lastIDCollection);
+                    invoiceData.set_status(0);
+                    invoice.updateInvoice(invoiceData);
+                    Cursor cur = dbHelper.query(tableNameInvoice, null, "id=?", new String[]{invoice.lastIDCollection.toString()}, null, null, null, null);
+                    List<InvoiceData> listTmp = invoice.loadData(cur);
+                    if(listTmp.size()>0)
+                        currentInvoiceData = listTmp.get(0);
+                    cur.close();
                     if (existInvoice != "exist")
                         invoice.reLoadInvoice();
                 }
             } catch (Exception e) {
-                log.info(LOG_TAG+"\n"+ "ERROR\n");
                 log.info(LOG_TAG+"\n"+ e.getMessage());
                 e.printStackTrace();
             }
@@ -1775,11 +1942,11 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         @Override
         protected void onProgressUpdate(InvoiceData... values) {
 
-            if(InvoicesPageFragment.invoiceListAdapter != null) {
+            if(invoiceListAdapter != null) {
                 int status = values[0].get_status();
-                MainActivity.invoice.reLoadInvoice();
-                InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
-                //int position = InvoicesPageFragment.invoiceListAdapter.findPosition(values[0]);
+                //MainActivity.invoice.reLoadInvoice();
+                invoiceListAdapter.notifyDataSetChanged();
+                //int position = InvoicesPageFragment.placeChooserAdapter.findPosition(values[0]);
                 //InvoicesPageFragment.llm.scrollToPosition(position);
             }
             super.onProgressUpdate(values);
@@ -1788,9 +1955,10 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         @Override
         protected void onPostExecute(InvoiceData result) {
 
+            navigation.openCurrentPage(new Page("", 5));
 
             int position = -1;
-            if(result.getId()!= null) {
+            if(result != null) {
                 if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                         (result.longitudeAdd == null || result.longitudeAdd == 0 || result.latitudeAdd == null || result.latitudeAdd == 0)) {
 
@@ -1798,30 +1966,32 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     SingleShotLocationProvider.requestSingleUpdate(context,
                             new SingleShotLocationProvider.LocationCallback() {
                                 @Override public void onNewLocationAvailable(SingleShotLocationProvider.GPSCoordinates location) {
+                                    log.info("my location is " + location.toString());
                                     Log.d("Location", "my location is " + location.toString());
                                     if(location.latitude>0 && location.longitude>0)
                                     {
                                         invoiceData.longitudeAdd = location.longitude;
                                         invoiceData.latitudeAdd = location.latitude;
-                                        Log.d("Location", "tru to update coordinates " + location.toString());
-                                        //ContentValues data = new ContentValues();
-                                        //data.put("longitudeAdd", invoiceData.longitudeAdd);
-                                        //data.put("latitudeAdd", invoiceData.latitudeAdd);
-                                        //dbHelper.update(tableNameInvoice, data, "id=?", new String[]{invoiceData.getId().toString()});
+                                        Log.d("Location", "try to update coordinates " + location.toString());
+                                        log.info("try to update coordinates " + location.toString());
+                                        ContentValues data = new ContentValues();
+                                        data.put("longitudeAdd", invoiceData.longitudeAdd);
+                                        data.put("latitudeAdd", invoiceData.latitudeAdd);
+                                        dbHelper.update(tableNameInvoice, data, "id=?", new String[]{invoiceData.getId().toString()});
                                     }
-                                    invoiceData.set_status(0);
-                                    invoice.updateInvoice(invoiceData);
-                                    if (InvoicesPageFragment.invoiceListAdapter != null)
-                                        InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                                    //invoiceData.set_status(0);
+                                    //invoice.updateInvoice(invoiceData);
+                                    if (invoiceListAdapter != null)
+                                        invoiceListAdapter.notifyDataSetChanged();
                                 }
 
                             });
                 }
 
-                if (InvoicesPageFragment.invoiceListAdapter != null) {
-                    position = InvoicesPageFragment.invoiceListAdapter.findPosition(result);
-                    InvoicesPageFragment.invoiceListAdapter.row_index = position;
-                    InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                if (invoiceListAdapter != null) {
+                    position = invoiceListAdapter.findPosition(result);
+                    invoiceListAdapter.row_index = position;
+                    invoiceListAdapter.notifyDataSetChanged();
                 }
                 //switch to page with invoices
                 InvoicesPageFragment.llm.scrollToPositionWithOffset(position, 0);
@@ -1864,24 +2034,33 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-            if(navigation.purchasesPageFragment!= null)
+            Log.d(LOG_TAG, "onPostExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
+            //super.onPostExecute(aVoid);
+            if(navigation.purchasesPageFragment!= null) {
+                Log.d(LOG_TAG, "onPostExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
                 navigation.purchasesPageFragment.onResume();
+            }
 
             progressBar.setVisibility(View.GONE);
-            if(googleFotoListAdapter == null)
+            if(googleFotoListAdapter == null || googleFotoListAdapter.photoData.size() ==0) {
+                Log.d(LOG_TAG, "onPostExecute  " + "\n" + new Exception().getStackTrace()[0].getLineNumber());
                 blurPlotter.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+                addMyPhotoContainer.setVisibility(View.GONE);
+            }
         }
 
         @Override
         protected void onPreExecute() {
-           super.onPreExecute();
+            Log.d(LOG_TAG, "onPreExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
+           //super.onPreExecute();
            filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
-           file = new File(filepath, "IMG_"+currentInvoice.store.place_id + ".png");
+           file = new File(filepath, "IMG_"+currentInvoice.store_on_map.place_id + ".png");
             try {
                 this.invoiceData = (InvoiceData) currentInvoice.clone();
             } catch (CloneNotSupportedException e) {
                 e.printStackTrace();
+                log.info(e.toString());
             }
            if(googleFotoListAdapter != null && !file.exists()) {
                addMyPhotoContainer.setVisibility(View.VISIBLE);
@@ -1894,17 +2073,22 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
         @Override
         protected void onProgressUpdate(String... values) {
-            super.onProgressUpdate(values);
+           // super.onProgressUpdate(values);
             log.info(LOG_TAG+"\n"+ "post progress ");
-            if(values.length==0)
+            if(values == null || values.length==0)
             {
                 onResume();
             }
             else if(googleFotoListAdapter != null)
             {
+                Log.d(LOG_TAG, "onProgressUpdate  " + values[0] +"\n" + values[1] +"\n" + googleFotoListAdapter.placePhotoMetadataList+"\n"+new Exception().getStackTrace()[0].getLineNumber());
                 progressBar.setVisibility(View.GONE);
-                googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
-                googleFotoListAdapter.photoData.put(values[1], values[0]);
+                if(googleFotoListAdapter.placePhotoMetadataList !=  null)
+                    googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
+                else
+                    cancel(true);
+                if(googleFotoListAdapter.photoData != null)
+                    googleFotoListAdapter.photoData.put(values[1], values[0]);
                 googleFotoListAdapter.notifyDataSetChanged();
             }
         }
@@ -1936,19 +2120,20 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             if(googlePlace.icon != null)
             {
                 iconImage = getBitmapFromUrl(googlePlace.icon);
-                invoiceData.store.iconName = googlePlace.icon.substring(googlePlace.icon.lastIndexOf("/")+1);
-                invoiceData.store.update = true;
+                invoiceData.store_on_map.iconName = googlePlace.icon.substring(googlePlace.icon.lastIndexOf("/")+1);
+                invoiceData.store_on_map.update = true;
                 try {
                     invoice.setStoreData(invoiceData);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    log.info(e.toString());
                     return null;
                 }
                 invoice.reLoadInvoice();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        InvoicesPageFragment.invoiceListAdapter.notifyDataSetChanged();
+                        invoiceListAdapter.notifyDataSetChanged();
                     }
                 });
 
@@ -1968,6 +2153,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                             saveImages(googlePlace.loadImage(photo.photo_reference), placeId, count);
                             file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
                         }
+                        Log.d(LOG_TAG, "doInBackground " + file.getPath() +"\n" + photo.photo_reference + "\n" + new Exception().getStackTrace()[0].getLineNumber());
                         publishProgress(file.getPath(), photo.photo_reference);//cacheDir + "IMG_" + placeId + "_" + count + ".png");
                     }
 
@@ -1990,10 +2176,18 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             in = httpclient.newCall(request).execute();
             image = BitmapFactory.decodeStream(in.body().byteStream());
             in.close();
-        } catch (Exception ex) {
+        }
+        catch (SocketException ex)
+        {
+            log.info(LOG_TAG+"\n"+ "ERROR to save place_id MAP image folder \n"+ex.getMessage());
+            ex.printStackTrace();
+            return getBitmapFromUrl(url);
+        }
+        catch (Exception ex) {
             log.info(LOG_TAG+"\n"+ "ERROR to save place_id MAP image folder \n"+ex.getMessage());
             ex.printStackTrace();
         }
+
         return image;
     }
 
@@ -2023,13 +2217,13 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 fOut.flush();
                 fOut.close();
             }
-            if(iconImage != null && currentInvoice.store.iconName != "")
+            if(iconImage != null && currentInvoice.store_on_map.iconName != "")
             {
                 filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/icons/";
                 dir = new File(filepath);
                 if (!dir.exists()) dir.mkdirs();
 
-                File file = new File(filepath, currentInvoice.store.iconName);
+                File file = new File(filepath, currentInvoice.store_on_map.iconName);
                 FileOutputStream fOut = new FileOutputStream(file);
 
                 iconImage.compress(Bitmap.CompressFormat.PNG, 100, fOut);
@@ -2069,6 +2263,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                log.info(e.toString());
             }
         }
     }
@@ -2097,7 +2292,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         if(status != null) {
             switch (status) {
                 case -5:
-                    return context.getText(R.string.add_new_invoice).toString();
+                    return context.getText(R.string.waiting_for_loading_invoice_from_FNS).toString();
                 case -3:
                     return context.getText(R.string.not_found_in_FNS).toString();
                 case -4:
@@ -2110,6 +2305,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     return context.getText(R.string.waiting_for_loading_invoice_from_FNS).toString();
                 case 3:
                     return context.getText(R.string.loading_invoice_from_FNS).toString();
+                case 4:
+                    return context.getText(R.string.loading_invoice_from_Server).toString();
                 default:
                     return "";
             }
@@ -2163,7 +2360,9 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     {
         if(status != null) {
             switch (status) {
-                case 1:
+                case 1://толкьо что загруженный - требуется подтверждение на карте
+                    return true;
+                case 2://отмечены на карте
                     return true;
                 case -1:
                     return true;
@@ -2217,7 +2416,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         final int resourceId = resources.getIdentifier(name, "drawable",
                 context.getPackageName());
         if(resourceId == 0 )
-            return R.drawable.ic_product_category_default_48;
+            return R.drawable.ic_product_category_default_48dp;
         else
             return resourceId;
 
@@ -2231,11 +2430,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             Process mIpAddrProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8");
             int mExitValue = mIpAddrProcess.waitFor();
             System.out.println(" mExitValue "+mExitValue);
-            if(mExitValue==0){
-                return true;
-            }else{
-                return false;
-            }
+            return mExitValue == 0;
         }
         catch (InterruptedException ignore)
         {
@@ -2254,9 +2449,38 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     class TestInternet extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected Boolean doInBackground(Void... params) {
+
+            Response response = null;
+            URL url = null;
+            try {
+                url = new URL("http://www.google.com");
+                final OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
+                final okhttp3.Request request = new okhttp3.Request.Builder()
+                        .url(url)
+                        .build();
+
+                response = okHttpClient.newCall(request).execute();
+                if (response.code() == 200) {
+                    return true;
+                }
+
+
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            finally {
+
+                if (response != null) {
+                    response.close();
+                }
+            }
+
+/*
+            HttpURLConnection urlc = null;
             try {
                 URL url = new URL("http://www.google.com");
-                HttpURLConnection urlc = (HttpURLConnection) url.openConnection();
+                urlc = (HttpURLConnection) url.openConnection();
                 urlc.setConnectTimeout(3000);
                 urlc.connect();
                 if (urlc.getResponseCode() == 200) {
@@ -2264,11 +2488,21 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 }
             } catch (MalformedURLException e1) {
                 e1.printStackTrace();
+                log.info(e1.toString());
                 return false;
             } catch (IOException e) {
+                log.info(e.toString());
                 e.printStackTrace();
                 return false;
             }
+            finally {
+                if (urlc != null) {
+                    urlc.disconnect();
+                    urlc = null;
+                }
+            }
+            return false;
+            */
             return false;
         }
 
@@ -2279,5 +2513,73 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 Toast.makeText(context, R.string.connectionError, Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    public static String encryptPassword(String password)
+    {
+        String sha1 = "";
+        password = password.replace("null","");
+        try
+        {
+            MessageDigest crypt = MessageDigest.getInstance("SHA-256");
+            crypt.reset();
+            crypt.update(password.getBytes("UTF-8"));
+            sha1 = byteToHex(crypt.digest());
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            log.info(e.toString());
+        }
+
+        return sha1;
+    }
+
+    private static String byteToHex(final byte[] hash)
+    {
+        Formatter formatter = new Formatter();
+        for (byte b : hash)
+        {
+            formatter.format("%02x", b);
+        }
+        String result = formatter.toString();
+        formatter.close();
+        return result;
+    }
+
+
+    public static class AsyncSecondAddInvoice extends AsyncTask<InvoiceData, Void, Void> {
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            if(invoiceListAdapter != null)
+                invoiceListAdapter.notifyDataSetChanged();
+            super.onPostExecute(aVoid);
+        }
+        @Override
+        protected Void doInBackground(InvoiceData... data) {
+            InvoiceData invoiceData = data[0];
+            try {
+
+                //перенести в асинхронный поток
+                invoice.setStoreDataFull(invoiceData);
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.info(e.toString());
+            }
+            if(invoiceData.get_status() > 900)
+                invoiceData.set_status(invoiceData.get_status()-999);
+            //обновляем статус чека на подтвержденный если в текущем чеке есть гугл метка
+            invoiceData.set_status(2);
+            invoice.updateInvoice(invoiceData);
+            invoice.reLoadInvoice();
+            return null;
+        }
+    }
+
+    {
+
+
+
     }
 }

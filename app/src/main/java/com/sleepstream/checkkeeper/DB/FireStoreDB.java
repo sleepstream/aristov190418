@@ -1,6 +1,6 @@
 package com.sleepstream.checkkeeper.DB;
 
-import android.os.AsyncTask;;
+import android.os.AsyncTask;
 import android.os.Environment;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;

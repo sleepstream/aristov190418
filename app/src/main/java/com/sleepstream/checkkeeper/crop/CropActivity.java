@@ -130,13 +130,13 @@ public class CropActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         progressBar.setVisibility(View.GONE);
-        InvoiceData.Store store = new InvoiceData.Store();
+        InvoiceData.Store_on_map store = new InvoiceData.Store_on_map();
         store.photo_reference = this.photoreference;
         store.place_id =place_id;
         InvoiceData invoiceData = new InvoiceData();
-        invoiceData.store = store;
-        invoiceData.store.id = store_id;
-        invoiceData.store.update = true;
+        invoiceData.store_on_map = store;
+        invoiceData.store_on_map.id = store_id;
+        invoiceData.store_on_map.update = true;
         try {
             MainActivity.invoice.setStoreData(invoiceData);
             finish();

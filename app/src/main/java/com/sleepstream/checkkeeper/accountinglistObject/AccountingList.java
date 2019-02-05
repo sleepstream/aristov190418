@@ -228,11 +228,7 @@ public class AccountingList {
         long count = dbHelper.update(tableName, values, "id=?", new String[]{id.toString()});
         //check list in another tables
 
-        if (count > 0) {
-            return true;
-
-        }
-        return false;
+        return count > 0;
 
     }
 
@@ -252,7 +248,7 @@ public class AccountingList {
     }
 
 
-    public AccountingListData getAccByFk(Integer fk)
+    public AccountingListData getAccByFk(List<Integer> fk)
     {
 
         if(fk != null)
@@ -260,7 +256,7 @@ public class AccountingList {
             AccountingListData accountingListData = new AccountingListData();
             for(AccountingListData listData : this.accountingListData)
             {
-                if(listData.getId() == fk) {
+                if(fk.contains(listData.getId())) {
                     accountingListData = listData;
                     return  accountingListData;
                 }

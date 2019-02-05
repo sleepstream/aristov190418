@@ -17,12 +17,14 @@ import android.widget.RelativeLayout;
 import com.noob.noobcameraflash.managers.NoobCameraManager;
 import github.nisrulz.qreader.QRDataListener;
 import github.nisrulz.qreader.QREader;
+import org.joda.time.DateTime;
 
 public class CameraActivity extends AppCompatActivity {
 
 
 
 
+    private final String LOG_TAG = "CameraActivity";
     private String text;
 
     boolean hasCameraPermission = false;
@@ -35,6 +37,7 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onCreate 40");
         if(MainActivity.settings != null) {
             String themeId = MainActivity.settings.settings.get("theme");
             if (themeId != null && themeId.length() > 0)
@@ -44,16 +47,16 @@ public class CameraActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_camera);
 
-        Log.d("Start Activity", "CameraActivity");
 
         hasCameraPermission = RuntimePermissionUtil.checkPermissonGranted(this, cameraPerm);
-        mySurfaceView = (SurfaceView) findViewById(R.id.camera_view);
+        mySurfaceView = findViewById(R.id.camera_view);
         flash_button_image = findViewById(R.id.flash_button_image);
         flash_button = findViewById(R.id.flash_button);
 
         flash_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.d(LOG_TAG, "flash_button.setOnClickListener 59");
                 qrEader.turnOnOffTorch();
                 if(qrEader.tourchEnable)
                     flash_button_image.setImageResource(R.drawable.baseline_flash_off_orange_48);
@@ -92,13 +95,17 @@ public class CameraActivity extends AppCompatActivity {
         qrEader = new QREader.Builder(this, mySurfaceView, new QRDataListener() {
             @Override
             public void onDetected(final String data) {
-                Log.d("QREader", "Value : " + data);
+                Log.d(LOG_TAG, "qrEader onDetected 98\n" + data);
                 text=data;
+
+                Log.d(LOG_TAG, System.currentTimeMillis()+"");
 
                 Intent intent = new Intent();
                 intent.putExtra("resultQR", text);
                 setResult(RESULT_OK, intent);
+                Log.d(LOG_TAG, System.currentTimeMillis()+"");
                 finish();
+                Log.d(LOG_TAG, System.currentTimeMillis()+"");
             }
         }).facing(QREader.BACK_CAM)
                 .enableAutofocus(true)
@@ -113,7 +120,7 @@ public class CameraActivity extends AppCompatActivity {
         super.onPause();
 
         if (hasCameraPermission) {
-            Log.d("postion", "pause Cameractivity");
+            Log.d(LOG_TAG, "pause Cameractivity");
 
             // Cleanup in onPause()
             // --------------------

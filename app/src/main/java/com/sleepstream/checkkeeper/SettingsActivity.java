@@ -7,6 +7,7 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -15,6 +16,7 @@ import android.provider.Settings;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputFilter;
@@ -26,6 +28,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.ConnectionResult;
@@ -40,6 +43,8 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.sleepstream.checkkeeper.invoiceObjects.Invoice;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
 import com.sleepstream.checkkeeper.modules.SettingsApp;
+import com.sleepstream.checkkeeper.settings.MainSettingsPage;
+import com.sleepstream.checkkeeper.settings.UsersDataPreferenceFragment;
 import com.sleepstream.checkkeeper.userModule.PersonalData;
 import okhttp3.Response;
 import worker8.com.github.radiogroupplus.RadioGroupPlus;
@@ -54,7 +59,7 @@ import java.util.regex.Pattern;
 import static com.sleepstream.checkkeeper.MainActivity.*;
 import static com.sleepstream.checkkeeper.invoiceObjects.Invoice.tableNameInvoice;
 
-public class SettingsActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
+public class SettingsActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener {
 
     private android.app.FragmentTransaction fTrans;
     private Context context;
@@ -97,7 +102,8 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
         {
             case "UsersDataPreferenceFragment": {
                 fTrans = ((Activity) context).getFragmentManager().beginTransaction();
-                usersDataPreferenceFragment = new UsersDataPreferenceFragment(context);
+                usersDataPreferenceFragment = new UsersDataPreferenceFragment();
+                usersDataPreferenceFragment.SetArguments(context);
                 fTrans.replace(R.id.pager, usersDataPreferenceFragment);
                 fTrans.commit();
                 usersDataPreferenceFragment.setRetainInstance(true);
@@ -105,7 +111,8 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
             }
             case "AppSettingsPage": {
                 fTrans = ((Activity) context).getFragmentManager().beginTransaction();
-                appSettingsPage = new AppSettingsPage(context);
+                appSettingsPage = new AppSettingsPage();
+                appSettingsPage.SetArguments(context);
                 fTrans.replace(R.id.pager, appSettingsPage);
                 fTrans.commit();
                 appSettingsPage.setRetainInstance(true);
@@ -113,7 +120,8 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
             }
             default: {
                 fTrans = ((Activity) context).getFragmentManager().beginTransaction();
-                mainSettingsPage= new MainSettingsPage(context);
+                mainSettingsPage= new MainSettingsPage();
+                mainSettingsPage.SetArguments(context);
                 fTrans.replace(R.id.pager, mainSettingsPage);
                 fTrans.commit();
                 mainSettingsPage.setRetainInstance(true);
@@ -130,54 +138,7 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
 
     }
 
-    @SuppressLint("ValidFragment")
-    public  class MainSettingsPage extends Fragment
-    {
-        private final Context context;
-        private RelativeLayout userSettings;
-        private RelativeLayout appSettings;
 
-
-        public MainSettingsPage(Context context){ this.context = context;};
-
-        @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-        }
-        @Override
-        public View onCreateView(LayoutInflater inflater, final ViewGroup container,
-                                 Bundle savedInstanceState) {
-
-            View view = inflater.inflate(R.layout.settings_main_page_fragment, null);
-            userSettings = view.findViewById(R.id.userSettings);
-            appSettings = view.findViewById(R.id.appSettings);
-
-
-            userSettings.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    android.app.FragmentTransaction fTrans =getActivity().getFragmentManager().beginTransaction();
-                    UsersDataPreferenceFragment fragment = new UsersDataPreferenceFragment(context);
-                    fTrans.replace(R.id.pager, fragment);
-                    fTrans.addToBackStack(null);
-                    fTrans.commit();
-                    fragment.setRetainInstance(true);
-                }
-            });
-            appSettings.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    android.app.FragmentTransaction fTrans =getActivity().getFragmentManager().beginTransaction();
-                    AppSettingsPage fragment = new AppSettingsPage(context);
-                    fTrans.replace(R.id.pager, fragment);
-                    fTrans.addToBackStack(null);
-                    fTrans.commit();
-                    fragment.setRetainInstance(true);
-                }
-            });
-            return view;
-        }
-    }
 
     @Override
     protected void onStart() {
@@ -185,8 +146,18 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
         mGoogleApiClient.connect();
     }
 
-    private class RegisterNewAsyncTask extends AsyncTask<PersonalData, Void, Integer> {
+    public static class RegisterNewAsyncTask extends AsyncTask<PersonalData, Void, Integer> {
         private PersonalData personalData=null;
+        private UsersDataPreferenceFragment usersDataPreferenceFragment;
+        private Context context;
+
+        public void setArguments(UsersDataPreferenceFragment usersDataPreferenceFragment, Context context)
+        {
+            this.usersDataPreferenceFragment = usersDataPreferenceFragment;
+            this.context  = context;
+        }
+
+
         @Override
         protected void onPostExecute(Integer integer) {
             if(usersDataPreferenceFragment!= null && usersDataPreferenceFragment.fab_get_update_passw != null)
@@ -291,362 +262,19 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
         }
     }
 
-    @SuppressLint("ValidFragment")
-    public class UsersDataPreferenceFragment extends Fragment
+
+
+
+    public static class AppSettingsPage extends Fragment
     {
-
-        private final Context context;
-        private RelativeLayout name;
-        private RelativeLayout surname;
-        private RelativeLayout phone;
-        private RelativeLayout e_mail;
-        private RelativeLayout password;
-
-        private TextView name_summary;
-        private TextView surname_summary;
-        private TextView phone_summary;
-        private TextView e_mail_summary;
-        private TextView password_summary;
-        private FloatingActionButton fab_get_update_passw;
-
-        private PersonalData personalData = MainActivity.user;
-
-        public UsersDataPreferenceFragment (Context context) {this.context = context;}
-        @Override
-        public void onCreate(final Bundle savedInstanceState)
-        {
-            super.onCreate(savedInstanceState);
-        }
-        @Override
-        public View onCreateView(LayoutInflater inflater, final ViewGroup container,
-                                 Bundle savedInstanceState) {
-
-            View view = inflater.inflate(R.layout.settings_user_data_fragment, null);
-            name = view.findViewById(R.id.NameField);
-            phone =  view.findViewById(R.id.phone);
-            e_mail = view.findViewById(R.id.e_mail);
-            fab_get_update_passw = view.findViewById(R.id.fab_get_update_passw);
-            //password = view.findViewById(R.id.password);
-
-            name_summary = view.findViewById(R.id.NameField_summary);
-            phone_summary =  view.findViewById(R.id.phone_summary);
-            e_mail_summary = view.findViewById(R.id.e_mail_summary);
-            //password_summary = view.findViewById(R.id.password_summary);
-
-            setData();
-            final Pattern PnameSurnmae = Pattern.compile("[A-Za-zА-Яа-я ]+");
-            final Pattern PPhone = Pattern.compile("^(\\+[0-9]{11})$");
-            final Pattern PE_mail = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,6}$");
-
-
-            fab_get_update_passw.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    fab_get_update_passw.setEnabled(false);
-                    if(personalData._status == null)
-                    {
-                        new RegisterNewAsyncTask().execute(personalData);
-                    }
-                    else if(personalData._status ==0)
-                    {
-                        allertDialogShowPassw();
-                    }
-                    else {
-                        new RegisterNewAsyncTask().execute(personalData);
-                    }
-                }
-            });
-
-
-
-
-
-            name.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View view) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-                    alertDialog.setTitle(context.getString(R.string.Settings_NameField));
-                    alertDialog.setMessage(R.string.Settings_NameField_message);
-                    final EditText input = new EditText(context);
-                    input.setGravity(Gravity.CENTER);
-                    input.setInputType(InputType.TYPE_CLASS_TEXT);
-                    if(personalData.name!= null)
-                        input.setText(personalData.name);
-                    alertDialog.setView(input);
-                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString().trim();
-                            if(name.length()==0)
-                                Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
-                            else
-                            {
-                                Matcher MName = PnameSurnmae.matcher(name);
-                                RelativeLayout NameField_status_layout = view.findViewById(R.id.NameField_status_layout);
-                                ImageView NameField_status = view.findViewById(R.id.NameField_status);
-                                if(MName.matches())
-                                {
-                                    NameField_status_layout.setVisibility(View.VISIBLE);
-                                    NameField_status.setImageResource(R.drawable.ic_done_black_24dp);
-                                    personalData.name = name;
-                                    onResume();
-                                }
-                                else
-                                {
-                                    NameField_status_layout.setVisibility(View.VISIBLE);
-                                    NameField_status.setImageResource(R.drawable.ic_error_black_24dp);
-                                    name_summary.setText(context.getString(R.string.settings_input_data_incorrect));
-                                    name_summary.setTextColor(Color.RED);
-                                }
-
-                            }
-
-                        }
-                    });
-                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    });
-
-                    alertDialog.show();
-                }
-            });
-            phone.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View view) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-                    alertDialog.setTitle(context.getString(R.string.settings_phone_number));
-                    alertDialog.setMessage(R.string.Settings_phone_number_message);
-                    final EditText input = new EditText(context);
-                    input.setGravity(Gravity.CENTER);
-                    if(personalData.telephone_number!= null)
-                        input.setText(personalData.telephone_number);
-                    input.setFilters(new InputFilter[] {new InputFilter.LengthFilter(12) });
-                    input.setInputType(InputType.TYPE_CLASS_PHONE);
-                    alertDialog.setView(input);
-                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString().trim();
-                            if(name.length()==0)
-                                Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
-                            else
-                            {
-                                if(!name.substring(0, 2).equals("+7") || name.length()<12)
-                                    Toast.makeText(context, context.getString(R.string.settings_field_input_error), Toast.LENGTH_LONG).show();
-                                else
-                                {
-                                    Matcher MPhone = PPhone.matcher(name);
-                                    RelativeLayout phone_status_layout = view.findViewById(R.id.phone_status_layout);
-                                    ImageView phone_status = view.findViewById(R.id.phone_status);
-                                    if(MPhone.matches())
-                                    {
-                                        phone_status_layout.setVisibility(View.VISIBLE);
-                                        phone_status.setImageResource(R.drawable.ic_done_black_24dp);
-                                        personalData.telephone_number = name;
-                                        onResume();
-                                    }
-                                    else
-                                    {
-                                        phone_status_layout.setVisibility(View.VISIBLE);
-                                        phone_status.setImageResource(R.drawable.ic_error_black_24dp);
-                                        phone_summary.setText(context.getString(R.string.settings_input_data_incorrect));
-                                        phone_summary.setTextColor(Color.RED);
-                                    }
-
-                                }
-                            }
-
-                        }
-                    });
-                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    });
-
-                    alertDialog.show();
-                }
-            });
-            e_mail.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(final View view) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-                    alertDialog.setTitle(context.getString(R.string.E_mailAdress));
-                    alertDialog.setMessage(R.string.Settings_E_mailAdress_message);
-                    final EditText input = new EditText(context);
-                    input.setGravity(Gravity.CENTER);
-                    if(personalData.e_mail!=null)
-                        input.setText(personalData.e_mail);
-                    input.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
-                    alertDialog.setView(input);
-                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString().trim();
-                            if(name.length()==0)
-                                Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
-                            else
-                            {
-                                Matcher ME_mail= PE_mail.matcher(name);
-                                RelativeLayout e_mail_status_layout = view.findViewById(R.id.e_mail_status_layout);
-                                ImageView e_mail_status = view.findViewById(R.id.e_mail_status);
-                                if(ME_mail.matches()) {
-                                    personalData.e_mail = name;
-                                    e_mail_status_layout.setVisibility(View.VISIBLE);
-                                    e_mail_status.setImageResource(R.drawable.ic_done_black_24dp);
-                                    onResume();
-                                }
-                                else
-                                {
-                                    e_mail_status_layout.setVisibility(View.VISIBLE);
-                                    e_mail_status.setImageResource(R.drawable.ic_error_black_24dp);
-                                    e_mail_summary.setText(context.getString(R.string.settings_input_data_incorrect));
-                                    e_mail_summary.setTextColor(Color.RED);
-                                }
-
-                            }
-
-                        }
-                    });
-                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    });
-
-                    alertDialog.show();
-                }
-            });
-/*            password.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-                    alertDialog.setTitle(context.getString(R.string.settings_password_FNS_text));
-                    alertDialog.setMessage(R.string.Settings_password_FNS_message);
-                    final EditText input = new EditText(context);
-                    input.setGravity(Gravity.CENTER);
-                    input.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                    alertDialog.setView(input);
-                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            String name = input.getText().toString();
-                            if(name.length()==0)
-                                Toast.makeText(context, context.getString(R.string.settings_field_empty_error), Toast.LENGTH_LONG).show();
-                            else
-                            {
-                                PersonalData.password = name;
-                                onResume();
-                            }
-
-                        }
-                    });
-                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    });
-
-                    alertDialog.show();
-                }
-            });
-*/
-
-            return view;
-        }
-        public void allertDialogShowPassw()
-        {
-            AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-            alertDialog.setMessage(R.string.personal_data_request_AlreadyRegister);
-            alertDialog.setPositiveButton(context.getString(R.string.btnReset), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    new RegisterNewAsyncTask().execute(personalData);
-                }
-            });
-            alertDialog.setNegativeButton(context.getString(R.string.btnManual), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-                    alertDialog.setTitle(context.getString(R.string.Settings_PasswField));
-                    alertDialog.setMessage(R.string.Settings_PasswField_message);
-                    final EditText input = new EditText(context);
-                    input.setGravity(Gravity.CENTER);
-                    input.setInputType(InputType.TYPE_CLASS_TEXT);
-                    alertDialog.setView(input);
-                    alertDialog.setPositiveButton(context.getString(R.string.btnOk), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            String passw = input.getText().toString();
-                            Pattern p = Pattern.compile("[0-9]{6,10}");
-                            Matcher m = p.matcher(passw);
-                            if (m.matches()) {
-                                personalData._status = 1;
-                                personalData.generateAuth(passw);
-                                Toast.makeText(context, context.getString(R.string.personal_data_request_PasswordSaved), Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    });
-                    alertDialog.setNegativeButton(context.getString(R.string.btnCancel), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                        }
-                    });
-                    alertDialog.show();
-                }
-            });
-            alertDialog.show();
-        }
-
-        private void setData()
-        {
-            if(personalData.name != null)
-            {
-                name_summary.setText(personalData.name);
-            }
-            if(personalData.telephone_number!= null)
-            {
-                phone_summary.setText(personalData.telephone_number);
-            }
-            if(personalData.e_mail!= null)
-            {
-                e_mail_summary.setText(personalData.e_mail);
-            }
-        }
-
-
-
-        @Override
-        public void onDestroy() {
-            if(personalData.name != null && personalData.telephone_number!= null && personalData.e_mail!= null) {
-                personalData.setPersonalData();
-            }
-
-
-
-            super.onDestroy();
-        }
-
-        @Override
-        public void onResume() {
-            super.onResume();
-            setData();
-        }
-
-    }
-    @SuppressLint("ValidFragment")
-    public class AppSettingsPage extends Fragment
-    {
-        private final Context context;
+        private Context context;
         private RelativeLayout ThemeSettings;
         private RelativeLayout appSettings;
-        public AppSettingsPage(Context context){ this.context = context;};
+
+        public AppSettingsPage(){}
+
+        public void SetArguments(Context context){ this.context = context;}
+
         public String themeId="";
         public Switch switcher_on_line;
         public TextView On_lineSettings_summary;
@@ -775,8 +403,8 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
                                 user.signIn = false;
                                 user.setPersonalData();
 
-                                FirebaseAuth.getInstance().signOut();
-                                if(mGoogleApiClient.isConnected()) {
+                                AuthUI.getInstance().signOut((FragmentActivity) getActivity());
+                                /*if(mGoogleApiClient.isConnected()) {
 
                                     Auth.GoogleSignInApi.revokeAccess(mGoogleApiClient).setResultCallback(
                                             new ResultCallback<Status>() {
@@ -793,7 +421,7 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
                                                     Log.d(LOG_TAG, "try to log out from google "+status.getStatusMessage());
                                                 }
                                             });
-                                }
+                                }*/
 
                             }
 
@@ -824,8 +452,8 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
                     switcher_on_line.setChecked(true);
                     //запуск ассинхронного задания по загрузке данных на сервер
                     //приложение на время выполнения блокируется
-                    AsyncLoadToServerInvoices asyncLoadToServerInvoices = new AsyncLoadToServerInvoices();
-                    asyncLoadToServerInvoices.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    //AsyncLoadToServerInvoices asyncLoadToServerInvoices = new AsyncLoadToServerInvoices();
+                    //asyncLoadToServerInvoices.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 }
                 else
                     switcher_on_line.setChecked(false);
@@ -833,22 +461,9 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
         }
     }
 
-    public class AsyncLoadToServerInvoices extends AsyncTask<String, InvoiceData, InvoiceData>
+    public static class AsyncLoadToServerInvoices extends AsyncTask<String, InvoiceData, InvoiceData>
     {
-        /**
-         * Override this method to perform a computation on a background thread. The
-         * specified parameters are the parameters passed to {@link #execute}
-         * by the caller of this task.
-         * <p>
-         * This method can call {@link #publishProgress} to publish updates
-         * on the UI thread.
-         *
-         * @param strings The parameters of the task.
-         * @return A result, defined by the subclass of this task.
-         * @see #onPreExecute()
-         * @see #onPostExecute
-         * @see #publishProgress
-         */
+
         @Override
         protected InvoiceData doInBackground(String... strings) {
             Invoice invoisToLoad = new Invoice(null);
@@ -859,7 +474,7 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
                 for(InvoiceData invoiceData : invoisToLoad.invoices)
                 {
                     //invoisToLoad.addInvoiceDataServer(invoiceData);
-                    invoisToLoad.writeInvoiceDataToServer(invoiceData);
+                    //invoisToLoad.writeInvoiceDataToServer(invoiceData);
                 }
             }
 
@@ -879,7 +494,23 @@ public class SettingsActivity extends AppCompatActivity implements GoogleApiClie
                 {
                     InvoiceData invoiceData = documentSnapshot.toObject(InvoiceData.class);
                     if(invoiceData!= null) {
-                        invoice.writeInvoiceDataFromServer(invoiceData);
+                        invoiceData.google_id = documentSnapshot.getId();
+                        invoiceData.set_status(invoiceData.server_status);
+                        Cursor cur = dbHelper.query(tableNameInvoice, null, "FP=? and FD=? and FN=?",
+                                new String[]{invoiceData.FP, invoiceData.FD, invoiceData.FN}, null, null, null, null);
+                        if(cur.moveToFirst())
+                        {
+                            invoiceData.setId(cur.getInt(cur.getColumnIndex("id")));
+                        }
+                        else
+                        {
+                            invoiceData.set_status(4);
+                            invoice.addInvoiceDataLocal(null, invoiceData);
+                        }
+
+
+
+                        //invoice.writeInvoiceDataFromServer(invoiceData);
                     }
                 }
             }

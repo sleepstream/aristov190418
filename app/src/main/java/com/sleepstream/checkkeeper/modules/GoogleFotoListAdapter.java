@@ -2,7 +2,6 @@ package com.sleepstream.checkkeeper.modules;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
@@ -13,17 +12,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.Toast;
-import com.google.common.base.MoreObjects;
 import com.sleepstream.checkkeeper.R;
-import com.sleepstream.checkkeeper.crop.CropActivity;
 import com.yalantis.ucrop.UCrop;
 import com.yalantis.ucrop.UCropActivity;
 import com.yalantis.ucrop.model.AspectRatio;
 
-import javax.crypto.spec.OAEPParameterSpec;
 import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -72,6 +67,7 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
                 try {
                     URL photoUrl = new URL("https://maps.googleapis.com/maps/api/place/photo?maxheight=5000&photo_reference=" + placePhotoMetadataList.get(position) + "&key=" + context.getString(R.string.google_maps_key));
                     sourceUri = Uri.parse(photoUrl.toURI().toString());
+                    currentInvoice.store_on_map.photo_reference = placePhotoMetadataList.get(position);
 
                 } catch (URISyntaxException e) {
                     e.printStackTrace();
@@ -79,8 +75,14 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
                 catch (MalformedURLException e) {
                     e.printStackTrace();
                 }
+                if (googleFotoListAdapter != null) {
+                    googleFotoListAdapter.placePhotoMetadataList.clear();
+                    googleFotoListAdapter.placePhotoMetadataList = null;
+                    googleFotoListAdapter.notifyDataSetChanged();
+                }
+
                 final String filepath = Environment.getExternalStorageDirectory() + "/PriceKeeper/storeImage/";
-                File file = new File(filepath, "IMG_" + currentInvoice.store.place_id + ".png");
+                File file = new File(filepath, "IMG_" + currentInvoice.store_on_map.place_id + ".png");
                 File file1 = new File(filepath);
                 if(!file1.exists())
                 {
@@ -101,11 +103,7 @@ public class GoogleFotoListAdapter extends RecyclerView.Adapter<GoogleFotoListAd
                 UCrop.of(sourceUri, destinationUri)
                         .withOptions(options)
                         .start((Activity) context);
-                if (googleFotoListAdapter != null) {
-                    googleFotoListAdapter.placePhotoMetadataList.clear();
-                    googleFotoListAdapter.placePhotoMetadataList = new ArrayList<>();
-                    googleFotoListAdapter.notifyDataSetChanged();
-                }
+
             }
         });
     }

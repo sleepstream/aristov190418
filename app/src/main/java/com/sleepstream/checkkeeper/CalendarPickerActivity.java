@@ -24,13 +24,11 @@ public class CalendarPickerActivity extends Activity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if(MainActivity.settings != null) {
+        if(MainActivity.settings != null && MainActivity.settings.settings.containsKey("theme")) {
             String themeId = MainActivity.settings.settings.get("theme");
             if (themeId.length() > 0)
                 setTheme(Integer.valueOf(themeId));
         }
-        super.onCreate(savedInstanceState);
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.calendar_picker);
 
@@ -40,7 +38,7 @@ public class CalendarPickerActivity extends Activity{
         final Calendar lastYear = Calendar.getInstance();
         lastYear.add(Calendar.YEAR, -1);
 
-        calendar = (CalendarPickerView) findViewById(R.id.calendar_view);
+        calendar = findViewById(R.id.calendar_view);
         calendar.init(lastYear.getTime(), nextYear.getTime()) //
                 .inMode(CalendarPickerView.SelectionMode.SINGLE) //
                 .withSelectedDate(new Date());
@@ -49,10 +47,10 @@ public class CalendarPickerActivity extends Activity{
     }
 
     private void initButtonListeners(final Calendar nextYear, final Calendar lastYear) {
-        final Button single = (Button) findViewById(R.id.button_single);
-        final Button multi = (Button) findViewById(R.id.button_multi);
-        final Button range = (Button) findViewById(R.id.button_range);
-        final Button done = (Button) findViewById(R.id.done_button);
+        final Button single = findViewById(R.id.button_single);
+        final Button multi = findViewById(R.id.button_multi);
+        final Button range = findViewById(R.id.button_range);
+        final Button done = findViewById(R.id.done_button);
 
         modeButtons.addAll(Arrays.asList(single, multi, range));
 
