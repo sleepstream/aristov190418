@@ -211,7 +211,8 @@ public class InvoicesPageFragment extends Fragment implements SwipeRefreshLayout
 
         @Override
         protected Void doInBackground(Void... voids) {
-            invoice.reLoadInvoice();
+            //invoice.reLoadInvoice();
+            invoice.reLoadInvoiceJoin(1);
             return null;
         }
 

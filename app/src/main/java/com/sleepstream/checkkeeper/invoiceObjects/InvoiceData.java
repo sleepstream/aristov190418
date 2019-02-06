@@ -101,10 +101,12 @@ public class InvoiceData implements Cloneable
         return fk_invoice_accountinglist;
     }
 
-    public void setFk_invoice_accountinglist(int fk_invoice_accountinglist) {
-        this.fk_invoice_accountinglist.add(fk_invoice_accountinglist);
+    public void setFk_invoice_accountinglist(List<Integer> fk_invoice_accountinglist) {
+        this.fk_invoice_accountinglist.addAll(fk_invoice_accountinglist);
     }
-
+    public void setFk_invoice_accountinglist(int itemId) {
+        this.fk_invoice_accountinglist.add(itemId);
+    }
 
 
     public Integer get_order() {
@@ -197,6 +199,8 @@ public class InvoiceData implements Cloneable
     public void setFk_invoice_stores_on_map(Integer fk_invoice_stores_on_map) {
         this.fk_invoice_stores_on_map = fk_invoice_stores_on_map;
     }
+
+
 
     public static class Store_from_fns
     {

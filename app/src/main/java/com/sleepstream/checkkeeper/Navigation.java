@@ -28,7 +28,7 @@ public class Navigation {
 
 
     public Navigation(Context context, TextView toolbar_title) {
-        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3"});
+        statusInvoices.put("loading", new String[]{"0", "3", "-2", "-1", "-4", "-3", "-5"});
         statusInvoices.put("loaded", new String[]{"1"});
         //statusInvoices.put("in_basket", new String[]{"1"});
         statusInvoices.put("confirmed", new String[]{"2"});

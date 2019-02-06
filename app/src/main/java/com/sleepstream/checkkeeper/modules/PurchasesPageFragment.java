@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -16,24 +17,19 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.Animation.AnimationListener;
 import android.view.animation.AnimationUtils;
 import android.widget.*;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
-import com.google.android.gms.location.places.PlacePhotoMetadata;
-import com.google.android.gms.location.places.PlacePhotoMetadataBuffer;
-import com.google.android.gms.location.places.PlacePhotoMetadataResult;
-import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.*;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.sleepstream.checkkeeper.*;
+import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.accountinglistObject.AccountingListData;
 import com.sleepstream.checkkeeper.helper.SimpleItemTouchHelperCallback;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
@@ -45,8 +41,11 @@ import okhttp3.Response;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
+import static com.sleepstream.checkkeeper.MainActivity.saveImages;
+import static com.sleepstream.checkkeeper.modules.InvoicesPageFragment.invoiceListAdapter;
 
 public class PurchasesPageFragment extends Fragment implements PurchasesListAdapter.OnStartDragListener, IOnBackPressed {
 
@@ -163,8 +162,8 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                     //Page page = new Page("", 8);
                     //navigation.openCurrentPage(page);
                     Intent intent = new Intent(context, PlaceChooserActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
-                    startActivity(intent);
+                    //intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+                    startActivityForResult(intent, PLACE_PICKER_REQUEST);
                     /*PlacePicker.IntentBuilder builderMap = placeBuilder();
                     //Context context = getApplicationContext();
                     try {
@@ -240,6 +239,64 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.d(LOG_TAG, "onActivityResult PLACE_PICKER_REQUEST "+new Exception().getStackTrace()[0].getLineNumber());
+        switch(requestCode)
+        {
+            case PLACE_PICKER_REQUEST: {
+                //navigation.backPress();
+                Log.d(LOG_TAG, "onActivityResult PLACE_PICKER_REQUEST "+new Exception().getStackTrace()[0].getLineNumber());
+                if (data == null) {
+                    return;
+                }
+                Place place = PlacePicker.getPlace(getActivity(), data);
+                log.info(LOG_TAG + "\n" + "you finde store_from_fns " + place.getName() + " address " + place.getAddress());
+                InvoiceData invoiceData = currentInvoice;
+                if (invoiceData.store_on_map == null)
+                {
+                    invoiceData.store_on_map = new InvoiceData.Store_on_map();
+                }
+                //if(place.getName().toString().contains(place.getLatLng().))
+
+                if (!Pattern.matches(".*[-]?\\d{1,2}.\\d{1,2}.\\d{1,2}[.,]{1}\\d{1,2}.\\w.*", place.getName().toString()))
+                    invoiceData.store_on_map.name = place.getName().toString();
+                invoiceData.store_on_map.address = place.getAddress().toString();
+                invoiceData.store_on_map.longitude = place.getLatLng().longitude;
+                invoiceData.store_on_map.latitude = place.getLatLng().latitude;
+                invoiceData.store_on_map.place_id = place.getId();
+                if(invoiceData.store_from_fns == null)
+                    invoiceData.store_from_fns = new InvoiceData.Store_from_fns();
+                invoiceData.store_from_fns._status = 1;
+                invoiceData.store_on_map.store_type = place.getPlaceTypes().toString();
+                if (invoiceData.kktRegId != null)
+                    invoiceData.kktRegId._status = 1;
+                /*try {
+
+                    //перенести в асинхронный поток
+                    invoice.setStoreDataFull(invoiceData);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.info(e.toString());
+                }
+                if(invoiceData.get_status() > 900)
+                    invoiceData.set_status(invoiceData.get_status()-999);
+                //обновляем статус чека на подтвержденный если в текущем чеке есть гугл метка
+                invoiceData.set_status(2);
+                invoice.updateInvoice(invoiceData);
+                invoice.reLoadInvoice();
+                placeChooserAdapter.notifyDataSetChanged();
+                */
+
+                AsyncSecondAddInvoice asyncSecondAddInvoice = new AsyncSecondAddInvoice();
+                asyncSecondAddInvoice.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, invoiceData);
+
+                if (invoiceData.store_on_map.place_id != null) {
+                    PhotoTask photoTask = new PhotoTask(500, 500);
+                    photoTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, invoiceData.store_on_map.place_id, invoiceData.store_on_map.latitude.toString(), invoiceData.store_on_map.longitude.toString());
+                }
+                break;
+            }
+        }
+
         if(resultCode == RESULT_OK)
         {
             if(category_chooser_list_adapter!= null) {
@@ -248,6 +305,152 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
             }
         }
         Log.d(LOG_TAG, requestCode +" request code");
+    }
+
+
+    public  class PhotoTask extends AsyncTask<String, String, Void> {
+
+        private int mHeight;
+        private int mWidth;
+        private String filepath;
+        private File file;
+        private InvoiceData invoiceData;
+
+        public PhotoTask(int width, int height) {
+            mHeight = height;
+            mWidth = width;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            Log.d(LOG_TAG, "onPostExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
+            //super.onPostExecute(aVoid);
+            if(navigation.purchasesPageFragment!= null) {
+                Log.d(LOG_TAG, "onPostExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
+                navigation.purchasesPageFragment.onResume();
+            }
+
+            progressBar.setVisibility(View.GONE);
+            if(googleFotoListAdapter == null || googleFotoListAdapter.photoData.size() ==0) {
+                Log.d(LOG_TAG, "onPostExecute  " + "\n" + new Exception().getStackTrace()[0].getLineNumber());
+                blurPlotter.setVisibility(View.GONE);
+                progressBar.setVisibility(View.GONE);
+                addMyPhotoContainer.setVisibility(View.GONE);
+            }
+        }
+
+        @Override
+        protected void onPreExecute() {
+            Log.d(LOG_TAG, "onPreExecute  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
+            //super.onPreExecute();
+            filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
+            file = new File(filepath, "IMG_"+currentInvoice.store_on_map.place_id + ".png");
+            try {
+                this.invoiceData = (InvoiceData) currentInvoice.clone();
+            } catch (CloneNotSupportedException e) {
+                e.printStackTrace();
+                log.info(e.toString());
+            }
+            if(googleFotoListAdapter != null && !file.exists()) {
+                addMyPhotoContainer.setVisibility(View.VISIBLE);
+                blurPlotter.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.VISIBLE);
+                //recyclerViewFotoList.bringToFront();
+            }
+            //googleFotoListAdapter.placePhotoMetadataList.add(getUrlToResource(context, R.drawable.loading_icon));
+            //googleFotoListAdapter.notifyDataSetChanged();
+        }
+        @Override
+        protected void onProgressUpdate(String... values) {
+            // super.onProgressUpdate(values);
+            log.info(LOG_TAG+"\n"+ "post progress ");
+            if(values == null || values.length==0)
+            {
+                onResume();
+            }
+            else if(googleFotoListAdapter != null)
+            {
+                Log.d(LOG_TAG, "onProgressUpdate  " + values[0] +"\n" + values[1] +"\n" + googleFotoListAdapter.placePhotoMetadataList+"\n"+new Exception().getStackTrace()[0].getLineNumber());
+                progressBar.setVisibility(View.GONE);
+                if(googleFotoListAdapter.placePhotoMetadataList !=  null)
+                    googleFotoListAdapter.placePhotoMetadataList.add(values[1]);
+                else
+                    cancel(true);
+                if(googleFotoListAdapter.photoData != null)
+                    googleFotoListAdapter.photoData.put(values[1], values[0]);
+                googleFotoListAdapter.notifyDataSetChanged();
+            }
+        }
+
+        /**
+         * Loads the first photo for a place id from the Geo Data API.
+         * The place id must be the first (and only) parameter.
+         */
+        @Override
+        protected Void doInBackground(String... params) {
+
+            log.info(LOG_TAG+"\n"+ "trying to get place_id image ");
+            if (params.length != 3) {
+                return null;
+            }
+            final String placeId = params[0];
+
+            Display display = getActivity().getWindowManager().getDefaultDisplay();
+            Point size = new Point();
+            display.getSize(size);
+            int width = size.x;
+            int height = size.y;
+
+            String URL = "http://maps.google.com/maps/api/staticmap?center=" +params[1]+","+params[2] + "&zoom=17&size="+width/2+"x"+(int)(height*0.1)+"&scale=2&markers="+params[1]+","+params[2] +"&key="+context.getString(R.string.google_maps_key);
+            Bitmap mapImage = null;
+            Bitmap iconImage = null;
+            mapImage = getBitmapFromUrl(URL);
+            GooglePlace googlePlace = new GooglePlace(placeId, getActivity().getApplicationContext());
+            if(googlePlace.icon != null)
+            {
+                iconImage = getBitmapFromUrl(googlePlace.icon);
+                invoiceData.store_on_map.iconName = googlePlace.icon.substring(googlePlace.icon.lastIndexOf("/")+1);
+                invoiceData.store_on_map.update = true;
+                try {
+                    invoice.setStoreData(invoiceData);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.info(e.toString());
+                    return null;
+                }
+                invoice.reLoadInvoice();
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        invoiceListAdapter.notifyDataSetChanged();
+                    }
+                });
+
+            }
+            saveImages(null, mapImage, iconImage,  placeId);
+            publishProgress();
+
+            if(!file.exists()) {
+                Bitmap image = null;
+                if (googlePlace.photos != null) {
+                    log.info(LOG_TAG+"\n"+ "getting image from google count: " + googlePlace.photos.size());
+                    for (int count = 0; count < googlePlace.photos.size(); count++) {
+                        GooglePlace.Photo photo = googlePlace.photos.get(count);
+                        log.info(LOG_TAG+"\n"+ "add image " + photo.photo_reference);
+                        File file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
+                        if (!file.exists()) {
+                            saveImages(googlePlace.loadImage(photo.photo_reference), placeId, count);
+                            file = new File(cacheDir, "IMG_" + placeId + "_" + count + ".png");
+                        }
+                        Log.d(LOG_TAG, "doInBackground " + file.getPath() +"\n" + photo.photo_reference + "\n" + new Exception().getStackTrace()[0].getLineNumber());
+                        publishProgress(file.getPath(), photo.photo_reference);//cacheDir + "IMG_" + placeId + "_" + count + ".png");
+                    }
+
+                }
+            }
+            return null;
+        }
+
     }
 
     @Override
@@ -806,7 +1009,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
         */
 
     }
-    public class PhotoTask extends AsyncTask<String, String, Void> {
+  /*  public class PhotoTask extends AsyncTask<String, String, Void> {
 
         private int mHeight;
         private int mWidth;
@@ -865,7 +1068,7 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
          * Loads the first photo for a place id from the Geo Data API.
          * The place id must be the first (and only) parameter.
          */
-        @Override
+     /*   @Override
         protected Void doInBackground(String... params) {
             Log.d(LOG_TAG, "doInBackground  " +"\n"+new Exception().getStackTrace()[0].getLineNumber());
             if (params.length != 3) {
@@ -921,5 +1124,5 @@ public class PurchasesPageFragment extends Fragment implements PurchasesListAdap
                 e.printStackTrace();
             }
         }
-    }
+    }*/
 }

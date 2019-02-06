@@ -67,7 +67,7 @@ public class GetFnsData {
         this.android_id=android_id;
     }
 
-    public void setHeaders( QRManager QrObject)
+    public void setHeaders( QRManager QrObject, int key)
     {
         //constract for get ticket
         headerGet= new HashMap();
@@ -80,11 +80,17 @@ public class GetFnsData {
         //headerGet.put("Connection","Keep-Alive");
         //headerGet.put("Accept-Encoding","gzip");
         //headerGet.put("User-Agent","okhttp/3.0.1");
-        //this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/inns/*/kkts/*/fss/"+QrObject.FN+"/tickets/"+QrObject.FD+"?fiscalSign="+QrObject.FP+"&sendToEmail=no";
-        this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/ofds/*/inns/*/fss/"+QrObject.FN+"/operations/1/tickets/"+QrObject.FD+"?fiscalSign="+QrObject.FP+"&date="+QrObject.date+"&sum="+QrObject.totalSum.replaceAll("[.]", "")+"0";
+        switch(key) {
+            case 1:
+                this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/ofds/*/inns/*/fss/"+QrObject.FN+"/operations/1/tickets/"+QrObject.FD+"?fiscalSign="+QrObject.FP+"&date="+QrObject.date+"&sum="+QrObject.totalSum.replaceAll("[.]", "")+"0";
+            break;
+            case 2:
+                this.urlGet = "https://proverkacheka.nalog.ru:9999/v1/inns/*/kkts/*/fss/" + QrObject.FN + "/tickets/" + QrObject.FD + "?fiscalSign=" + QrObject.FP + "&sendToEmail=no";
+                break;
+        }
     }
 
-    public void setHeaders( QRManager QrObject, int key)
+    /*public void setHeaders( QRManager QrObject, int key)
     {
         //constract for get ticket from 1-ofd
         this.urlGet = "https://consumer.1-ofd.ru/api/tickets/find-ticket";
@@ -94,7 +100,7 @@ public class GetFnsData {
         json.addProperty("fiscalId", QrObject.FP);
         requestBody = okhttp3.RequestBody.create(JSON, json.toString());
 
-    }
+    }*/
     public void setHeaders( int key)
     {
         switch(key)

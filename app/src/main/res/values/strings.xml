@@ -201,5 +201,7 @@
     <string name="button_find_on_map">Укажите на карте</string>
     <string name="select_place_confurm">Выбрать это место?</string>
     <string name="placeSelectFromList">Возможно это одно из предложенных мест:</string>
+    <string name="limit_for_loading_invoice_from_FNS">Достигнут лимит</string>
+    <string name="eccepted_invoice_from_Server">Чек корректен</string>
 
 </resources>

@@ -1,0 +1,51 @@
+{
+  "project_info": {
+    "project_number": "405850648904",
+    "firebase_url": "https://priceceeper-1518013508803.firebaseio.com",
+    "project_id": "priceceeper-1518013508803",
+    "storage_bucket": "priceceeper-1518013508803.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405850648904:android:c5141e6bcb135ad4",
+        "android_client_info": {
+          "package_name": "com.sleepstream.checkkeeper"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "405850648904-j89l8cajflqgupcc019f9bsppvhpkrf1.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "405850648904-j89l8cajflqgupcc019f9bsppvhpkrf1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEOCgPaaRwUuwpK53otMhBeMnR4kP2ggo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "405850648904-j89l8cajflqgupcc019f9bsppvhpkrf1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

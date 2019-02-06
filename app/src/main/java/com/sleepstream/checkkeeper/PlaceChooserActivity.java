@@ -3,13 +3,17 @@ package com.sleepstream.checkkeeper;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +21,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import com.futuremind.recyclerviewfastscroll.FastScroller;
+import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -26,13 +31,18 @@ import com.sleepstream.checkkeeper.MainActivity;
 import com.sleepstream.checkkeeper.Navigation;
 import com.sleepstream.checkkeeper.R;
 import com.sleepstream.checkkeeper.invoiceObjects.InvoiceData;
+import com.sleepstream.checkkeeper.modules.GooglePlace;
 import com.sleepstream.checkkeeper.modules.PlaceChooserAdapter;
 import com.sleepstream.checkkeeper.modules.WrapContentLinearLayoutManager;
 import com.squareup.timessquare.CalendarPickerView;
 
+import java.io.File;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
+import static com.sleepstream.checkkeeper.modules.InvoicesPageFragment.invoiceListAdapter;
+import static com.sleepstream.checkkeeper.modules.PurchasesPageFragment.googleFotoListAdapter;
 
 public class PlaceChooserActivity extends AppCompatActivity {
 
@@ -87,7 +97,10 @@ public class PlaceChooserActivity extends AppCompatActivity {
             public void onClick(View v) {
                 PlacePicker.IntentBuilder builderMap = placeBuilder();
                 try {
-                    startActivityForResult(builderMap.build((Activity)context), PLACE_PICKER_REQUEST);
+                    Intent intent = builderMap.build((Activity)context);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+                    startActivity(intent);
+                    finish();
 
                 } catch (Exception e) {
                     log.info(LOG_TAG + "\n"+ e.getMessage() + "\nError starting map");
@@ -136,10 +149,11 @@ public class PlaceChooserActivity extends AppCompatActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
         setResult(resultCode, data);
         finish();
     }
+
+
 
     public void PlaceChooserFragmentSet(Navigation navigation) {
         this.navigation = navigation;
@@ -210,7 +224,7 @@ public class PlaceChooserActivity extends AppCompatActivity {
                 Integer key = null;
                 for(Map.Entry<Integer, Long> entry : position.entrySet())
                 {
-                    if(entry.getValue().equals(item))
+                    if(entry.getValue() != null && entry.getValue().equals(item))
                     {
                         key = entry.getKey();
                         break;

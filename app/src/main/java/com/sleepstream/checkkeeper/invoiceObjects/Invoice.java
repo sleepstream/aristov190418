@@ -322,6 +322,217 @@ public class Invoice {
         
     }
 
+    public void reLoadInvoiceJoin(int key)
+    {
+        String query ="";
+        switch(key)
+        {
+            case 1://confirmed
+            {
+                query = "SELECT \n" +
+                        "invoice.id, \n" +
+                        "(select count(*) from purchases where purchases.fk_purchases_invoice = invoice.id) as purchase_quantity,\n" +
+                        "kktRegId_store_links.id as kktRegId_store_links_id,\n" +
+                        "kktRegId.id as kktRegId_id,\n" +
+                        "stores_links.id as stores_links_id,\n" +
+                        "invoice.google_id,\n" +
+                        "invoice.fk_invoice_kktRegId_store_links,\n" +
+                        "invoice.fk_invoice_kktRegId_store_links_google_id,\n" +
+                        "invoice.fk_invoice_accountinglist_google_id,\n" +
+                        "invoice.date_add,\n" +
+                        "invoice.dateInvoice,\n" +
+                        "invoice.fullPrice,\n" +
+                        "invoice.FP,\n" +
+                        "invoice.FD,\n" +
+                        "invoice.FN,\n" +
+                        "invoice.userInn,\n" +
+                        "invoice.ecashTotalSum,\n" +
+                        "invoice.cashTotalSum,\n" +
+                        "invoice.user_google_id,\n" +
+                        "invoice._order,\n" +
+                        "invoice._status,\n" +
+                        "invoice.date_day,\n" +
+                        "invoice._pinned,\n" +
+                        "invoice.in_basket,\n" +
+                        "invoice.longitudeAdd,\n" +
+                        "invoice.latitudeAdd,\n" +
+                        "invoice.repeatCount,\n" +
+                        "invoice.server_status,\n" +
+                        "kktRegId.google_id as kktRegId_google_id,\n" +
+                        "kktRegId._status as kktRegId_status,\n" +
+                        "kktRegId.date_add as kktRegId_date_add,\n" +
+                        "kktRegId.kktRegId as kktRegId,\n"+
+                        "stores_on_map.id as stores_on_map_id,\n" +
+                        "stores_on_map.google_id as stores_on_map_google_id,\n" +
+                        "stores_on_map.name as stores_on_map_name,\n" +
+                        "stores_on_map.address as stores_on_map_address, \n" +
+                        "stores_on_map.latitude as stores_on_map_latitude,\n" +
+                        "stores_on_map.longitude as stores_on_map_longitude, \n" +
+                        "stores_on_map.store_type as stores_on_map_store_type, \n" +
+                        "stores_on_map.date_add as stores_on_map_date_add, \n" +
+                        "stores_on_map.place_id as stores_on_map_place_id, \n" +
+                        "stores_on_map.iconName as stores_on_map_iconName, \n" +
+                        "stores_on_map.photo_reference as stores_on_map_photo_reference,\n" +
+                        "stores_on_map._status as stores_on_map__status \n" +
+                        "FROM invoice inner join kktRegId_store_links ON invoice.fk_invoice_kktRegId_store_links = kktRegId_store_links.id\n" +
+                        "inner join kktRegId ON kktRegId_store_links.fk_kktRegId=kktRegId.id\n" +
+                        "inner join stores_links ON stores_links.id = kktRegId_store_links.fk_stores_links \n" +
+                        "inner join stores_on_map on stores_on_map.id = stores_links.fk_stores_on_map \n" +
+                        "where stores_on_map.place_id not null";
+
+
+                break;
+            }
+            case 2: //not confirmed
+            {
+                query = "SELECT *,"+
+                        "(select count(*) from purchases where purchases.fk_purchases_invoice = invoice.id) as purchase_quantity "+
+                        "FROM invoice where in_basket = 0 "+
+                        "inner join kktRegId_store_links ON invoice.fk_invoice_kktRegId_store_links = kktRegId_store_links.id " +
+                        "inner join kktRegId ON kktRegId_store_links.fk_kktRegId=kktRegId.id " +
+                        "inner join stores_links ON stores_links.id = kktRegId_store_links.fk_stores_links " +
+                        "left join stores_on_map on stores_on_map.id = stores_links.fk_stores_on_map "+
+                        "where stores_on_map.place_id is null";
+                break;
+            }
+            case 3://just added
+            {
+                query="SELECT * FROM invoice where invoice.fk_invoice_kktRegId_store_links is null and in_basket = 0";
+                break;
+            }
+        }
+
+        if(query.length()>0)
+        {
+            Cursor cur = dbHelper.rawQuery(query, null);
+            List<InvoiceData> invoices = loadDataJoin(cur);
+            cur.close();
+            if(invoices.size()>0)
+            {
+                this.invoices.clear();
+                this.invoices.addAll(invoices);
+                invoices= null;
+                Log.d(LOG_TAG, "Reload Loaded from DB records " + this.invoices.size());
+            }
+            else
+            {
+                this.invoices.clear();
+                //InvoicesPageFragment.placeChooserAdapter.swap(null);
+                Log.d(LOG_TAG, " Reload No records in DB size "+ this.invoices.size());
+            }
+        }
+    }
+
+    public List<InvoiceData> loadDataJoin(Cursor cur)
+    {
+        List<InvoiceData> invoiceDataTMP = new ArrayList<>();
+        if(cur.moveToFirst())
+        {
+            do {
+                InvoiceData invoiceData = new InvoiceData();
+
+                invoiceData.FP = cur.getString(cur.getColumnIndex("FP"));
+                invoiceData.FD = cur.getString(cur.getColumnIndex("FD"));
+                invoiceData.FN = cur.getString(cur.getColumnIndex("FN"));
+                invoiceData.setDateInvoice(Long.parseLong(cur.getString(cur.getColumnIndex("dateInvoice"))));
+                invoiceData.setFullPrice(Float.parseFloat(cur.getString(cur.getColumnIndex("fullPrice"))));
+                invoiceData.setId(cur.getInt(cur.getColumnIndex("id")));
+                invoiceData.set_order(cur.getInt(cur.getColumnIndex("_order")));
+                invoiceData.setIn_basket(cur.getInt(cur.getColumnIndex("in_basket")));
+                invoiceData.set_status(cur.getInt(cur.getColumnIndex("_status")));
+                invoiceData.repeatCount =cur.getInt(cur.getColumnIndex("repeatCount"));
+                invoiceData.setDate_add(cur.getLong(cur.getColumnIndex("date_add")));
+
+                if(!cur.isNull(cur.getColumnIndex("fk_invoice_kktRegId_store_links")))
+                    invoiceData.fk_invoice_kktRegId_store_links = cur.getLong(cur.getColumnIndex("fk_invoice_kktRegId_store_links"));
+                if(!cur.isNull(cur.getColumnIndex("latitudeAdd")))
+                    invoiceData.latitudeAdd =cur.getDouble(cur.getColumnIndex("latitudeAdd"));
+                if(!cur.isNull(cur.getColumnIndex("longitudeAdd")))
+                    invoiceData.longitudeAdd =cur.getDouble(cur.getColumnIndex("longitudeAdd"));
+                if(!cur.isNull(cur.getColumnIndex("server_status")))
+                    invoiceData.server_status =cur.getInt(cur.getColumnIndex("server_status"));
+                if(!cur.isNull(cur.getColumnIndex("google_id")))
+                    invoiceData.google_id = cur.getString(cur.getColumnIndex("google_id"));
+                if(!cur.isNull(cur.getColumnIndex("fk_invoice_accountinglist_google_id")))
+                    invoiceData.fk_invoice_accountinglist_google_id =cur.getString(cur.getColumnIndex("fk_invoice_accountinglist_google_id"));
+                if(!cur.isNull(cur.getColumnIndex("user_google_id")))
+                    invoiceData.user_google_id =cur.getString(cur.getColumnIndex("user_google_id"));
+                if(!cur.isNull(cur.getColumnIndex("purchase_quantity")))
+                    invoiceData.quantity =cur.getInt(cur.getColumnIndex("purchase_quantity"));
+
+
+                //load accounting lists for one invoice
+                Cursor cur_accountinglist = dbHelper.query(tableNameAccountinglist__invoice_links, null,"fk_invoice=?",
+                        new String[]{invoiceData.getId().toString()}, null, null, null, null);
+                if(cur_accountinglist.moveToFirst())
+                {
+                    List<Integer> fk_accountinglist = new ArrayList<>();
+                    do{
+                        fk_accountinglist.add(cur_accountinglist.getInt(cur_accountinglist.getColumnIndex("fk_accountinglist")));
+                    }
+                    while(cur_accountinglist.moveToNext());
+
+                    if(fk_accountinglist.size()>0)
+                    {
+                        invoiceData.setFk_invoice_accountinglist(fk_accountinglist);
+                    }
+
+                }
+                cur_accountinglist.close();
+
+
+                InvoiceData.KktRegId kktRegId_data = new InvoiceData.KktRegId();
+
+                if(!cur.isNull(cur.getColumnIndex("kktRegId_id")))
+                    kktRegId_data.id = cur.getInt(cur.getColumnIndex("kktRegId_id"));
+                if(!cur.isNull(cur.getColumnIndex("kktRegId_google_id")))
+                    kktRegId_data.google_id = cur.getString(cur.getColumnIndex("kktRegId_google_id"));
+                if(!cur.isNull(cur.getColumnIndex("kktRegId")))
+                    kktRegId_data.kktRegId = cur.getLong(cur.getColumnIndex("kktRegId"));
+                if(!cur.isNull(cur.getColumnIndex("kktRegId_status")))
+                    kktRegId_data._status = cur.getInt(cur.getColumnIndex("kktRegId_status"));
+
+                invoiceData.kktRegId = kktRegId_data;
+                invoiceData.store_on_map = new InvoiceData.Store_on_map();
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_id")))
+                    invoiceData.store_on_map.id = cur.getInt(cur.getColumnIndex("stores_on_map_id"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_google_id")))
+                    invoiceData.store_on_map.google_id = cur.getString(cur.getColumnIndex("stores_on_map_google_id"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_name")))
+                    invoiceData.store_on_map.name = cur.getString(cur.getColumnIndex("stores_on_map_name"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_address")))
+                    invoiceData.store_on_map.address = cur.getString(cur.getColumnIndex("stores_on_map_address"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_latitude")))
+                    invoiceData.store_on_map.latitude = cur.getDouble(cur.getColumnIndex("stores_on_map_latitude"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_longitude")))
+                    invoiceData.store_on_map.longitude = cur.getDouble(cur.getColumnIndex("stores_on_map_longitude"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_store_type")))
+                    invoiceData.store_on_map.store_type = cur.getString(cur.getColumnIndex("stores_on_map_store_type"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_date_add")))
+                    invoiceData.store_on_map.date_add = cur.getLong(cur.getColumnIndex("stores_on_map_date_add"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_place_id")))
+                    invoiceData.store_on_map.place_id = cur.getString(cur.getColumnIndex("stores_on_map_place_id"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_iconName")))
+                    invoiceData.store_on_map.iconName = cur.getString(cur.getColumnIndex("stores_on_map_iconName"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_photo_reference")))
+                    invoiceData.store_on_map.photo_reference = cur.getString(cur.getColumnIndex("stores_on_map_photo_reference"));
+                if(!cur.isNull(cur.getColumnIndex("stores_on_map_status")))
+                    invoiceData.store_on_map._status = cur.getInt(cur.getColumnIndex("stores_on_map_status"));
+
+
+
+                Cursor cur_linked_objects = dbHelper.query(tableNameLinkedObjects, null, "fk_name = ? and fk_id = ?", new String[]{tableNameInvoice, invoiceData.getId().toString()}, null, null, null, null);
+                if(cur_linked_objects.moveToFirst())
+                    invoiceData.setPinId(cur_linked_objects.getInt(cur_linked_objects.getColumnIndex("id")));
+                invoiceDataTMP.add(invoiceData);
+                cur_linked_objects.close();
+
+            }
+            while(cur.moveToNext());
+        }
+        return invoiceDataTMP;
+    }
+
     public List<InvoiceData> loadData(Cursor cur)
     {
         List<InvoiceData> invoiceDataTMP = new ArrayList<>();

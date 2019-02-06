@@ -2163,7 +2163,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         }
 
     }
-    private Bitmap getBitmapFromUrl(String url)
+    public static Bitmap getBitmapFromUrl(String url)
     {
         Bitmap image = null;
         OkHttpClient httpclient = new OkHttpClient();
@@ -2191,7 +2191,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
         return image;
     }
 
-    private static void saveImages(Bitmap image, Bitmap mapImage, Bitmap iconImage, String placeId)
+    public static void saveImages(Bitmap image, Bitmap mapImage, Bitmap iconImage, String placeId)
     {
         try {
             String filepath = Environment.getExternalStorageDirectory()+"/PriceKeeper/storeImage/";
@@ -2237,7 +2237,7 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
             ex.printStackTrace();
         }
     }
-    private void saveImages(Bitmap image, String place_id, int count)
+    public static void saveImages(Bitmap image, String place_id, int count)
     {
         FileOutputStream fOut= null;
 
@@ -2291,6 +2291,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
     {
         if(status != null) {
             switch (status) {
+                case -6:
+                    return context.getText(R.string.limit_for_loading_invoice_from_FNS).toString();
                 case -5:
                     return context.getText(R.string.waiting_for_loading_invoice_from_FNS).toString();
                 case -3:
@@ -2307,6 +2309,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                     return context.getText(R.string.loading_invoice_from_FNS).toString();
                 case 4:
                     return context.getText(R.string.loading_invoice_from_Server).toString();
+                case 5:
+                    return context.getText(R.string.eccepted_invoice_from_Server).toString();
                 default:
                     return "";
             }
@@ -2369,6 +2373,8 @@ public class MainActivity extends AppCompatActivity implements InvoiceListAdapte
                 case -3://Not Found from FNS
                     return true;
                 case -4://Not Acceptable from FNS
+                    return true;
+                case -6://Limit for current user
                     return true;
                 default:
                     return false;

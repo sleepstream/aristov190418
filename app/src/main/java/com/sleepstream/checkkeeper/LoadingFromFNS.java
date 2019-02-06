@@ -24,6 +24,8 @@ import okhttp3.Response;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.Objects;
 
 import static com.sleepstream.checkkeeper.MainActivity.*;
 
@@ -229,7 +231,19 @@ public class LoadingFromFNS extends Service {
             log.info(LOG_TAG+"\n"+"loadingFromFNS");
             int count = 0;
             boolean loop = true;
-            while (loop && user._status == 1) {
+            while (loop && user._status == 1)
+            {
+
+                if(settings.settings.containsKey("LimitExceed"))
+                {
+                    long limitDate = Long.valueOf(Objects.requireNonNull(settings.settings.get("LimitExceed")));
+                    long time =new Date().getTime();
+                    if((time-limitDate)< 86400)
+                    {
+                        log.info(LOG_TAG+"\n"+" limit time now  " + (time-limitDate));
+                        continue;
+                    }
+                }
                 //status 0 - just loaded waiting for loading
                 //status 3 - loading in progress
                 //status -1 - error loading from FNS not exist
@@ -240,12 +254,13 @@ public class LoadingFromFNS extends Service {
                 //status 999 - block invoice to plaice on map
                 QRManager qrItem;
                 invoice = new Invoice(null);
-                invoice.setfilter("_status", count == 0 ? new String[]{"0", "-1", "-2", "-4", "3", "-3", "999"} : new String[]{"0", "-1", "-2", "-4","-3"});
+                invoice.setfilter("_status", count == 0 ? new String[]{"0", "-1", "-2", "-4", "3", "-3", "999", "5","-6"} : new String[]{"0", "-1", "-2", "-4","-3", "5", "-6"});
                 invoice.reLoadInvoice();
                 log.info(LOG_TAG+"\n"+"reloaded from DB " + invoice.invoices.size());
                 if(invoice.invoices.size()<=0)
                 {
-                    try {
+                    try
+                    {
                         Thread.sleep(PauseService);
                     } catch (InterruptedException e1) {
                         e1.printStackTrace();
@@ -257,10 +272,12 @@ public class LoadingFromFNS extends Service {
                 {
 
                     final InvoiceData invoiceData = invoice.invoices.get(i);
-                    if(invoiceData.repeatCount < limitRepeatLoading) {
+                    if(invoiceData.repeatCount < limitRepeatLoading)
+                    {
                         invoiceData.set_status(3);
 
-                        try {
+                        try
+                        {
                             invoice.updateInvoice(invoiceData);
                             publishProgress(invoiceData);
                             qrItem = new QRManager(null);
@@ -271,78 +288,123 @@ public class LoadingFromFNS extends Service {
                             qrItem.totalSum = String.valueOf(invoiceData.getFullPrice());
                             invoiceData.repeatCount += 1;
                             boolean onServer = false;
-                            if (On_line && user.google_id != null) {
+                            if (On_line && user.google_id != null)
+                            {
                                 if (invoiceData.google_id != null)
                                     onServer = invoice.getInvoiceFromServer(invoiceData, this);
                                 else
                                     onServer = invoice.getInvoiceFromServer(invoiceData, null);
                             }
 
-                            if (!onServer) {
-                                getFnsData.setHeaders(qrItem);
+                            if (!onServer)
+                            {
+                                if (!invoiceData.get_status().equals(5))
+                                {
+                                    //if excepted - get data
+                                    getFnsData.setHeaders(qrItem, 1);
+                                }
+                                else
+                                {
+                                    getFnsData.setHeaders(qrItem, 2);
+                                }
                                 log.info(LOG_TAG + "\n" + "check new invoice " + invoiceData.getId());
                                 Response response = null;
-                                try {
+                                try
+                                {
                                     response = getFnsData.runGet();
-                                    if (response.message().toLowerCase().equals("unauthorized")) {
-                                        //need to notify user to update password
-                                        log.info(LOG_TAG + "\n" + response.message() + " \nerror\n" + getFnsData.requestStr);
-                                        invoiceData.set_status(-2);
+                                    if (response.code() == 204)
+                                    {
+                                        log.info(LOG_TAG + "\n" + "Status OK, update invoice\n" + getFnsData.requestStr + " code " + response.code());
+                                        invoiceData.set_status(5);
                                         invoice.updateInvoice(invoiceData);
-                                        user._status = -1;
-                                        user.updatePersonalData();
-                                        return null;
-                                    } else if (response.message().toLowerCase().equals("forbidden")) {
-                                        log.info(LOG_TAG + "\n" + response.message() + " \nerror\n" + getFnsData.requestStr);
-                                        invoiceData.set_status(-2);
-                                        invoice.updateInvoice(invoiceData);
-                                        user._status = 0;
-                                        user.updatePersonalData();
-                                        return null;
-                                    } else if (response.message().toLowerCase().equals("ok")) {
-                                        log.info(LOG_TAG + "\n" + "Status OK, update invoice\n" + getFnsData.requestStr);
-                                        invoiceData.set_status(1);
-                                        invoiceData.fromFNS = true;
-                                        fillData(response, invoiceData);
-                                        // notificationId is a unique int for each notification that you must define
-                                        notificationManager.notify(notificationId, mBuilder.build());
-                                    } else if (response.message().toLowerCase().equals("accepted")) {
-                                        log.info(LOG_TAG + "\n" + "Status Accepted, reload from FNS\n" + getFnsData.requestStr);
-                                        Response respRepeat = getFnsData.runGet();
-                                        if (respRepeat.message().toLowerCase().equals("ok")) {
-                                            log.info(LOG_TAG + "\n" + "Status OK, update invoice\n" + getFnsData.requestStr);
+                                        getFnsData.setHeaders(qrItem, 2);
+                                        log.info(LOG_TAG + "\n" + "load checked invoice " + invoiceData.getId());
+                                        response = null;
+                                        response = getFnsData.runGet();
+
+
+                                        if (response.message().toLowerCase().equals("unauthorized"))
+                                        {
+                                            //need to notify user to update password
+                                            log.info(LOG_TAG + "\n" + response.message() + " \nerror\n" + getFnsData.requestStr + " code " + response.code());
+                                            invoiceData.set_status(-2);
+                                            invoice.updateInvoice(invoiceData);
+                                            user._status = -1;
+                                            user.updatePersonalData();
+                                            return null;
+                                        }
+                                        else if (response.message().toLowerCase().equals("forbidden"))
+                                        {
+                                            log.info(LOG_TAG + "\n" + response.message() + " \nerror\n" + getFnsData.requestStr + " code " + response.code());
+                                            invoiceData.set_status(-2);
+                                            invoice.updateInvoice(invoiceData);
+                                            user._status = 0;
+                                            user.updatePersonalData();
+                                            return null;
+                                        }
+                                        else if (response.code() == 200)//(response.message().toLowerCase().equals("ok"))
+                                        {
+                                            log.info(LOG_TAG + "\n" + "Status OK, update invoice\n" + getFnsData.requestStr + " code " + response.code());
                                             invoiceData.set_status(1);
                                             invoiceData.fromFNS = true;
-                                            fillData(respRepeat, invoiceData);
-
+                                            fillData(response, invoiceData);
                                             // notificationId is a unique int for each notification that you must define
                                             notificationManager.notify(notificationId, mBuilder.build());
+                                        }
+                                        else if (response.code() == 202)//(response.message().toLowerCase().equals("accepted"))
+                                        {
+                                            log.info(LOG_TAG + "\n" + "Status Accepted, reload from FNS\n" + getFnsData.requestStr + " code " + response.code());
+                                            Response respRepeat = getFnsData.runGet();
+                                            if (response.code() == 200)//(respRepeat.message().toLowerCase().equals("ok"))
+                                            {
+                                                log.info(LOG_TAG + "\n" + "Status OK, update invoice\n" + getFnsData.requestStr + " code " + respRepeat.code());
+                                                invoiceData.set_status(1);
+                                                invoiceData.fromFNS = true;
+                                                fillData(respRepeat, invoiceData);
+
+                                                // notificationId is a unique int for each notification that you must define
+                                                notificationManager.notify(notificationId, mBuilder.build());
+                                            }
+                                            else
+                                            {
+                                                log.info(LOG_TAG + "\n" + "Status Accepted, reload error\n" + respRepeat.message() + "\n" + "message\n" + getFnsData.requestStr + " code " + respRepeat.code());
+                                                invoiceData.set_status(-1);
+                                                invoice.updateInvoice(invoiceData);
+                                            }
+                                        } else if (response.code() == 406)//response.message().toLowerCase().equals("not acceptable"))
+                                        {
+                                            log.info(LOG_TAG + "\n" + "Status Not Acceptable from Server\n" + getFnsData.requestStr + "\n" + response.message() + "\ncode " + response.code());
+                                            invoiceData.set_status(-4);
+                                            invoice.updateInvoice(invoiceData);
+                                        }
+                                        else if (response.message().toLowerCase().equals("not found"))
+                                        {
+                                            log.info(LOG_TAG + "\n" + "Status Not Found from Server\n" + getFnsData.requestStr + " code " + response.code());
+                                            invoiceData.set_status(-3);
+                                            invoice.updateInvoice(invoiceData);
+                                        } else if (response.code() == 402)
+                                        {
+                                            log.info(LOG_TAG + "\n" + "Dayly limit exceed " + response.code() + "\n" + response.message() + "\n" + getFnsData.requestStr);
+                                            settings.settings.put("LimitExceed", String.valueOf(new Date().getTime()));
+                                            settings.setSettings(settings.settings);
                                         } else {
-                                            log.info(LOG_TAG + "\n" + "Status Accepted, reload error\n" + respRepeat.message() + "\n" + "message\n" + getFnsData.requestStr);
+                                            log.info(LOG_TAG + "\n" + "UnKnown answer from Server " + response.code() + "\n" + response.message() + "\n" + getFnsData.requestStr);
                                             invoiceData.set_status(-1);
                                             invoice.updateInvoice(invoiceData);
                                         }
-                                    } else if (response.message().toLowerCase().equals("not acceptable")) {
-                                        log.info(LOG_TAG + "\n" + "Status Not Acceptable from Server\n" + getFnsData.requestStr);
-                                        invoiceData.set_status(-4);
-                                        invoice.updateInvoice(invoiceData);
-                                    } else if (response.message().toLowerCase().equals("not found")) {
-                                        log.info(LOG_TAG + "\n" + "Status Not Found from Server\n" + getFnsData.requestStr);
-                                        invoiceData.set_status(-3);
-                                        invoice.updateInvoice(invoiceData);
                                     } else {
-                                        log.info(LOG_TAG + "\n" + "UnKnown answer from Server " + response.code() + "\n" + getFnsData.requestStr);
-                                        invoiceData.set_status(-1);
+                                        log.info(LOG_TAG + "\n" + response.message() + " \nerror\n" + getFnsData.requestStr + " message " + response.message() + " code " + response.code());
+                                        invoiceData.set_status(-2);
                                         invoice.updateInvoice(invoiceData);
                                     }
                                 } catch (SocketTimeoutException ex) {
-                                    log.info(LOG_TAG + "\n" + Arrays.toString(ex.getStackTrace()) + "\nerror\n" + getFnsData.requestStr);
+                                    log.info(LOG_TAG + "\n" + Arrays.toString(ex.getStackTrace()) + "\nerror\n" + getFnsData.requestStr + " code ");
                                     invoiceData.set_status(-1);
                                     invoice.updateInvoice(invoiceData);
                                     Log.d(LOG_TAG, "SocketTimeoutException  line 252 \n");
                                     ex.printStackTrace();
                                 } catch (IOException e) {
-                                    log.info(LOG_TAG + "\n" + Arrays.toString(e.getStackTrace()) + "\nerror\n" + getFnsData.requestStr);
+                                    log.info(LOG_TAG + "\n" + Arrays.toString(e.getStackTrace()) + "\nerror\n" + getFnsData.requestStr + " code ");
                                     invoiceData.set_status(-1);
                                     invoice.updateInvoice(invoiceData);
                                     Log.d(LOG_TAG, "IOException line 259\n");
@@ -352,7 +414,9 @@ public class LoadingFromFNS extends Service {
                                         response.close();
                                 }
                             }
-                        } catch (Exception ex) {
+                        }
+                        catch (Exception ex)
+                        {
                             log.info(LOG_TAG + "\n" + Arrays.toString(ex.getStackTrace()) + "error\nException");
                             invoiceData.set_status(-1);
                             invoice.updateInvoice(invoiceData);
